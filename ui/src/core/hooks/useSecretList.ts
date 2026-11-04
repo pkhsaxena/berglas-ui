@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Secret } from '../api'
+import { groupByPattern } from '../group'
 import type { Source } from '../sources'
 import { errText } from './useApp'
 
@@ -36,5 +37,11 @@ export function useSecretList(source: Source | null, enabled: boolean) {
     return (secrets ?? []).filter((s) => s.name.toLowerCase().includes(f))
   }, [secrets, filter])
 
-  return { secrets, shown, loading, error, filter, setFilter, refresh }
+  /** shown, grouped by the source's group pattern; one unkeyed group when it has none */
+  const groups = useMemo(
+    () => (source?.group ? groupByPattern(shown, (s) => s.name, source.group) : [{ key: null, items: shown.map((item) => ({ item, label: item.name })) }]),
+    [shown, source?.group],
+  )
+
+  return { secrets, shown, groups, loading, error, filter, setFilter, refresh }
 }

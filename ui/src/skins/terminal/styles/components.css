@@ -86,6 +86,8 @@ tr.active td { background: var(--t-soft); }
 }
 .rowbtn[aria-current="true"] { background: var(--t-soft); box-shadow: inset 2px 0 0 var(--t-prompt); }
 .rowbtn .meta { color: var(--t-comment); font-size: 12px; display: block; }
+.group-key { padding: 8px 0 2px; position: sticky; top: 0; background: var(--t-bg); z-index: 1; }
+ul.grouped { padding-left: 2ch; border-left: 1px dashed var(--t-line); margin-left: 0.5ch; }
 
 /* controls */
 button, select, input, textarea {

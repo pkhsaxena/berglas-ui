@@ -14,7 +14,7 @@ type Props = {
 }
 
 export function SecretList({ ref, source, selected, onSelect, onCreate }: Props) {
-  const { secrets, shown, loading, error, filter, setFilter, refresh } = useSecretList(source, true)
+  const { secrets, shown, groups, loading, error, filter, setFilter, refresh } = useSecretList(source, true)
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
   const readOnly = readOnlyFor(useSettings(), source)
 
@@ -23,8 +23,7 @@ export function SecretList({ ref, source, selected, onSelect, onCreate }: Props)
       <h2>
         secrets{' '}
         <span className="muted">
-          — {scheme}
-          {source.parent}
+          — {source.label || `${scheme}${source.parent}`}
         </span>
       </h2>
       <div className="term-ln">
@@ -67,16 +66,33 @@ export function SecretList({ ref, source, selected, onSelect, onCreate }: Props)
           {shown.length === 0 ? (
             <div className="muted"># no names match “{filter}”.</div>
           ) : (
-            <ul className="clean scroll">
-              {shown.map((s) => (
-                <li key={s.name} style={{ padding: 0 }}>
-                  <button className="rowbtn" aria-current={s.name === selected ? 'true' : undefined} onClick={() => onSelect(s.name)}>
-                    {s.name}
-                    <span className="meta">updated {ago(s.updatedAt)}</span>
-                  </button>
-                </li>
+            <div className="scroll">
+              {groups.map((g) => (
+                <div key={g.key ?? '\u0000other'}>
+                  {source.group && (
+                    <div className="group-key">
+                      {g.key === null ? <span className="muted"># other</span> : <span className="t-keyword">{g.key}/</span>}
+                    </div>
+                  )}
+                  <ul className={source.group ? 'clean grouped' : 'clean'}>
+                    {g.items.map(({ item: s, label }) => (
+                      <li key={s.name} style={{ padding: 0 }}>
+                        <button
+                          className="rowbtn"
+                          title={s.name}
+                          aria-label={s.name}
+                          aria-current={s.name === selected ? 'true' : undefined}
+                          onClick={() => onSelect(s.name)}
+                        >
+                          {label}
+                          <span className="meta">updated {ago(s.updatedAt)}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </>
       )}

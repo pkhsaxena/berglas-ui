@@ -42,8 +42,13 @@ export function Sources({ sources, configPath, saveError, active, onSelect, onAd
                 aria-current={active && sourceId(active) === sourceId(s) ? 'true' : undefined}
                 onClick={() => onSelect(s)}
               >
-                <span className="t-keyword">{s.backend === 'storage' ? 'berglas://' : 'sm://'}</span>
-                {s.parent}
+                {s.label && <span style={{ marginRight: '1ch' }}>{s.label}</span>}
+                <span className={s.label ? 'muted' : undefined}>
+                  <span className={s.label ? undefined : 't-keyword'}>{s.backend === 'storage' ? 'berglas://' : 'sm://'}</span>
+                  {s.parent}
+                </span>
+                {s.readOnly && <span className="muted small"> · read-only</span>}
+                {s.default && <span className="muted small"> · default</span>}
               </button>
               <button onClick={() => onRemove(s)} aria-label={`remove ${s.parent}`}>
                 remove

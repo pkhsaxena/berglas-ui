@@ -35,7 +35,7 @@ export function useApp() {
       setSources(sources)
       setConfigPath(path)
       setBase(rest)
-      setActive((a) => a ?? sources[0] ?? null)
+      setActive((a) => a ?? sources.find((s) => s.default) ?? sources[0] ?? null)
       setSession(status.credentials ? { kind: 'ready', status } : { kind: 'no-credentials', status })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setSession({ kind: 'unauthorized' })
