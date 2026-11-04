@@ -12,7 +12,7 @@ export function CreateSecret({ source, onCreated, onCancel }: Props) {
   const target = c.ref.name ? refString(c.ref) : refString({ ...c.ref, name: '<name>' })
 
   return (
-    <div className="card">
+    <div className="card wide">
       <h2>
         new secret <span className="muted">— {source.label || source.parent}</span>
       </h2>

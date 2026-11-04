@@ -4,6 +4,7 @@ import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
 import { DeleteSecret } from './DeleteSecret'
 import { useSecret } from '../../../core/hooks/useSecret'
+import { history } from '../../../core/overview'
 import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { Editor } from './Editor'
 import { ago, stamp } from '../../../core/time'
@@ -25,6 +26,7 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
+  const hist = s.versions ? history(s.versions) : null
   const del = useDelete(base, () => {
     onToast('deleted')
     onDeleted()
@@ -83,6 +85,15 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
                 <span className="str">{shown.kmsKey}</span>
               </div>
             )}
+            {hist && hist.first && (
+              <div className="kv">
+                <span className="label">history</span>
+                <span className="str">
+                  {hist.count} version{hist.count === 1 ? '' : 's'} since {stamp(hist.first).slice(0, 10)}
+                  {hist.everyDays && <span className="muted"> · a change every ~{hist.everyDays}d</span>}
+                </span>
+              </div>
+            )}
             {base.backend === 'sm' && (
               <div className="kv">
                 <span className="label">replication</span>
@@ -125,9 +136,12 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
       </div>
 
       <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
-      <Editor base={base} ed={ed} />
-
-      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />
+      {/* the editor takes the versions view's place while editing */}
+      {editing ? (
+        <Editor base={base} ed={ed} />
+      ) : (
+        <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />
+      )}
     </>
   )
 }

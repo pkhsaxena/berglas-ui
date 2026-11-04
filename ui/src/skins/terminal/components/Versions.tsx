@@ -106,7 +106,7 @@ export function Versions({ base, versions, versionsError, shown, onView }: Props
       </div>
 
       {d.result && (
-        <div className="card">
+        <div className="card wide">
           <h2>
             diff{' '}
             <span className="muted">

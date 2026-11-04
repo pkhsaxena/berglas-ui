@@ -20,18 +20,60 @@ strong { color: var(--t-string); font-weight: 500; }
 .top .app { color: var(--t-prompt); }
 .top label { color: var(--t-comment); display: inline-flex; align-items: center; gap: 6px; }
 
-/* app shell: the page never scrolls; the list and detail columns scroll on
-   their own, so a selection stays visible next to the list */
+/* app shell. The layout follows the window width (zooming out widens it):
+   - under 820px: one column (sources, list, detail) and the page scrolls;
+   - 820px+: sources on top, list | detail below, each scrolling on its own;
+   - 1400px+: sources and list stacked on the left, detail full height.
+   Inside the detail area, cards flow into as many 460px+ columns as fit. */
 html, body, #root { height: 100%; }
 #root { display: flex; flex-direction: column; }
 main {
-  flex: 1; min-height: 0; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 18px 14px;
+  flex: 1; min-height: 0; width: 100%; padding: 0 18px 14px;
   display: flex; flex-direction: column;
 }
-.grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
-.list-pane { display: flex; flex-direction: column; min-height: 0; }
+.layout {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; gap: 0 14px; align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "sources" "list" "detail";
+}
+.sources-area { grid-area: sources; min-width: 0; }
+/* in one column the row would shrink the list to nothing, so fix its height */
+.layout > .list-pane { grid-area: list; height: min(60vh, 560px); }
+.detail-col { grid-area: detail; min-width: 0; container: detail / inline-size; }
+@media (min-width: 820px) {
+  .layout {
+    overflow: hidden; align-content: stretch;
+    grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "sources sources" "list detail";
+  }
+  .layout > .list-pane { height: auto; }
+  .detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; scrollbar-gutter: stable; }
+}
+@media (min-width: 1400px) {
+  .layout {
+    grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "sources detail" "list detail";
+  }
+}
+.list-pane { display: flex; flex-direction: column; min-height: 0; container: list / inline-size; }
 .list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; scrollbar-gutter: stable; }
-.detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; scrollbar-gutter: stable; }
+
+.detail-grid {
+  display: grid; gap: 0 14px; align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+}
+.detail-grid > .extra { display: none; }
+/* two columns fit: diffs, the editor and the matrix take both */
+@container detail (min-width: 934px) {
+  .detail-grid > .wide { grid-column: span 2; }
+}
+/* three columns fit: room for the source overview next to an open secret */
+@container detail (min-width: 1408px) {
+  .detail-grid > .extra { display: block; }
+}
 
 /* scrollbars: a thin square thumb in the line colour, brighter while the
    pointer is over the pane. Chrome and Firefox use the standard properties
@@ -54,10 +96,11 @@ main {
   position: absolute; top: -0.8em; left: 10px; margin: 0; padding: 0 6px;
   background: var(--t-bg); color: var(--t-function); font-size: 13px; font-weight: 400;
   text-transform: lowercase; line-height: 1.6;
+  /* a long secret name must not run past the pane: truncate it */
+  max-width: calc(100% - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .card > h2 .muted { text-transform: none; }
 
-.grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0 14px; }
 
 /* key/value */
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
@@ -85,12 +128,22 @@ tr.active td { background: var(--t-soft); }
   color: var(--t-string); overflow-wrap: anywhere;
 }
 .rowbtn[aria-current="true"] { background: var(--t-soft); box-shadow: inset 2px 0 0 var(--t-prompt); }
+.rowbtn .nm { display: block; overflow-wrap: anywhere; }
 .rowbtn .meta { color: var(--t-comment); font-size: 12px; display: block; }
+.rowbtn .ver, .rowbtn .when { display: none; }
+.rowbtn .ver { color: var(--t-number); font-size: 12px; }
+/* a wide list shows the version and exact time on the same line */
+@container list (min-width: 560px) {
+  .rowbtn.secret { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 2ch; align-items: baseline; }
+  .rowbtn.secret .ver, .rowbtn.secret .when { display: inline; }
+  .rowbtn.secret .meta { white-space: nowrap; }
+}
 .group-key { padding: 8px 0 2px; position: sticky; top: 0; background: var(--t-bg); z-index: 1; }
 ul.grouped { padding-left: 2ch; border-left: 1px dashed var(--t-line); margin-left: 0.5ch; }
 
 /* controls */
 button, select, input, textarea {
+  min-width: 0; max-width: 100%;
   font: inherit; color: var(--t-fg); background: transparent;
   border: 1px solid var(--t-line); border-radius: 0; padding: 2px 9px;
 }

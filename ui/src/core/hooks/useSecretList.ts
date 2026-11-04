@@ -1,36 +1,44 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Secret } from '../api'
 import { groupByPattern } from '../group'
-import type { Source } from '../sources'
+import { type Source, sourceId } from '../sources'
 import { errText } from './useApp'
 
-/** Lists the secrets in one source (names and metadata, never values) with a name filter. */
-export function useSecretList(source: Source | null, enabled: boolean) {
-  const [secrets, setSecrets] = useState<Secret[] | null>(null)
+/**
+ * Lists the secrets in one source (names and metadata, never values) with a
+ * name filter. Bump `rev` to reload, e.g. after a create or delete. Loaded
+ * data is tagged with its source, so switching sources never shows the old
+ * source's list.
+ */
+export function useSecretList(source: Source | null, enabled: boolean, rev = 0) {
+  const id = source ? sourceId(source) : ''
+  const [data, setData] = useState<{ id: string; list: Secret[] } | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<{ id: string; message: string } | null>(null)
   const [filter, setFilter] = useState('')
 
   const refresh = useCallback(async () => {
     if (!source) return
+    const forId = sourceId(source)
     setLoading(true)
-    setError('')
+    setError(null)
     try {
       const list = await api.list(source.backend, source.parent)
-      setSecrets(list.sort((a, b) => a.name.localeCompare(b.name)))
+      setData({ id: forId, list: list.sort((a, b) => a.name.localeCompare(b.name)) })
     } catch (e) {
-      setSecrets(null)
-      setError(errText(e))
+      setError({ id: forId, message: errText(e) })
     } finally {
       setLoading(false)
     }
-  }, [source])
+    // rev is a dependency so bumping it reloads
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, rev])
 
-  // Callers key the component using this hook by source, so state starts
-  // fresh when the source changes.
   useEffect(() => {
     if (enabled) void refresh()
   }, [enabled, refresh])
+
+  const secrets = data?.id === id ? data.list : null
 
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase()
@@ -44,5 +52,16 @@ export function useSecretList(source: Source | null, enabled: boolean) {
     [shown, pattern],
   )
 
-  return { secrets, shown, groups, loading, error, filter, setFilter, refresh }
+  return {
+    secrets,
+    shown,
+    groups,
+    loading,
+    error: error?.id === id ? error.message : '',
+    filter,
+    setFilter,
+    refresh,
+  }
 }
+
+export type SecretListState = ReturnType<typeof useSecretList>

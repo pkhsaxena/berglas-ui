@@ -1,20 +1,22 @@
 import type { Ref as ReactRef } from 'react'
-import { useSecretList } from '../../../core/hooks/useSecretList'
+import { versionOf } from '../../../core/api'
+import type { SecretListState } from '../../../core/hooks/useSecretList'
 import { readOnlyFor, useSettings } from '../../../core/settings'
 import type { Source } from '../../../core/sources'
-import { ago } from '../../../core/time'
+import { ago, stamp } from '../../../core/time'
 
 type Props = {
   ref?: ReactRef<HTMLInputElement>
   source: Source
+  list: SecretListState
   selected: string | null
   onSelect: (name: string) => void
   /** shows a "new secret" button when set */
   onCreate?: () => void
 }
 
-export function SecretList({ ref, source, selected, onSelect, onCreate }: Props) {
-  const { secrets, shown, groups, loading, error, filter, setFilter, refresh } = useSecretList(source, true)
+export function SecretList({ ref, source, list, selected, onSelect, onCreate }: Props) {
+  const { secrets, shown, groups, loading, error, filter, setFilter, refresh } = list
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
   const readOnly = readOnlyFor(useSettings(), source)
 
@@ -78,14 +80,18 @@ export function SecretList({ ref, source, selected, onSelect, onCreate }: Props)
                     {g.items.map(({ item: s, label }) => (
                       <li key={s.name} style={{ padding: 0 }}>
                         <button
-                          className="rowbtn"
+                          className="rowbtn secret"
                           title={s.name}
                           aria-label={s.name}
                           aria-current={s.name === selected ? 'true' : undefined}
                           onClick={() => onSelect(s.name)}
                         >
-                          {label}
-                          <span className="meta">updated {ago(s.updatedAt)}</span>
+                          <span className="nm">{label}</span>
+                          <span className="ver">#{versionOf(s)}</span>
+                          <span className="meta">
+                            updated <span className="when">{stamp(s.updatedAt)} · </span>
+                            {ago(s.updatedAt)}
+                          </span>
                         </button>
                       </li>
                     ))}

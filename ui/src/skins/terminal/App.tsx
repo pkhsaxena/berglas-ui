@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { onAuditError, type Ref } from '../../core/api'
 import { useApp } from '../../core/hooks/useApp'
+import { useSecretList } from '../../core/hooks/useSecretList'
 import { SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
 import { CreateSecret } from './components/CreateSecret'
+import { Overview } from './components/Overview'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
@@ -43,6 +45,12 @@ export default function App() {
     const t = window.setTimeout(() => setToast(''), 1600)
     return () => window.clearTimeout(t)
   }, [toast])
+
+  const list = useSecretList(active, session.kind === 'ready', listRev)
+  const select = (name: string) => {
+    setCreating(false)
+    setSelected(name)
+  }
 
   const base: Ref | null = useMemo(
     () => (active && selected ? { backend: active.backend, parent: active.parent, name: selected } : null),
@@ -121,77 +129,84 @@ export default function App() {
           )}
 
           {session.kind === 'ready' && (
-            <>
-              <Sources
-                sources={app.sources}
-                configPath={app.configPath}
-                saveError={app.configError}
-                active={active}
-                onSelect={(s) => {
-                  if (!active || sourceId(active) !== sourceId(s)) {
-                    app.setActive(s)
-                    setSelected(null)
-                  }
-                }}
-                onAdd={(s) => {
-                  const err = app.addSource(s)
-                  if (!err) setSelected(null)
-                  return err
-                }}
-                onRemove={(s) => {
-                  if (active && sourceId(active) === sourceId(s)) setSelected(null)
-                  app.removeSource(s)
-                }}
-              />
+            <div className="layout">
+              <div className="sources-area">
+                <Sources
+                  sources={app.sources}
+                  configPath={app.configPath}
+                  saveError={app.configError}
+                  active={active}
+                  onSelect={(s) => {
+                    if (!active || sourceId(active) !== sourceId(s)) {
+                      app.setActive(s)
+                      setSelected(null)
+                      setCreating(false)
+                    }
+                  }}
+                  onAdd={(s) => {
+                    const err = app.addSource(s)
+                    if (!err) setSelected(null)
+                    return err
+                  }}
+                  onRemove={(s) => {
+                    if (active && sourceId(active) === sourceId(s)) setSelected(null)
+                    app.removeSource(s)
+                  }}
+                />
+              </div>
               {active && (
-                <div className="grid">
+                <>
                   <SecretList
-                    key={`${sourceId(active)}#${listRev}`}
                     ref={filterRef}
                     source={active}
+                    list={list}
                     selected={selected}
-                    onSelect={(n) => {
-                      setCreating(false)
-                      setSelected(n)
-                    }}
+                    onSelect={select}
                     onCreate={() => {
                       setSelected(null)
                       setCreating(true)
                     }}
                   />
                   <div className="detail-col">
-                    {creating ? (
-                      <CreateSecret
-                        key={sourceId(active)}
-                        source={active}
-                        onCancel={() => setCreating(false)}
-                        onCreated={(s) => {
-                          setToast('created')
-                          setCreating(false)
-                          setListRev((n) => n + 1)
-                          setSelected(s.name)
-                        }}
-                      />
-                    ) : base ? (
-                      <SecretDetail
-                        key={`${base.backend}:${base.parent}/${base.name}`}
-                        base={base}
-                        onToast={setToast}
-                        onDeleted={() => {
-                          setSelected(null)
-                          setListRev((n) => n + 1)
-                        }}
-                      />
-                    ) : (
-                      <div className="card">
-                        <h2>secret</h2>
-                        <div className="muted"># pick a secret on the left to see its metadata and versions. values stay hidden until you reveal them.</div>
-                      </div>
-                    )}
+                    <div className="detail-grid">
+                      {creating ? (
+                        <CreateSecret
+                          key={sourceId(active)}
+                          source={active}
+                          onCancel={() => setCreating(false)}
+                          onCreated={(s) => {
+                            setToast('created')
+                            setCreating(false)
+                            setListRev((n) => n + 1)
+                            setSelected(s.name)
+                          }}
+                        />
+                      ) : (
+                        base && (
+                          <SecretDetail
+                            key={`${base.backend}:${base.parent}/${base.name}`}
+                            base={base}
+                            onToast={setToast}
+                            onDeleted={() => {
+                              setSelected(null)
+                              setListRev((n) => n + 1)
+                            }}
+                          />
+                        )
+                      )}
+                      {/* with nothing open the overview fills the area; otherwise it is an extra column when there is room */}
+                      {!base && !creating && (
+                        <div className="card">
+                          <h2>secret</h2>
+                          <div className="muted"># pick a secret to see its metadata and versions. values stay hidden until you reveal them.</div>
+                        </div>
+                      )}
+                      <Overview source={active} list={list} onSelect={select} className={base || creating ? 'extra' : ''} />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
-            </>
+            </div>
           )}
         </main>
       </SettingsContext.Provider>
