@@ -63,9 +63,7 @@ created on first save. Hand edits and top-level comments are kept when the ui wr
 comments inside a `sources` entry are lost when you add or remove a source from the ui. Unknown
 keys are an error, so a typo like `readonly` fails at startup instead of being silently ignored.
 
-- default location: `<user config dir>/berglas-ui/config.yaml`, which is
-  `~/Library/Application Support/berglas-ui/config.yaml` on macOS and
-  `%AppData%\berglas-ui\config.yaml` on Windows
+- default location: `~/.berglas-ui/config.yaml` (on Windows `%USERPROFILE%\.berglas-ui\config.yaml`)
 - override: `-config <path>` or `BERGLAS_UI_CONFIG`
 
 ```yaml
@@ -76,7 +74,7 @@ readOnly: false              # refuse every write, everywhere
 protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
 clipboardClearSeconds: 30    # clear copied values after this; 0 = never
-auditLog: ~/berglas-ui-audit.log   # one json line per write; empty = off
+auditLog: ~/.berglas-ui/audit.log   # one json line per write; empty = off
 credentials:                 # read at startup
   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
   quotaProject: my-project

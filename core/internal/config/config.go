@@ -85,7 +85,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 # revealSeconds: 60            # hide revealed values after this long; 0 = never
 # clipboardClearSeconds: 30    # clear copied values after this long; 0 = never
-# auditLog: ~/berglas-ui-audit.log   # one json line per write, never values
+# auditLog: ~/.berglas-ui/audit.log   # one json line per write, never values
 # credentials:
 #   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
 #   quotaProject: my-project
@@ -101,15 +101,14 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 #     readOnly: true
 `
 
-// DefaultPath is <user config dir>/berglas-ui/config.yaml, e.g.
-// ~/Library/Application Support/berglas-ui/config.yaml on macOS and
-// %AppData%\berglas-ui\config.yaml on Windows.
+// DefaultPath is ~/.berglas-ui/config.yaml on every platform (on Windows,
+// %USERPROFILE%\.berglas-ui\config.yaml), next to where git keeps its config.
 func DefaultPath() (string, error) {
-	dir, err := os.UserConfigDir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "berglas-ui", "config.yaml"), nil
+	return filepath.Join(home, ".berglas-ui", "config.yaml"), nil
 }
 
 // File is a loaded config file. It is safe for concurrent use.
