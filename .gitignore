@@ -1,0 +1,6 @@
+node_modules/
+ui/dist/
+core/webui/dist/*
+!core/webui/dist/.gitkeep
+*.log
+.DS_Store
