@@ -1,0 +1,345 @@
+// Package server exposes the secrets service as a JSON API on localhost and
+// optionally serves the static UI.
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/GoogleCloudPlatform/berglas/v2/pkg/berglas"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"berglas-ui/core/internal/secrets"
+)
+
+// maxBody caps request bodies. Secret Manager values are at most 64 KiB;
+// Cloud Storage values can be larger, so this leaves headroom.
+const maxBody = 8 << 20
+
+// Server is the HTTP API. UI may be nil to run the API alone.
+type Server struct {
+	token   string
+	svc     *secrets.Service
+	ui      fs.FS
+	version string
+	log     *slog.Logger
+}
+
+// New builds a server. token must be a random per-launch secret.
+func New(token string, svc *secrets.Service, ui fs.FS, version string, log *slog.Logger) *Server {
+	return &Server{token: token, svc: svc, ui: ui, version: version, log: log}
+}
+
+// Handler returns the full handler with security middleware applied.
+func (s *Server) Handler() http.Handler {
+	api := http.NewServeMux()
+	api.HandleFunc("GET /api/status", s.handleStatus)
+	api.HandleFunc("GET /api/secrets", s.handleList)
+	api.HandleFunc("GET /api/secrets/versions", s.handleVersions)
+	api.HandleFunc("POST /api/secrets/read", s.handleRead)
+	api.HandleFunc("POST /api/secrets/create", s.handleCreate)
+	api.HandleFunc("POST /api/secrets/update", s.handleUpdate)
+	api.HandleFunc("POST /api/secrets/delete", s.handleDelete)
+	api.HandleFunc("POST /api/secrets/grant", s.handleGrant)
+	api.HandleFunc("POST /api/secrets/revoke", s.handleRevoke)
+	api.HandleFunc("POST /api/bootstrap", s.handleBootstrap)
+	api.HandleFunc("POST /api/resolve", s.handleResolve)
+	api.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusNotFound, "not_found", "no such endpoint")
+	})
+
+	mux := http.NewServeMux()
+	mux.Handle("/api/", sameOrigin(s.requireToken(api)))
+	mux.HandleFunc("GET /auth", s.handleAuth)
+	mux.Handle("/", s.uiHandler())
+	return loopbackHost(securityHeaders(mux))
+}
+
+func (s *Server) uiHandler() http.Handler {
+	if s.ui == nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "# ui not built — run: npm --prefix ui run build, then rebuild the core", http.StatusNotFound)
+		})
+	}
+	files := http.FileServerFS(s.ui)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Unknown paths fall back to index.html so client-side routes load.
+		if p := strings.TrimPrefix(r.URL.Path, "/"); p != "" {
+			if _, err := fs.Stat(s.ui, p); err != nil {
+				r = r.Clone(r.Context())
+				r.URL.Path = "/"
+			}
+		}
+		files.ServeHTTP(w, r)
+	})
+}
+
+type apiError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func writeJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, code int, kind, msg string) {
+	writeJSON(w, code, map[string]apiError{"error": {Code: kind, Message: msg}})
+}
+
+// fail maps library and Google API errors to HTTP statuses. Error text from
+// berglas and Google never contains secret values, so it is passed through.
+func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
+	code, kind := http.StatusBadGateway, "upstream"
+	var gerr *googleapi.Error
+	switch {
+	case errors.Is(err, secrets.ErrInvalid):
+		code, kind = http.StatusBadRequest, "invalid"
+	case errors.Is(err, secrets.ErrModified):
+		code, kind = http.StatusConflict, "modified"
+	case berglas.IsSecretDoesNotExistErr(err):
+		code, kind = http.StatusNotFound, "not_found"
+	case berglas.IsSecretAlreadyExistsErr(err):
+		code, kind = http.StatusConflict, "exists"
+	case errors.As(err, &gerr):
+		code, kind = gerr.Code, "google"
+	case status.Code(err) == codes.PermissionDenied:
+		code, kind = http.StatusForbidden, "permission_denied"
+	case status.Code(err) == codes.NotFound:
+		code, kind = http.StatusNotFound, "not_found"
+	case strings.Contains(err.Error(), "could not find default credentials"):
+		code, kind = http.StatusServiceUnavailable, "no_credentials"
+	}
+	if code == http.StatusForbidden {
+		kind = "permission_denied"
+	}
+	s.log.Warn("request failed", "method", r.Method, "path", r.URL.Path, "status", code, "err", err)
+	writeError(w, code, kind, err.Error())
+}
+
+func decode(w http.ResponseWriter, r *http.Request, v any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBody)
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(v); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid", "bad json body: "+err.Error())
+		return false
+	}
+	return true
+}
+
+func timeout(r *http.Request) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(r.Context(), 60*time.Second)
+}
+
+type statusResp struct {
+	Version     string `json:"version"`
+	Credentials bool   `json:"credentials"`
+	Account     string `json:"account,omitempty"`
+	Project     string `json:"project,omitempty"`
+	Error       string `json:"error,omitempty"`
+	Hint        string `json:"hint,omitempty"`
+}
+
+// handleStatus reports whether Application Default Credentials resolve and,
+// when Google's tokeninfo endpoint says so, which account they belong to.
+func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+	out := statusResp{Version: s.version}
+	const hint = "run: gcloud auth application-default login"
+
+	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		out.Error, out.Hint = err.Error(), hint
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	out.Project = creds.ProjectID
+	tok, err := creds.TokenSource.Token()
+	if err != nil {
+		out.Error, out.Hint = "credentials found but token refresh failed: "+err.Error(), hint
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
+	out.Credentials = true
+	out.Account = tokenEmail(ctx, tok.AccessToken)
+	writeJSON(w, http.StatusOK, out)
+}
+
+// tokenEmail asks Google which account an access token belongs to. It returns
+// "" when the token lacks the email scope or the call fails; that is cosmetic.
+func tokenEmail(ctx context.Context, accessToken string) string {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth2.googleapis.com/tokeninfo",
+		strings.NewReader("access_token="+accessToken))
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	var info struct {
+		Email string `json:"email"`
+	}
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(resp.Body).Decode(&info) != nil {
+		return ""
+	}
+	return info.Email
+}
+
+func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := timeout(r)
+	defer cancel()
+	q := r.URL.Query()
+	list, err := s.svc.List(ctx, secrets.Backend(q.Get("backend")), q.Get("parent"), q.Get("prefix"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"secrets": list})
+}
+
+func (s *Server) handleVersions(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := timeout(r)
+	defer cancel()
+	q := r.URL.Query()
+	list, err := s.svc.Versions(ctx, secrets.Ref{Backend: secrets.Backend(q.Get("backend")), Parent: q.Get("parent"), Name: q.Get("name")})
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"versions": list})
+}
+
+// handleRead is a POST so the secret's coordinates and value never appear in
+// URLs, logs or browser history.
+func (s *Server) handleRead(w http.ResponseWriter, r *http.Request) {
+	var in secrets.Ref
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	sec, err := s.svc.Read(ctx, in)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"secret": sec})
+}
+
+func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
+	var in secrets.CreateInput
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	sec, err := s.svc.Create(ctx, in)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.Info("secret created", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
+	writeJSON(w, http.StatusOK, map[string]any{"secret": sec})
+}
+
+func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
+	var in secrets.UpdateInput
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	sec, err := s.svc.Update(ctx, in)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.Info("secret updated", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
+	writeJSON(w, http.StatusOK, map[string]any{"secret": sec})
+}
+
+func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
+	var in secrets.Ref
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	if err := s.svc.Delete(ctx, in); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.Info("secret deleted", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request) {
+	s.members(w, r, "granted", s.svc.Grant)
+}
+
+func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request) {
+	s.members(w, r, "revoked", s.svc.Revoke)
+}
+
+func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn func(context.Context, secrets.MembersInput) error) {
+	var in secrets.MembersInput
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	if err := fn(ctx, in); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.Info("access "+verb, "backend", in.Backend, "parent", in.Parent, "name", in.Name, "members", in.Members)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
+	var in secrets.BootstrapInput
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
+	defer cancel()
+	if err := s.svc.Bootstrap(ctx, in); err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.Info("bootstrapped", "project", in.ProjectID, "bucket", in.Bucket)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (s *Server) handleResolve(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Ref string `json:"ref"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	ctx, cancel := timeout(r)
+	defer cancel()
+	val, err := s.svc.Resolve(ctx, in.Ref)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"plaintext": val})
+}
