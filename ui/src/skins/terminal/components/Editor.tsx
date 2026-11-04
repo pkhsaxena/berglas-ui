@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
+import { protectedFor, useSettings } from '../../../core/settings'
+import { ConfirmName } from './ConfirmName'
 import { DiffView } from './DiffView'
 
 type Props = { base: Ref; ed: ReturnType<typeof useEditor> }
@@ -10,6 +12,8 @@ export function Editor({ base, ed }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [addErr, setAddErr] = useState('')
+  const [typed, setTyped] = useState('')
+  const isProtected = protectedFor(useSettings(), base)
 
   if (ed.phase === 'idle') return null
   if (ed.phase === 'loading') {
@@ -155,8 +159,15 @@ export function Editor({ base, ed }: Props) {
             </div>
           )}
           <DiffView diff={ed.diff} />
+          {isProtected && (
+            <ConfirmName name={base.name} value={typed} onChange={setTyped} why="this name is protected by config." />
+          )}
           <div className="row">
-            <button className="primary" onClick={ed.save} disabled={ed.phase === 'saving'}>
+            <button
+              className="primary"
+              onClick={() => ed.save(isProtected ? typed : undefined)}
+              disabled={ed.phase === 'saving' || (isProtected && typed !== base.name)}
+            >
               {ed.phase === 'saving' ? 'saving…' : `save to ${target}`}
             </button>
             <button onClick={ed.backToEdit} disabled={ed.phase === 'saving'}>

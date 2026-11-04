@@ -100,7 +100,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
     setPhase('review')
   }
 
-  const save = async () => {
+  /** `confirm` is the typed secret name; required by the core when the name is protected. */
+  const save = async (confirm?: string) => {
     if (!loaded || phase !== 'review') return
     setPhase('saving')
     setError('')
@@ -114,7 +115,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
         ...(base.backend === 'storage'
           ? { expectedGeneration: s.generation, expectedMetageneration: s.metageneration }
           : { expectedVersion: s.version }),
-      })
+      }, confirm)
       cancel()
       onSaved(saved)
     } catch (e) {

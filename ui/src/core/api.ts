@@ -40,13 +40,19 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+/** Header carrying the typed secret name for writes to a protected name. */
+const CONFIRM_HEADER = 'X-Berglas-Confirm'
+
+async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, confirm?: string): Promise<T> {
+  const headers: Record<string, string> = {}
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (confirm) headers[CONFIRM_HEADER] = confirm
   let res: Response
   try {
     res = await fetch(path, {
       method,
       credentials: 'same-origin',
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
@@ -105,7 +111,8 @@ export const api = {
       (x) => x.versions,
     ),
   read: (r: Ref) => call<{ secret: Secret }>('POST', '/api/secrets/read', r).then((x) => x.secret),
-  update: (u: UpdateInput) => call<{ secret: Secret }>('POST', '/api/secrets/update', u).then((x) => x.secret),
+  /** `confirm` is the typed secret name, needed when the name is protected. */
+  update: (u: UpdateInput, confirm?: string) => call<{ secret: Secret }>('POST', '/api/secrets/update', u, confirm).then((x) => x.secret),
 }
 
 /**

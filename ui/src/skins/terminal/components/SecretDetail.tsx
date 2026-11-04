@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
 import { useEditor } from '../../../core/hooks/useEditor'
 import { useSecret } from '../../../core/hooks/useSecret'
-import { readOnlyFor, useSettings } from '../../../core/settings'
+import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { Editor } from './Editor'
 import { ago, stamp } from '../../../core/time'
 import { Value } from './Value'
@@ -22,7 +22,9 @@ export function SecretDetail({ base, onToast }: Props) {
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
-  const readOnly = readOnlyFor(useSettings(), base)
+  const settings = useSettings()
+  const readOnly = readOnlyFor(settings, base)
+  const isProtected = protectedFor(settings, base)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -95,6 +97,7 @@ export function SecretDetail({ base, onToast }: Props) {
             copy value
           </button>
           {readOnly && <span className="muted small"># read-only by config</span>}
+          {!readOnly && isProtected && <span className="pill warn small">protected — saving asks for the name</span>}
           {shown && !editing && !readOnly && (
             <button
               onClick={() => {

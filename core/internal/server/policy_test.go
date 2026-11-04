@@ -68,6 +68,23 @@ func TestReadOnlyRefusesWrites(t *testing.T) {
 	}
 }
 
+func TestProtectedNamesNeedTypedConfirmation(t *testing.T) {
+	h := demoServer(t, "protect: ['*-prod-*']\n")
+	prod := `{"backend":"storage","parent":"demo-bucket","name":"payments-prod-env","plaintext":"eA=="}`
+	if rec := post(h, "/api/secrets/update", prod); rec.Code != http.StatusPreconditionRequired {
+		t.Fatalf("no confirmation: %d %s, want 428", rec.Code, rec.Body)
+	}
+	if rec := post(h, "/api/secrets/update", prod, ConfirmHeader, "payments-dev-env"); rec.Code != http.StatusPreconditionRequired {
+		t.Fatalf("wrong name: %d, want 428", rec.Code)
+	}
+	if rec := post(h, "/api/secrets/update", prod, ConfirmHeader, "payments-prod-env"); rec.Code != http.StatusOK {
+		t.Fatalf("typed name: %d %s, want 200", rec.Code, rec.Body)
+	}
+	if rec := post(h, "/api/secrets/update", update); rec.Code != http.StatusOK {
+		t.Fatalf("unprotected name: %d %s, want 200", rec.Code, rec.Body)
+	}
+}
+
 func TestWritableSourceStillWrites(t *testing.T) {
 	h := demoServer(t, "sources:\n  - {backend: sm, parent: demo-project, readOnly: true}\n")
 	if rec := post(h, "/api/secrets/update", update); rec.Code != http.StatusOK {

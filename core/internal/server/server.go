@@ -224,11 +224,21 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, configResp{Settings: s.cfg.Get().Settings(), Path: s.cfg.Path()})
 }
 
-// guard refuses writes the config forbids. The ui hides those actions too,
-// but the core is the one that enforces them.
-func (s *Server) guard(w http.ResponseWriter, backend secrets.Backend, parent string) bool {
-	if s.cfg.Get().ReadOnlyFor(string(backend), parent) {
+// ConfirmHeader carries the secret name, typed by the user, for writes to a
+// protected name.
+const ConfirmHeader = "X-Berglas-Confirm"
+
+// guard refuses writes the config forbids. The ui hides or gates those
+// actions too, but the core is the one that enforces them. name is "" for
+// writes that are not about one secret (bootstrap).
+func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.Backend, parent, name string) bool {
+	c := s.cfg.Get()
+	if c.ReadOnlyFor(string(backend), parent) {
 		writeError(w, http.StatusForbidden, "read_only", "read-only by config — writes to this source are turned off")
+		return false
+	}
+	if name != "" && c.ProtectedFor(string(backend), parent, name) && r.Header.Get(ConfirmHeader) != name {
+		writeError(w, http.StatusPreconditionRequired, "confirm_required", name+" is protected by config — type its name to confirm")
 		return false
 	}
 	return true
@@ -302,7 +312,7 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var in secrets.CreateInput
-	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
+	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -318,7 +328,7 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	var in secrets.UpdateInput
-	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
+	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -334,7 +344,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	var in secrets.Ref
-	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
+	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -357,7 +367,7 @@ func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn func(context.Context, secrets.MembersInput) error) {
 	var in secrets.MembersInput
-	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
+	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -372,7 +382,7 @@ func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn
 
 func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
 	var in secrets.BootstrapInput
-	if !decode(w, r, &in) || !s.guard(w, secrets.Storage, in.Bucket) {
+	if !decode(w, r, &in) || !s.guard(w, r, secrets.Storage, in.Bucket, "") {
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
