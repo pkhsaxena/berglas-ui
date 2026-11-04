@@ -192,7 +192,7 @@ export default function App() {
                   onSelect={setSelected}
                   onRefresh={refresh}
                 />
-                <div>
+                <div className="detail-col">
                   {base ? (
                     <SecretDetail key={`${base.backend}:${base.parent}/${base.name}`} base={base} onToast={setToast} />
                   ) : (

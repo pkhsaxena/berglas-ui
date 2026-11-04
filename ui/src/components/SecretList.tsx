@@ -26,7 +26,7 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
 
   return (
-    <div className="card">
+    <div className="card list-pane">
       <h2>
         secrets{' '}
         <span className="muted">
@@ -73,7 +73,7 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
           {shown.length === 0 ? (
             <div className="muted"># no names match “{filter}”.</div>
           ) : (
-            <ul className="clean">
+            <ul className="clean scroll">
               {shown.map((s) => (
                 <li key={s.name} style={{ padding: 0 }}>
                   <button className="rowbtn" aria-current={s.name === selected ? 'true' : undefined} onClick={() => onSelect(s.name)}>

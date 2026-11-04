@@ -20,7 +20,18 @@ strong { color: var(--t-string); font-weight: 500; }
 .top .app { color: var(--t-prompt); }
 .top label { color: var(--t-comment); display: inline-flex; align-items: center; gap: 6px; }
 
-main { max-width: 1120px; margin: 0 auto; padding: 8px 18px 40px; }
+/* app shell: the page never scrolls; the list and detail columns scroll on
+   their own, so a selection stays visible next to the list */
+html, body, #root { height: 100%; }
+#root { display: flex; flex-direction: column; }
+main {
+  flex: 1; min-height: 0; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 18px 14px;
+  display: flex; flex-direction: column;
+}
+.grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.list-pane { display: flex; flex-direction: column; min-height: 0; }
+.list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
+.detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; }
 
 /* prompt lines */
 .term-ln { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -34,7 +45,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 8px 18px 40px; }
 }
 .card > h2 .muted { text-transform: none; }
 
-.grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0 14px; align-items: start; }
+.grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 0 14px; }
 
 /* key/value */
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
