@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
+import { useEditor } from '../../../core/hooks/useEditor'
 import { useSecret } from '../../../core/hooks/useSecret'
+import { Editor } from './Editor'
 import { ago, stamp } from '../../../core/time'
 import { Value } from './Value'
 import { Versions } from './Versions'
@@ -13,6 +15,12 @@ type Props = {
 export function SecretDetail({ base, onToast }: Props) {
   const s = useSecret(base)
   const { shown, revealed, hide } = s
+  const ed = useEditor(base, () => {
+    s.selectVersion('')
+    void s.reloadVersions()
+    onToast('saved')
+  })
+  const editing = ed.phase !== 'idle'
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,13 +92,25 @@ export function SecretDetail({ base, onToast }: Props) {
           <button onClick={() => copy(revealed?.text ?? undefined)} disabled={s.busy || !shown}>
             copy value
           </button>
+          {shown && !editing && (
+            <button
+              onClick={() => {
+                hide()
+                void ed.start(s.isLatest ? undefined : versionOf(shown))
+              }}
+            >
+              {s.isLatest ? 'edit' : 'restore this version…'}
+            </button>
+          )}
           <span role="alert" className="t-error">
-            {s.error && `error: ${s.error}`}
+            {(s.error && `error: ${s.error}`) || (!editing && ed.error && `error: ${ed.error}`)}
           </span>
         </div>
 
         <Value value={revealed} onCopy={copy} />
       </div>
+
+      <Editor base={base} ed={ed} />
 
       <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />
     </>

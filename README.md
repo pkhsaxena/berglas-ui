@@ -85,6 +85,24 @@ npm --prefix ui run dev        # terminal 2; proxies /api to $BERGLAS_UI_CORE or
 
 Open the printed link with the port changed to vite's (5173) so the cookie is set for that origin.
 
+## editing
+
+- **edit** opens the latest value. `.env` secrets get a key/value editor, where changing a value
+  rewrites only that line and keeps comments, `export` prefixes and line endings. Any secret can be
+  edited as raw text.
+- **review changes** shows the diff from the loaded value to your draft. Nothing is written until
+  you press **save** there.
+- **conflicts:** the save carries the generation (storage) or version (secret manager) you
+  loaded. If someone saved in between, the save is refused instead of overwriting their change.
+  For `.env` secrets, **reapply my changes to latest** replays only the keys you changed onto the
+  new version and shows the review again. Keys you both changed are flagged.
+  - storage: the check is atomic (a Cloud Storage precondition).
+  - secret manager: berglas has no precondition, so the core re-reads the latest version just
+    before writing. The race window is small but not zero.
+- **restore this version…** (on an old version) opens the editor with that version's value as a
+  draft against the latest, and saves it as a new version.
+- **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
+
 ## security model
 
 The core serves secret values over plain HTTP on a local port, so:

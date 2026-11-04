@@ -1,7 +1,7 @@
 // Diffs between two secret values: line by line for any text, and key by key
 // when both sides are .env files.
 import { diffLines } from 'diff'
-import { parseEnv } from './envfile'
+import { parseEnv, removeKey, setKey } from './envfile'
 
 export type DiffLine = { kind: 'add' | 'del' | 'same'; text: string }
 
@@ -66,6 +66,25 @@ export type Diff = {
   keys: KeyChange[] | null
   lines: DiffLine[]
   identical: boolean
+}
+
+/**
+ * Replays the key changes made from `original` to `draft` onto `latest`, for
+ * when someone saved `latest` while the draft was being edited. Keys that
+ * both sides changed are listed in `overlaps`: the draft's value wins there,
+ * so the caller should point them out before saving.
+ */
+export function reapplyEnv(original: string, draft: string, latest: string): { text: string; overlaps: string[] } {
+  const base = envMap(original)
+  const theirs = envMap(latest)
+  let text = latest
+  const overlaps: string[] = []
+  for (const c of envDiff(original, draft)) {
+    if (c.kind === 'same') continue
+    if (base.get(c.key) !== theirs.get(c.key)) overlaps.push(c.key)
+    text = c.kind === 'removed' ? removeKey(text, c.key) : setKey(text, c.key, c.after)
+  }
+  return { text, overlaps }
 }
 
 /** Diffs two texts, adding the key view when both look like .env files. */

@@ -86,6 +86,28 @@ export const api = {
       (x) => x.versions,
     ),
   read: (r: Ref) => call<{ secret: Secret }>('POST', '/api/secrets/read', r).then((x) => x.secret),
+  update: (u: UpdateInput) => call<{ secret: Secret }>('POST', '/api/secrets/update', u).then((x) => x.secret),
+}
+
+/**
+ * Writes a new version. The expected* fields carry what was loaded; the core
+ * rejects the write with 409 "modified" if the secret moved on since.
+ */
+export type UpdateInput = {
+  backend: Backend
+  parent: string
+  name: string
+  /** base64 */
+  plaintext: string
+  expectedGeneration?: string
+  expectedMetageneration?: string
+  expectedVersion?: string
+}
+
+export function encodeText(text: string): string {
+  let bin = ''
+  for (const b of new TextEncoder().encode(text)) bin += String.fromCharCode(b)
+  return btoa(bin)
 }
 
 /** The id of a version: generation for storage, version for secret manager. */
