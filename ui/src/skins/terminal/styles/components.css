@@ -30,8 +30,20 @@ main {
 }
 .grid { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); }
 .list-pane { display: flex; flex-direction: column; min-height: 0; }
-.list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; }
-.detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; }
+.list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; scrollbar-gutter: stable; }
+.detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; scrollbar-gutter: stable; }
+
+/* scrollbars: a thin square thumb in the line colour, brighter while the
+   pointer is over the pane. Chrome and Firefox use the standard properties
+   (and then ignore ::-webkit-scrollbar); Safari and WebKit webviews use the
+   ::-webkit-scrollbar rules. */
+* { scrollbar-width: thin; scrollbar-color: var(--t-line) transparent; }
+*:hover { scrollbar-color: var(--t-comment) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--t-line); border: 2px solid transparent; background-clip: padding-box; }
+:hover::-webkit-scrollbar-thumb { background-color: var(--t-comment); }
+::-webkit-scrollbar-thumb:active { background-color: var(--t-prompt); }
 
 /* prompt lines */
 .term-ln { white-space: pre-wrap; overflow-wrap: anywhere; }
