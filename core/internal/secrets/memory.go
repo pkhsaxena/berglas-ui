@@ -193,6 +193,14 @@ func (m *Memory) Delete(_ context.Context, r Ref) error {
 	if m.items[k] == nil {
 		return ErrNotFound
 	}
+	if r.Backend == Storage { // same refusal as Service; see its Delete
+		for o := range m.items {
+			if o.backend == Storage && o.parent == r.Parent && o.name != r.Name && strings.HasPrefix(o.name, r.Name) {
+				return fmt.Errorf("%w: %q also starts with %q; berglas deletes by prefix and would fail partway through, so rename or delete %q first",
+					ErrInvalid, o.name, r.Name, o.name)
+			}
+		}
+	}
 	delete(m.items, k)
 	return nil
 }

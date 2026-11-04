@@ -68,6 +68,25 @@ func TestMemoryNotFoundAndExists(t *testing.T) {
 	}
 }
 
+func TestMemoryDeleteRefusesPrefixOfAnotherSecret(t *testing.T) {
+	ctx := context.Background()
+	m := NewMemory()
+	for _, n := range []string{"api", "api-key"} {
+		if _, err := m.Create(ctx, CreateInput{Backend: Storage, Parent: "b", Name: n, Plaintext: []byte("x"), KMSKey: "k"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := m.Delete(ctx, Ref{Backend: Storage, Parent: "b", Name: "api"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("delete prefix: %v, want ErrInvalid", err)
+	}
+	if err := m.Delete(ctx, Ref{Backend: Storage, Parent: "b", Name: "api-key"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Delete(ctx, Ref{Backend: Storage, Parent: "b", Name: "api"}); err != nil {
+		t.Fatalf("delete after sibling is gone: %v", err)
+	}
+}
+
 func TestDemoSeedsHistory(t *testing.T) {
 	m := NewDemo()
 	vs, err := m.Versions(context.Background(), Ref{Backend: Storage, Parent: "demo-bucket", Name: "payments-dev-env"})

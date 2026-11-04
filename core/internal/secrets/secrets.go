@@ -343,6 +343,22 @@ func (s *Service) Delete(ctx context.Context, r Ref) error {
 		return err
 	}
 	if r.Backend == Storage {
+		// berglas collects generations by listing the name as a prefix, then
+		// deletes this name at each one. If another secret starts with this
+		// name, that hits a generation this name never had and fails midway,
+		// after some history is already gone. Refuse up front instead.
+		// Only berglas secrets are listed; other objects with the prefix
+		// would still trip it.
+		siblings, err := s.List(ctx, Storage, r.Parent, r.Name)
+		if err != nil {
+			return err
+		}
+		for _, sib := range siblings {
+			if sib.Name != r.Name {
+				return fmt.Errorf("%w: %q also starts with %q; berglas deletes by prefix and would fail partway through, so rename or delete %q first",
+					ErrInvalid, sib.Name, r.Name, sib.Name)
+			}
+		}
 		return c.Delete(ctx, &berglas.StorageDeleteRequest{Bucket: r.Parent, Object: r.Name})
 	}
 	return c.Delete(ctx, &berglas.SecretManagerDeleteRequest{Project: r.Parent, Name: r.Name})

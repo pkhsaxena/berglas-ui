@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
+import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
+import { DeleteSecret } from './DeleteSecret'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { Editor } from './Editor'
@@ -11,9 +13,10 @@ import { Versions } from './Versions'
 type Props = {
   base: Ref // backend + parent + name, no version
   onToast: (msg: string) => void
+  onDeleted: () => void
 }
 
-export function SecretDetail({ base, onToast }: Props) {
+export function SecretDetail({ base, onToast, onDeleted }: Props) {
   const s = useSecret(base)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -22,6 +25,10 @@ export function SecretDetail({ base, onToast }: Props) {
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
+  const del = useDelete(base, () => {
+    onToast('deleted')
+    onDeleted()
+  })
   const settings = useSettings()
   const readOnly = readOnlyFor(settings, base)
   const isProtected = protectedFor(settings, base)
@@ -108,6 +115,7 @@ export function SecretDetail({ base, onToast }: Props) {
               {s.isLatest ? 'edit' : 'restore this version…'}
             </button>
           )}
+          {shown && !editing && !readOnly && !del.open && <button onClick={del.start}>delete…</button>}
           <span role="alert" className="t-error">
             {(s.error && `error: ${s.error}`) || (!editing && ed.error && `error: ${ed.error}`)}
           </span>
@@ -116,6 +124,7 @@ export function SecretDetail({ base, onToast }: Props) {
         <Value value={revealed} onCopy={copy} />
       </div>
 
+      <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
       <Editor base={base} ed={ed} />
 
       <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />

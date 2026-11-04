@@ -3,6 +3,7 @@ import type { Ref } from '../../core/api'
 import { useApp } from '../../core/hooks/useApp'
 import { SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
+import { CreateSecret } from './components/CreateSecret'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
@@ -12,6 +13,9 @@ export default function App() {
   const app = useApp()
   const { session, active } = app
   const [selected, setSelected] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  // bumped after a create or delete so the list reloads
+  const [listRev, setListRev] = useState(0)
   const [toast, setToast] = useState('')
   const filterRef = useRef<HTMLInputElement>(null)
   const theme = knownTheme(app.theme)
@@ -130,10 +134,43 @@ export default function App() {
               />
               {active && (
                 <div className="grid">
-                  <SecretList key={sourceId(active)} ref={filterRef} source={active} selected={selected} onSelect={setSelected} />
+                  <SecretList
+                    key={`${sourceId(active)}#${listRev}`}
+                    ref={filterRef}
+                    source={active}
+                    selected={selected}
+                    onSelect={(n) => {
+                      setCreating(false)
+                      setSelected(n)
+                    }}
+                    onCreate={() => {
+                      setSelected(null)
+                      setCreating(true)
+                    }}
+                  />
                   <div className="detail-col">
-                    {base ? (
-                      <SecretDetail key={`${base.backend}:${base.parent}/${base.name}`} base={base} onToast={setToast} />
+                    {creating ? (
+                      <CreateSecret
+                        key={sourceId(active)}
+                        source={active}
+                        onCancel={() => setCreating(false)}
+                        onCreated={(s) => {
+                          setToast('created')
+                          setCreating(false)
+                          setListRev((n) => n + 1)
+                          setSelected(s.name)
+                        }}
+                      />
+                    ) : base ? (
+                      <SecretDetail
+                        key={`${base.backend}:${base.parent}/${base.name}`}
+                        base={base}
+                        onToast={setToast}
+                        onDeleted={() => {
+                          setSelected(null)
+                          setListRev((n) => n + 1)
+                        }}
+                      />
                     ) : (
                       <div className="card">
                         <h2>secret</h2>

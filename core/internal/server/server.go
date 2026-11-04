@@ -315,6 +315,9 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
+	if in.Backend == secrets.Storage && in.KMSKey == "" {
+		in.KMSKey = s.cfg.Get().KMSKeyFor(string(in.Backend), in.Parent)
+	}
 	ctx, cancel := timeout(r)
 	defer cancel()
 	sec, err := s.svc.Create(ctx, in)

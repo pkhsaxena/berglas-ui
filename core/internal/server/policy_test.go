@@ -85,6 +85,18 @@ func TestProtectedNamesNeedTypedConfirmation(t *testing.T) {
 	}
 }
 
+func TestCreateUsesSourceKMSKey(t *testing.T) {
+	body := `{"backend":"storage","parent":"demo-bucket","name":"new-one","plaintext":"eA=="}`
+	if rec := post(demoServer(t, ""), "/api/secrets/create", body); rec.Code != http.StatusBadRequest {
+		t.Fatalf("no key anywhere: %d %s, want 400", rec.Code, rec.Body)
+	}
+	h := demoServer(t, "sources:\n  - {backend: storage, parent: demo-bucket, kmsKey: projects/p/locations/global/keyRings/r/cryptoKeys/k}\n")
+	rec := post(h, "/api/secrets/create", body)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "cryptoKeys/k") {
+		t.Fatalf("key from config: %d %s", rec.Code, rec.Body)
+	}
+}
+
 func TestWritableSourceStillWrites(t *testing.T) {
 	h := demoServer(t, "sources:\n  - {backend: sm, parent: demo-project, readOnly: true}\n")
 	if rec := post(h, "/api/secrets/update", update); rec.Code != http.StatusOK {

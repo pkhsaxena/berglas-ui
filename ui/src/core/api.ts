@@ -113,6 +113,18 @@ export const api = {
   read: (r: Ref) => call<{ secret: Secret }>('POST', '/api/secrets/read', r).then((x) => x.secret),
   /** `confirm` is the typed secret name, needed when the name is protected. */
   update: (u: UpdateInput, confirm?: string) => call<{ secret: Secret }>('POST', '/api/secrets/update', u, confirm).then((x) => x.secret),
+  /** kmsKey may be left out for storage when the source has one in the config. */
+  create: (c: CreateInput, confirm?: string) => call<{ secret: Secret }>('POST', '/api/secrets/create', c, confirm).then((x) => x.secret),
+  remove: (r: Omit<Ref, 'version'>, confirm?: string) => call<{ ok: boolean }>('POST', '/api/secrets/delete', r, confirm),
+}
+
+export type CreateInput = {
+  backend: Backend
+  parent: string
+  name: string
+  /** base64 */
+  plaintext: string
+  kmsKey?: string
 }
 
 /**

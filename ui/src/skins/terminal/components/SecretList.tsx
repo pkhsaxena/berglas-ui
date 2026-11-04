@@ -1,5 +1,6 @@
 import type { Ref as ReactRef } from 'react'
 import { useSecretList } from '../../../core/hooks/useSecretList'
+import { readOnlyFor, useSettings } from '../../../core/settings'
 import type { Source } from '../../../core/sources'
 import { ago } from '../../../core/time'
 
@@ -8,11 +9,14 @@ type Props = {
   source: Source
   selected: string | null
   onSelect: (name: string) => void
+  /** shows a "new secret" button when set */
+  onCreate?: () => void
 }
 
-export function SecretList({ ref, source, selected, onSelect }: Props) {
+export function SecretList({ ref, source, selected, onSelect, onCreate }: Props) {
   const { secrets, shown, loading, error, filter, setFilter, refresh } = useSecretList(source, true)
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
+  const readOnly = readOnlyFor(useSettings(), source)
 
   return (
     <div className="card list-pane">
@@ -43,8 +47,9 @@ export function SecretList({ ref, source, selected, onSelect }: Props) {
         <button onClick={refresh} disabled={loading}>
           {loading ? 'loading…' : 'refresh'}
         </button>
+        {onCreate && !readOnly && <button onClick={onCreate}>new</button>}
       </div>
-      <div className="muted small"># press / to filter</div>
+      <div className="muted small"># press / to filter{readOnly && ' · read-only by config'}</div>
 
       {error ? (
         <div role="alert" className="t-error">
