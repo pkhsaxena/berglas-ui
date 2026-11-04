@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { HIDE_AFTER_MS, type Revealed } from '../../../core/hooks/useSecret'
+import type { Revealed } from '../../../core/hooks/useSecret'
+import { useSettings } from '../../../core/settings'
 
 const MASK = '••••••••••••'
 
@@ -11,6 +12,7 @@ type Props = {
 /** A secret value: masked, binary notice, env table or raw text. */
 export function Value({ value, onCopy }: Props) {
   const [view, setView] = useState<'env' | 'raw'>('env')
+  const { revealSeconds } = useSettings()
 
   if (!value) {
     return (
@@ -80,7 +82,7 @@ export function Value({ value, onCopy }: Props) {
         <pre className="value">{value.text}</pre>
       )}
       <div className="muted small">
-        # <span className="t-number">{value.size}</span> bytes · hidden again after {HIDE_AFTER_MS / 1000}s or esc.
+        # <span className="t-number">{value.size}</span> bytes · {revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
       </div>
     </>
   )

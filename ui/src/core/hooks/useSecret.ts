@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, decodeValue, type Ref, type Secret, versionOf } from '../api'
+import { copySecret } from '../clipboard'
 import { type EnvLine, looksLikeEnv, parseEnv } from '../envfile'
+import { useSettings } from '../settings'
 import { errText } from './useApp'
 
-/** A revealed value is dropped from memory after this long. */
-export const HIDE_AFTER_MS = 60_000
+/**
+ * Starts the auto-hide timer for a revealed value or diff, per the
+ * revealSeconds setting (0 = never). Returns the timer id, or undefined.
+ */
+export function scheduleHide(seconds: number, hide: () => void): number | undefined {
+  return seconds > 0 ? window.setTimeout(hide, seconds * 1000) : undefined
+}
 
 export type Revealed = {
   version: string
@@ -27,10 +34,13 @@ export async function readValue(ref: Ref): Promise<{ secret: Secret; value: Reve
 /**
  * One secret: its versions (metadata only), which version is being looked
  * at, and its value once revealed. The value is cleared on hide, on version
- * change, on unmount and after HIDE_AFTER_MS. Callers should key the
- * component using this hook by secret, so state starts fresh per secret.
+ * change, on unmount and after the revealSeconds setting. Copies clear from
+ * the clipboard per clipboardClearSeconds; `onNote` hears about that.
+ * Callers should key the component using this hook by secret, so state
+ * starts fresh per secret.
  */
-export function useSecret(base: Ref) {
+export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
+  const settings = useSettings()
   const [versions, setVersions] = useState<Secret[] | null>(null)
   const [versionsError, setVersionsError] = useState('')
   const [version, setVersion] = useState('') // '' = latest
@@ -76,7 +86,7 @@ export function useSecret(base: Ref) {
       const { value } = await readValue(ref)
       setRevealed(value)
       window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => setRevealed(null), HIDE_AFTER_MS)
+      timer.current = scheduleHide(settings.revealSeconds, () => setRevealed(null))
     } catch (e) {
       setError(errText(e))
     } finally {
@@ -95,7 +105,7 @@ export function useSecret(base: Ref) {
         if (r.text === null) throw new Error('binary value — it cannot be copied as text')
         value = r.text
       }
-      await navigator.clipboard.writeText(value)
+      await copySecret(value, settings.clipboardClearSeconds, onNote)
       return true
     } catch (e) {
       setError(`couldn't copy — ${errText(e)}`)

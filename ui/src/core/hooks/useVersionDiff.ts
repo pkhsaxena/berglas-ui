@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues } from '../diff'
+import { useSettings } from '../settings'
 import { errText } from './useApp'
-import { HIDE_AFTER_MS, readValue } from './useSecret'
+import { readValue, scheduleHide } from './useSecret'
 
 export type VersionDiff = Diff & { from: Secret; to: Secret }
 
 /**
  * Compares two versions of one secret. Showing a diff shows values, so like a
- * reveal it is cleared after HIDE_AFTER_MS, on clear() and on unmount.
+ * reveal it is cleared after the revealSeconds setting, on clear() and on unmount.
  */
 export function useVersionDiff(base: Ref, versions: Secret[] | null) {
+  const settings = useSettings()
   // default: the version before the latest → the latest
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -48,7 +50,7 @@ export function useVersionDiff(base: Ref, versions: Secret[] | null) {
       if (va.value.text === null || vb.value.text === null) throw new Error('one of the versions is binary — only text can be diffed')
       setResult({ ...diffValues(va.value.text, vb.value.text, !!va.value.env && !!vb.value.env), from: a, to: b })
       window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => setResult(null), HIDE_AFTER_MS)
+      timer.current = scheduleHide(settings.revealSeconds, () => setResult(null))
     } catch (e) {
       setError(errText(e))
     } finally {

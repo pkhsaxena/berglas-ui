@@ -17,7 +17,7 @@ type Props = {
 }
 
 export function SecretDetail({ base, onToast, onDeleted }: Props) {
-  const s = useSecret(base)
+  const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
     s.selectVersion('')
@@ -42,7 +42,7 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
   }, [hide])
 
   const copy = async (text?: string) => {
-    if (await s.copy(text)) onToast('copied')
+    if (await s.copy(text)) onToast(settings.clipboardClearSeconds > 0 ? `copied · clears in ${settings.clipboardClearSeconds}s` : 'copied')
   }
 
   return (

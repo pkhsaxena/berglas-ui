@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { type Ref, type Secret, versionOf } from '../../../core/api'
 import { useVersionDiff } from '../../../core/hooks/useVersionDiff'
+import { useSettings } from '../../../core/settings'
 import { stamp } from '../../../core/time'
 import { DiffView } from './DiffView'
 
@@ -15,6 +16,7 @@ type Props = {
 /** Version history with a/b pickers to diff any two versions. */
 export function Versions({ base, versions, versionsError, shown, onView }: Props) {
   const d = useVersionDiff(base, versions)
+  const { revealSeconds } = useSettings()
   const { clear } = d
   const label = base.backend === 'storage' ? 'generation' : 'version'
 
@@ -118,7 +120,8 @@ export function Versions({ base, versions, versionsError, shown, onView }: Props
             </span>
           </div>
           <div className="muted small">
-            # a: {stamp(d.result.from.updatedAt)} → b: {stamp(d.result.to.updatedAt)} · hidden again after 60s or esc.
+            # a: {stamp(d.result.from.updatedAt)} → b: {stamp(d.result.to.updatedAt)} ·{' '}
+            {revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
           </div>
           <DiffView diff={d.result} />
         </div>
