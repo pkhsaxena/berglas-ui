@@ -1,0 +1,17 @@
+/* The entire palette. Theme presets overwrite the nine --t-*
+   properties on <html>; --t-line and --t-soft follow automatically. */
+:root {
+  --t-bg: #282a36; --t-fg: #f8f8f2; --t-comment: #8390b7; --t-keyword: #ff79c6;
+  --t-string: #f1fa8c; --t-function: #50fa7b; --t-number: #bd93f9;
+  --t-prompt: #8be9fd; --t-error: #ff5555;
+  --t-line: color-mix(in srgb, var(--t-fg) 18%, transparent);
+  --t-soft: color-mix(in srgb, var(--t-fg) 7%, transparent);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: dark;
+}
+:root[data-mode="light"] { color-scheme: light; }
+
+.t-comment { color: var(--t-comment); } .t-keyword { color: var(--t-keyword); }
+.t-string { color: var(--t-string); }  .t-function { color: var(--t-function); }
+.t-number { color: var(--t-number); }  .t-prompt { color: var(--t-prompt); }
+.t-error { color: var(--t-error); }
