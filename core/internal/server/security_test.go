@@ -5,9 +5,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"berglas-ui/core/internal/config"
 	"berglas-ui/core/internal/secrets"
 )
 
@@ -15,7 +18,11 @@ const testToken = "t0ken"
 
 func newTestServer() http.Handler {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return New(testToken, &secrets.Service{}, nil, "test", log).Handler()
+	cfg, err := config.Load(filepath.Join(os.TempDir(), "berglas-ui-test-missing", "config.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	return New(testToken, &secrets.Service{}, cfg, nil, "test", log).Handler()
 }
 
 // apiReq builds a request to an endpoint that is rejected by validation before

@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"berglas-ui/core/internal/config"
 	"berglas-ui/core/internal/secrets"
 )
 
@@ -29,20 +30,23 @@ const maxBody = 8 << 20
 type Server struct {
 	token   string
 	svc     *secrets.Service
+	cfg     *config.File
 	ui      fs.FS
 	version string
 	log     *slog.Logger
 }
 
 // New builds a server. token must be a random per-launch secret.
-func New(token string, svc *secrets.Service, ui fs.FS, version string, log *slog.Logger) *Server {
-	return &Server{token: token, svc: svc, ui: ui, version: version, log: log}
+func New(token string, svc *secrets.Service, cfg *config.File, ui fs.FS, version string, log *slog.Logger) *Server {
+	return &Server{token: token, svc: svc, cfg: cfg, ui: ui, version: version, log: log}
 }
 
 // Handler returns the full handler with security middleware applied.
 func (s *Server) Handler() http.Handler {
 	api := http.NewServeMux()
 	api.HandleFunc("GET /api/status", s.handleStatus)
+	api.HandleFunc("GET /api/config", s.handleGetConfig)
+	api.HandleFunc("POST /api/config", s.handleSetConfig)
 	api.HandleFunc("GET /api/secrets", s.handleList)
 	api.HandleFunc("GET /api/secrets/versions", s.handleVersions)
 	api.HandleFunc("POST /api/secrets/read", s.handleRead)
@@ -199,6 +203,44 @@ func tokenEmail(ctx context.Context, accessToken string) string {
 		return ""
 	}
 	return info.Email
+}
+
+type configResp struct {
+	config.Config
+	Path string `json:"path"`
+}
+
+func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	c := s.cfg.Get()
+	if c.Sources == nil {
+		c.Sources = []config.Source{}
+	}
+	writeJSON(w, http.StatusOK, configResp{Config: c, Path: s.cfg.Path()})
+}
+
+// handleSetConfig saves the fields that are present. listen is not settable
+// from the ui; it only takes effect at startup.
+func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Theme   *string          `json:"theme"`
+		Sources *[]config.Source `json:"sources"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	if in.Sources != nil {
+		if err := s.cfg.SetSources(*in.Sources); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	if in.Theme != nil {
+		if err := s.cfg.SetTheme(*in.Theme); err != nil {
+			writeError(w, http.StatusInternalServerError, "config", err.Error())
+			return
+		}
+	}
+	s.handleGetConfig(w, r)
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {

@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"berglas-ui/core/internal/config"
 	"berglas-ui/core/internal/secrets"
 	"berglas-ui/core/internal/server"
 	"berglas-ui/core/webui"
@@ -35,7 +36,12 @@ func main() {
 }
 
 func run() error {
-	listen := flag.String("listen", envOr("BERGLAS_UI_LISTEN", "127.0.0.1:0"), "address to listen on (port 0 picks a free port)")
+	defaultConfig, err := config.DefaultPath()
+	if err != nil {
+		return fmt.Errorf("find config dir: %w", err)
+	}
+	configPath := flag.String("config", envOr("BERGLAS_UI_CONFIG", defaultConfig), "config file (created on first save)")
+	listen := flag.String("listen", os.Getenv("BERGLAS_UI_LISTEN"), "address to listen on; overrides the config file (default 127.0.0.1:0, a free port)")
 	allowNonLoopback := flag.Bool("allow-non-loopback", os.Getenv("BERGLAS_UI_ALLOW_NON_LOOPBACK") == "1",
 		"allow listening on a non-loopback address (only for containers with a 127.0.0.1-bound port mapping)")
 	open := flag.Bool("open", false, "open the ui in the default browser")
@@ -43,6 +49,17 @@ func run() error {
 	flag.Parse()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		return err
+	}
+	if *listen == "" {
+		*listen = cfg.Get().Listen
+	}
+	if *listen == "" {
+		*listen = "127.0.0.1:0"
+	}
 
 	host, _, err := net.SplitHostPort(*listen)
 	if err != nil {
@@ -73,7 +90,7 @@ func run() error {
 
 	srv := &http.Server{
 		Addr:              *listen,
-		Handler:           server.New(token, &secrets.Service{}, ui, version, log).Handler(),
+		Handler:           server.New(token, &secrets.Service{}, cfg, ui, version, log).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	ln, err := net.Listen("tcp", *listen)
@@ -88,7 +105,7 @@ func run() error {
 		linkHost = "127.0.0.1"
 	}
 	link := fmt.Sprintf("http://%s/auth?token=%s", net.JoinHostPort(linkHost, port), token)
-	fmt.Fprintf(os.Stderr, "berglas-ui %s\n# open this link; it carries this session's access token:\n%s\n", version, link)
+	fmt.Fprintf(os.Stderr, "berglas-ui %s\n# config: %s\n# open this link; it carries this session's access token:\n%s\n", version, cfg.Path(), link)
 	if *open {
 		openBrowser(link, log)
 	}

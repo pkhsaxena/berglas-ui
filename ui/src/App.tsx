@@ -3,16 +3,20 @@ import { api, ApiError, type Ref, type Secret, type Status } from './api'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
-import { loadSources, saveSources, type Source, sourceId } from './sources'
-import { onThemeChange, PRESETS, saveTheme, storedTheme } from './theme'
+import { type Source, sourceId } from './sources'
+import { applyTheme, DEFAULT_THEME, knownTheme, PRESETS } from './theme'
 
 type Session = { kind: 'loading' } | { kind: 'unauthorized' } | { kind: 'offline'; message: string } | { kind: 'ok'; status: Status }
 
+const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
 export default function App() {
-  const [theme, setTheme] = useState(storedTheme)
+  const [theme, setTheme] = useState(DEFAULT_THEME)
   const [session, setSession] = useState<Session>({ kind: 'loading' })
-  const [sources, setSources] = useState<Source[]>(loadSources)
-  const [active, setActive] = useState<Source | null>(() => loadSources()[0] ?? null)
+  const [sources, setSources] = useState<Source[]>([])
+  const [configPath, setConfigPath] = useState('')
+  const [configErr, setConfigErr] = useState('')
+  const [active, setActive] = useState<Source | null>(null)
   const [secrets, setSecrets] = useState<Secret[] | null>(null)
   const [listErr, setListErr] = useState('')
   const [loading, setLoading] = useState(false)
@@ -20,11 +24,16 @@ export default function App() {
   const [toast, setToast] = useState('')
   const filterRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => onThemeChange(setTheme), [])
-
   const loadStatus = useCallback(async () => {
     try {
-      setSession({ kind: 'ok', status: await api.status() })
+      const [status, config] = await Promise.all([api.status(), api.config()])
+      const t = knownTheme(config.theme)
+      applyTheme(t)
+      setTheme(t)
+      setSources(config.sources)
+      setConfigPath(config.path)
+      setActive((a) => a ?? config.sources[0] ?? null)
+      setSession({ kind: 'ok', status })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setSession({ kind: 'unauthorized' })
       else setSession({ kind: 'offline', message: e instanceof Error ? e.message : String(e) })
@@ -88,8 +97,20 @@ export default function App() {
   }, [toast])
 
   const updateSources = (list: Source[]) => {
+    const before = sources
     setSources(list)
-    saveSources(list)
+    setConfigErr('')
+    api.setConfig({ sources: list }).catch((e) => {
+      setSources(before)
+      setConfigErr(`couldn't save the config — ${errText(e)}`)
+    })
+  }
+
+  const changeTheme = (name: string) => {
+    applyTheme(name)
+    setTheme(name)
+    setConfigErr('')
+    api.setConfig({ theme: name }).catch((e) => setConfigErr(`theme applied but not saved — ${errText(e)}`))
   }
 
   const base: Ref | null = useMemo(
@@ -110,13 +131,7 @@ export default function App() {
         <span className="spacer" />
         <label>
           theme
-          <select
-            value={theme}
-            onChange={(e) => {
-              setTheme(e.target.value)
-              saveTheme(e.target.value)
-            }}
-          >
+          <select value={theme} onChange={(e) => changeTheme(e.target.value)}>
             {PRESETS.map((p) => (
               <option key={p.name}>{p.name}</option>
             ))}
@@ -166,6 +181,8 @@ export default function App() {
           <>
             <Sources
               sources={sources}
+              configPath={configPath}
+              saveError={configErr}
               active={active}
               onSelect={(s) => {
                 if (!active || sourceId(active) !== sourceId(s)) switchSource(s)

@@ -4,13 +4,15 @@ import { type Source, sourceId } from '../sources'
 
 type Props = {
   sources: Source[]
+  configPath: string
+  saveError: string
   active: Source | null
   onSelect: (s: Source) => void
   onAdd: (s: Source) => void
   onRemove: (s: Source) => void
 }
 
-export function Sources({ sources, active, onSelect, onAdd, onRemove }: Props) {
+export function Sources({ sources, configPath, saveError, active, onSelect, onAdd, onRemove }: Props) {
   const [backend, setBackend] = useState<Backend>('storage')
   const [parent, setParent] = useState('')
   const [err, setErr] = useState('')
@@ -72,6 +74,10 @@ export function Sources({ sources, active, onSelect, onAdd, onRemove }: Props) {
           {err}
         </span>
       </form>
+      <div role="alert" className="t-error">
+        {saveError && `error: ${saveError}`}
+      </div>
+      {configPath && <div className="muted small"># saved in {configPath}</div>}
     </div>
   )
 }

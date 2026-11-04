@@ -30,18 +30,13 @@ export const PRESETS: Preset[] = [
   { name: 'Solarized light', mode: 'light', tokens: t('#fdf6e3', '#586e75', '#687272', '#687700', '#217e77', '#2076b2', '#c8337c', '#8f6c00', '#d5302e') },
 ]
 
-const KEY = 'berglas-ui.theme'
-const DEFAULT = 'Dracula'
+// The chosen theme is saved in the core's config file, not localStorage: the
+// core's random port gives the page a new origin, and so new storage, on
+// every launch.
+export const DEFAULT_THEME = 'Dracula'
 
-export function storedTheme(): string {
-  try {
-    const v = localStorage.getItem(KEY)
-    if (v && PRESETS.some((p) => p.name === v)) return v
-  } catch {
-    // storage blocked: fall back to the default
-  }
-  return DEFAULT
-}
+/** Returns a known preset name, falling back to the default. */
+export const knownTheme = (name: string | undefined) => (PRESETS.some((p) => p.name === name) ? name! : DEFAULT_THEME)
 
 export function applyTheme(name: string) {
   const p = PRESETS.find((x) => x.name === name) ?? PRESETS[0]
@@ -49,25 +44,4 @@ export function applyTheme(name: string) {
   for (const [k, v] of Object.entries(p.tokens)) root.style.setProperty(`--t-${k}`, v)
   root.dataset.mode = p.mode
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', p.tokens.bg)
-}
-
-export function saveTheme(name: string) {
-  try {
-    localStorage.setItem(KEY, name)
-  } catch {
-    // not persisted; still applied for this page
-  }
-  applyTheme(name)
-}
-
-export function onThemeChange(cb: (name: string) => void): () => void {
-  const h = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      const name = storedTheme()
-      applyTheme(name)
-      cb(name)
-    }
-  }
-  window.addEventListener('storage', h)
-  return () => window.removeEventListener('storage', h)
 }

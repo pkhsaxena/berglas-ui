@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	github.com/GoogleCloudPlatform/berglas/v2 v2.0.18
+	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.306.0
 	google.golang.org/grpc v1.84.0

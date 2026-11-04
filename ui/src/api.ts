@@ -66,8 +66,17 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
 
 const qs = (o: Record<string, string>) => new URLSearchParams(o).toString()
 
+export type Config = {
+  theme?: string
+  sources: { backend: Backend; parent: string }[]
+  /** where the core keeps the file, for display */
+  path: string
+}
+
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
+  config: () => call<Config>('GET', '/api/config'),
+  setConfig: (c: Partial<Pick<Config, 'theme' | 'sources'>>) => call<Config>('POST', '/api/config', c),
   list: (backend: Backend, parent: string, prefix = '') =>
     call<{ secrets: Secret[] }>('GET', `/api/secrets?${qs({ backend, parent, prefix })}`).then((r) => r.secrets),
   versions: (r: Ref) =>

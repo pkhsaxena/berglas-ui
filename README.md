@@ -30,6 +30,27 @@ The core picks a free port on 127.0.0.1 and prints a link with a per-launch toke
 pairs the browser via an HttpOnly cookie. Flags: `-listen` (default `127.0.0.1:0`, a random
 port), `-open`, `-api-only`, `-allow-non-loopback` (containers only).
 
+### config file
+
+Sources and the theme are saved to a YAML file, so they survive restarts. Because the port is
+random, the page's origin changes on every launch, so browser storage can't hold them. The file
+is created on first save, and hand edits and comments are kept when the ui writes to it.
+
+- default location: `<user config dir>/berglas-ui/config.yaml`, which is
+  `~/Library/Application Support/berglas-ui/config.yaml` on macOS and
+  `%AppData%\berglas-ui\config.yaml` on Windows
+- override: `-config <path>` or `BERGLAS_UI_CONFIG`
+
+```yaml
+listen: 127.0.0.1:0        # optional; -listen / BERGLAS_UI_LISTEN win
+theme: Dracula
+sources:
+  - backend: storage       # cloud storage + kms (berglas://bucket/...)
+    parent: my-bucket
+  - backend: sm            # secret manager (sm://project/...)
+    parent: my-project
+```
+
 ### ui development
 
 ```bash
