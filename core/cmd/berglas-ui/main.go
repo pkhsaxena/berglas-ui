@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -34,7 +35,7 @@ func main() {
 }
 
 func run() error {
-	listen := flag.String("listen", envOr("BERGLAS_UI_LISTEN", "127.0.0.1:8740"), "address to listen on")
+	listen := flag.String("listen", envOr("BERGLAS_UI_LISTEN", "127.0.0.1:0"), "address to listen on (port 0 picks a free port)")
 	allowNonLoopback := flag.Bool("allow-non-loopback", os.Getenv("BERGLAS_UI_ALLOW_NON_LOOPBACK") == "1",
 		"allow listening on a non-loopback address (only for containers with a 127.0.0.1-bound port mapping)")
 	open := flag.Bool("open", false, "open the ui in the default browser")
@@ -43,7 +44,7 @@ func run() error {
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	host, port, err := net.SplitHostPort(*listen)
+	host, _, err := net.SplitHostPort(*listen)
 	if err != nil {
 		return fmt.Errorf("bad -listen %q: %w", *listen, err)
 	}
@@ -79,6 +80,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	port := strconv.Itoa(ln.Addr().(*net.TCPAddr).Port)
 
 	// In a container the listen host is 0.0.0.0; the browser still uses localhost.
 	linkHost := host

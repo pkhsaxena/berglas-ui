@@ -26,15 +26,15 @@ npm --prefix ui install && npm --prefix ui run build   # builds into core/webui/
 cd core && go run ./cmd/berglas-ui -open
 ```
 
-The core prints a link with a per-launch token. Opening it pairs the browser via an HttpOnly
-cookie. Flags: `-listen` (default `127.0.0.1:8740`), `-open`, `-api-only`,
-`-allow-non-loopback` (containers only).
+The core picks a free port on 127.0.0.1 and prints a link with a per-launch token. Opening it
+pairs the browser via an HttpOnly cookie. Flags: `-listen` (default `127.0.0.1:0`, a random
+port), `-open`, `-api-only`, `-allow-non-loopback` (containers only).
 
 ### ui development
 
 ```bash
-cd core && go run ./cmd/berglas-ui -api-only    # terminal 1
-npm --prefix ui run dev                          # terminal 2, proxies /api to the core
+cd core && go run ./cmd/berglas-ui -api-only -listen 127.0.0.1:8740   # terminal 1
+npm --prefix ui run dev        # terminal 2; proxies /api to $BERGLAS_UI_CORE or 127.0.0.1:8740
 ```
 
 Open the printed link with the port changed to vite's (5173) so the cookie is set for that origin.
