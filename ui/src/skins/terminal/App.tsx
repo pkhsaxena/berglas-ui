@@ -2,15 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { onAuditError, type Ref } from '../../core/api'
 import { useApp } from '../../core/hooks/useApp'
 import { useSecretList } from '../../core/hooks/useSecretList'
+import { matrixOf } from '../../core/overview'
 import { SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
-import { Overview } from './components/Overview'
+import { MatrixPane, OverviewPane } from './components/Overview'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
 import { applyTheme, knownTheme, PRESETS } from './theme'
+
+// the system zone's name for the time switch, e.g. "ist"
+const LOCAL_ZONE = zoneName(new Date())
 
 export default function App() {
   const app = useApp()
@@ -53,6 +57,8 @@ export default function App() {
     setSelected(name)
   }
 
+  const matrix = useMemo(() => (active && list.secrets ? matrixOf(list.secrets, active.group) : null), [active, list.secrets])
+
   const base: Ref | null = useMemo(
     () => (active && selected ? { backend: active.backend, parent: active.parent, name: selected } : null),
     [active, selected],
@@ -78,7 +84,7 @@ export default function App() {
           <label>
             time
             <select value={app.settings.timeZone} onChange={(e) => app.setTimeZone(e.target.value as TimeZone)}>
-              <option value="local">local ({zoneName(new Date())})</option>
+              <option value="local">local ({LOCAL_ZONE})</option>
               <option value="utc">utc</option>
             </select>
           </label>
@@ -139,8 +145,8 @@ export default function App() {
           )}
 
           {session.kind === 'ready' && (
-            <div className="layout">
-              <div className="sources-area">
+            <div className={matrix ? 'layout has-matrix' : 'layout'}>
+              <div className="left">
                 <Sources
                   sources={app.sources}
                   configPath={app.configPath}
@@ -163,9 +169,7 @@ export default function App() {
                     app.removeSource(s)
                   }}
                 />
-              </div>
-              {active && (
-                <>
+                {active && (
                   <SecretList
                     ref={filterRef}
                     source={active}
@@ -177,45 +181,41 @@ export default function App() {
                       setCreating(true)
                     }}
                   />
-                  <div className="detail-col">
-                    <div className="detail-grid">
-                      {creating ? (
-                        <CreateSecret
-                          key={sourceId(active)}
-                          source={active}
-                          onCancel={() => setCreating(false)}
-                          onCreated={(s) => {
-                            setToast('created')
-                            setCreating(false)
-                            setListRev((n) => n + 1)
-                            setSelected(s.name)
-                          }}
-                        />
-                      ) : (
-                        base && (
-                          <SecretDetail
-                            key={`${base.backend}:${base.parent}/${base.name}`}
-                            base={base}
-                            onToast={setToast}
-                            onDeleted={() => {
-                              setSelected(null)
-                              setListRev((n) => n + 1)
-                            }}
-                          />
-                        )
-                      )}
-                      {/* with nothing open the overview fills the area; otherwise it is an extra column when there is room */}
-                      {!base && !creating && (
-                        <div className="card">
-                          <h2>secret</h2>
-                          <div className="muted"># pick a secret to see its metadata and versions. values stay hidden until you reveal them.</div>
-                        </div>
-                      )}
-                      <Overview source={active} list={list} onSelect={select} className={base || creating ? 'extra' : ''} />
-                    </div>
+                )}
+              </div>
+              {/* its own column only when zoomed out; see .matrix-col in the css */}
+              {active && matrix && <MatrixPane className="matrix-col" source={active} matrix={matrix} selected={selected} onSelect={select} />}
+              {active &&
+                (creating ? (
+                  <div className="right single">
+                    <CreateSecret
+                      key={sourceId(active)}
+                      source={active}
+                      onCancel={() => setCreating(false)}
+                      onCreated={(s) => {
+                        setToast('created')
+                        setCreating(false)
+                        setListRev((n) => n + 1)
+                        setSelected(s.name)
+                      }}
+                    />
                   </div>
-                </>
-              )}
+                ) : base ? (
+                  <SecretDetail
+                    key={`${base.backend}:${base.parent}/${base.name}`}
+                    base={base}
+                    onToast={setToast}
+                    onDeleted={() => {
+                      setSelected(null)
+                      setListRev((n) => n + 1)
+                    }}
+                  />
+                ) : (
+                  <div className={matrix ? 'right overview' : 'right overview single'}>
+                    <OverviewPane source={active} list={list} onSelect={select} />
+                    {matrix && <MatrixPane className="matrix-inline" source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                  </div>
+                ))}
             </div>
           )}
         </main>

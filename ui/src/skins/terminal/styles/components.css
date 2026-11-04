@@ -20,11 +20,14 @@ strong { color: var(--t-string); font-weight: 500; }
 .top .app { color: var(--t-prompt); }
 .top label { color: var(--t-comment); display: inline-flex; align-items: center; gap: 6px; }
 
-/* app shell. The layout follows the window width (zooming out widens it):
-   - under 820px: one column (sources, list, detail) and the page scrolls;
-   - 820px+: sources on top, list | detail below, each scrolling on its own;
-   - 1400px+: sources and list stacked on the left, detail full height.
-   Inside the detail area, cards flow into as many 460px+ columns as fit. */
+/* app shell. The page itself never scrolls: every section is a fixed-height
+   pane whose body scrolls on its own.
+   - default: left column = sources (as tall as needed, up to 40%) over the
+     secret list; right column = secret pane over versions pane. Editing or
+     creating replaces the whole right column.
+   - 2000px+ (zoomed out): left | matrix (when the source has a group
+     pattern) | secret | versions, each full height.
+   - under 820px: one column and the page scrolls, as a fallback. */
 html, body, #root { height: 100%; }
 #root { display: flex; flex-direction: column; }
 main {
@@ -32,47 +35,45 @@ main {
   display: flex; flex-direction: column;
 }
 .layout {
-  flex: 1; min-height: 0; overflow-y: auto;
-  display: grid; gap: 0 14px; align-content: start;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "sources" "list" "detail";
+  flex: 1; min-height: 0; display: grid; gap: 0 14px;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2.4fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "left right";
 }
-.sources-area { grid-area: sources; min-width: 0; }
-/* in one column the row would shrink the list to nothing, so fix its height */
-.layout > .list-pane { grid-area: list; height: min(60vh, 560px); }
-.detail-col { grid-area: detail; min-width: 0; container: detail / inline-size; }
-@media (min-width: 820px) {
-  .layout {
-    overflow: hidden; align-content: stretch;
-    grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: "sources sources" "list detail";
-  }
-  .layout > .list-pane { height: auto; }
-  .detail-col { min-height: 0; overflow-y: auto; padding-bottom: 4px; scrollbar-gutter: stable; }
-}
-@media (min-width: 1400px) {
-  .layout {
-    grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: "sources detail" "list detail";
-  }
-}
+.layout > .left { grid-area: left; }
+.layout > .right { grid-area: right; }
+.layout > .matrix-col { grid-area: matrix; display: none; }
+.left, .right { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
+.left { grid-template-rows: fit-content(40%) minmax(0, 1fr); }
+.right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
+.right.single { grid-template-rows: minmax(0, 1fr); }
+
+/* a pane: the title sits in the border, the body scrolls inside it */
+.pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.pane > .body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
 .list-pane { display: flex; flex-direction: column; min-height: 0; container: list / inline-size; }
 .list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; scrollbar-gutter: stable; }
 
-.detail-grid {
-  display: grid; gap: 0 14px; align-items: start;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+/* a block inside a pane body, e.g. the diff or the delete confirmation */
+.section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--t-line); }
+.section.danger { border: 1px solid var(--t-error); padding: 8px 10px; }
+
+@media (min-width: 2000px) {
+  .layout { grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr); }
+  .layout.has-matrix { grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "left matrix right"; }
+  .layout > .matrix-col { display: flex; }
+  .right > .matrix-inline { display: none; }
+  .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  .right.single, .right.overview { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 }
-.detail-grid > .extra { display: none; }
-/* two columns fit: diffs, the editor and the matrix take both */
-@container detail (min-width: 934px) {
-  .detail-grid > .wide { grid-column: span 2; }
-}
-/* three columns fit: room for the source overview next to an open secret */
-@container detail (min-width: 1408px) {
-  .detail-grid > .extra { display: block; }
+
+@media (max-width: 819px) {
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "right"; overflow-y: auto; }
+  .left, .right, .right.single { grid-template-rows: none; }
+  .left > .list-pane { height: min(60vh, 560px); }
+  /* the page scrolls here, so other panes take their natural height */
+  .left, .right, .left > .sources-pane, .right > .pane { min-height: auto; }
+  .left > .sources-pane > .body, .right > .pane > .body { flex: none; overflow: visible; }
 }
 
 /* scrollbars: a thin square thumb in the line colour, brighter while the
@@ -132,11 +133,9 @@ tr.active td { background: var(--t-soft); }
 .rowbtn .meta { color: var(--t-comment); font-size: 12px; display: block; }
 .rowbtn .ver, .rowbtn .when { display: none; }
 .rowbtn .ver { color: var(--t-number); font-size: 12px; }
-/* a wide list shows the version and exact time on the same line */
-@container list (min-width: 560px) {
-  .rowbtn.secret { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 2ch; align-items: baseline; }
+/* a wider list (zoomed out) adds the version and exact time to each row */
+@container list (min-width: 395px) {
   .rowbtn.secret .ver, .rowbtn.secret .when { display: inline; }
-  .rowbtn.secret .meta { white-space: nowrap; }
 }
 .group-key { padding: 8px 0 2px; position: sticky; top: 0; background: var(--t-bg); z-index: 1; }
 ul.grouped { padding-left: 2ch; border-left: 1px dashed var(--t-line); margin-left: 0.5ch; }

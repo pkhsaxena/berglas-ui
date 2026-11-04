@@ -7,10 +7,7 @@ type Props = { base: Ref; versions: number | null; del: ReturnType<typeof useDel
 export function DeleteSecret({ base, versions, del }: Props) {
   if (!del.open) return null
   return (
-    <div className="card" style={{ borderColor: 'var(--t-error)' }}>
-      <h2 className="t-error" style={{ color: 'var(--t-error)' }}>
-        delete
-      </h2>
+    <div className="section danger">
       <div className="term-ln">
         <span className="t-prompt">$</span> <span className="t-function">delete</span> <span className="t-string">{refString(base)}</span>
       </div>

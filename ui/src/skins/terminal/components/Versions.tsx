@@ -29,11 +29,11 @@ export function Versions({ base, versions, versionsError, shown, onView }: Props
   }, [clear])
 
   return (
-    <>
-      <div className="card">
-        <h2>
-          versions <span className="muted">— newest first</span>
-        </h2>
+    <div className="card pane versions-pane">
+      <h2>
+        versions <span className="muted">— newest first</span>
+      </h2>
+      <div className="body">
         {versionsError ? (
           <div className="muted"># unavailable — see the error above.</div>
         ) : versions === null ? (
@@ -103,29 +103,23 @@ export function Versions({ base, versions, versionsError, shown, onView }: Props
             )}
           </>
         )}
-      </div>
 
-      {d.result && (
-        <div className="card wide">
-          <h2>
-            diff{' '}
-            <span className="muted">
-              — {versionOf(d.result.from)} → {versionOf(d.result.to)}
-            </span>
-          </h2>
-          <div className="term-ln">
-            <span className="t-prompt">$</span> <span className="t-function">diff</span>{' '}
-            <span className="t-keyword">
-              #{versionOf(d.result.from)} #{versionOf(d.result.to)}
-            </span>
+        {d.result && (
+          <div className="section">
+            <div className="term-ln">
+              <span className="t-prompt">$</span> <span className="t-function">diff</span>{' '}
+              <span className="t-keyword">
+                #{versionOf(d.result.from)} #{versionOf(d.result.to)}
+              </span>
+            </div>
+            <div className="muted small">
+              # a: {stamp(d.result.from.updatedAt)} → b: {stamp(d.result.to.updatedAt)} ·{' '}
+              {revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
+            </div>
+            <DiffView diff={d.result} />
           </div>
-          <div className="muted small">
-            # a: {stamp(d.result.from.updatedAt)} → b: {stamp(d.result.to.updatedAt)} ·{' '}
-            {revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
-          </div>
-          <DiffView diff={d.result} />
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </div>
   )
 }

@@ -88,8 +88,8 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
                           onClick={() => onSelect(s.name)}
                         >
                           <span className="nm">{label}</span>
-                          <span className="ver">#{versionOf(s)}</span>
                           <span className="meta">
+                            <span className="ver">#{versionOf(s)} · </span>
                             updated <span className="when">{stamp(s.updatedAt)} · </span>
                             {ago(s.updatedAt)}
                           </span>
