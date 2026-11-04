@@ -8,7 +8,22 @@ core/   Go: a localhost JSON api over the berglas library; embeds the built ui
 ui/     React + Vite + TypeScript; talks only to the core's api (see ui/src/api.ts)
 ```
 
-The ui has a terminal-pane look.
+## changing the ui
+
+The ui is split so the look can be replaced without touching behaviour:
+
+```
+ui/src/core/            no markup, no css: api client, .env parsing, diffing, time formatting
+ui/src/core/hooks/      everything a screen needs: useApp (session, config, sources),
+                        useSecretList, useSecret (versions, reveal, copy), and the edit/diff hooks
+ui/src/skins/terminal/  the current look: components, css and theme presets
+ui/src/main.tsx         picks the skin: import { App } from './skins/terminal'
+```
+
+To build a new look, add `ui/src/skins/<name>/` that exports an `App` built on the hooks,
+and change the one import in `main.tsx`. Skins must not call `fetch` or parse values
+themselves; anything a second skin would also need belongs in `core/`. The `theme` config key
+is an opaque name, so each skin decides which names it understands.
 
 ## credentials
 

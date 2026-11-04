@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Backend } from '../api'
-import { type Source, sourceId } from '../sources'
+import type { Backend } from '../../../core/api'
+import { type Source, sourceId } from '../../../core/sources'
 
 type Props = {
   sources: Source[]
@@ -8,7 +8,8 @@ type Props = {
   saveError: string
   active: Source | null
   onSelect: (s: Source) => void
-  onAdd: (s: Source) => void
+  /** returns an error message, or '' on success */
+  onAdd: (s: Source) => string
   onRemove: (s: Source) => void
 }
 
@@ -19,14 +20,9 @@ export function Sources({ sources, configPath, saveError, active, onSelect, onAd
 
   const add = (e: React.FormEvent) => {
     e.preventDefault()
-    const p = parent.trim()
-    if (!p) return setErr(backend === 'storage' ? 'enter a bucket name' : 'enter a project id')
-    if (/[\s/]/.test(p)) return setErr('no spaces or slashes — just the bucket or project id')
-    const s = { backend, parent: p }
-    if (sources.some((x) => sourceId(x) === sourceId(s))) return setErr('already added')
-    setErr('')
-    setParent('')
-    onAdd(s)
+    const msg = onAdd({ backend, parent })
+    setErr(msg)
+    if (!msg) setParent('')
   }
 
   return (

@@ -1,28 +1,17 @@
-import { forwardRef, useMemo, useState } from 'react'
-import type { Secret } from '../api'
-import type { Source } from '../sources'
-import { ago } from '../time'
+import type { Ref as ReactRef } from 'react'
+import { useSecretList } from '../../../core/hooks/useSecretList'
+import type { Source } from '../../../core/sources'
+import { ago } from '../../../core/time'
 
 type Props = {
+  ref?: ReactRef<HTMLInputElement>
   source: Source
-  secrets: Secret[] | null
-  loading: boolean
-  error: string
   selected: string | null
   onSelect: (name: string) => void
-  onRefresh: () => void
 }
 
-export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretList(
-  { source, secrets, loading, error, selected, onSelect, onRefresh },
-  filterRef,
-) {
-  const [filter, setFilter] = useState('')
-  const shown = useMemo(() => {
-    const f = filter.trim().toLowerCase()
-    return (secrets ?? []).filter((s) => s.name.toLowerCase().includes(f)).sort((a, b) => a.name.localeCompare(b.name))
-  }, [secrets, filter])
-
+export function SecretList({ ref, source, selected, onSelect }: Props) {
+  const { secrets, shown, loading, error, filter, setFilter, refresh } = useSecretList(source, true)
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
 
   return (
@@ -43,7 +32,7 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
       </div>
       <div className="row">
         <input
-          ref={filterRef}
+          ref={ref}
           aria-label="filter secrets"
           placeholder="filter"
           value={filter}
@@ -51,7 +40,7 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
           spellCheck={false}
           autoComplete="off"
         />
-        <button onClick={onRefresh} disabled={loading}>
+        <button onClick={refresh} disabled={loading}>
           {loading ? 'loading…' : 'refresh'}
         </button>
       </div>
@@ -88,4 +77,4 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
       )}
     </div>
   )
-})
+}
