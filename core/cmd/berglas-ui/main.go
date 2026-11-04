@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"berglas-ui/core/internal/config"
+	"berglas-ui/core/internal/gcpauth"
 	"berglas-ui/core/internal/secrets"
 	"berglas-ui/core/internal/server"
 	"berglas-ui/core/webui"
@@ -45,16 +46,14 @@ func run() error {
 	listen := flag.String("listen", os.Getenv("BERGLAS_UI_LISTEN"), "address to listen on; overrides the config file (default 127.0.0.1:0, a free port)")
 	allowNonLoopback := flag.Bool("allow-non-loopback", os.Getenv("BERGLAS_UI_ALLOW_NON_LOOPBACK") == "1",
 		"allow listening on a non-loopback address (only for containers with a 127.0.0.1-bound port mapping)")
-	open := flag.Bool("open", false, "open the ui in the default browser")
+	open := flag.Bool("open", false, "open the ui in the default browser (also: openBrowser in the config)")
 	apiOnly := flag.Bool("api-only", false, "serve the api without the embedded ui")
 	demo := flag.Bool("demo", false, "serve made-up secrets from memory; nothing reaches google cloud")
 	flag.Parse()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
-	var store secrets.Store = &secrets.Service{}
 	if *demo {
-		store = secrets.NewDemo()
 		configSet := os.Getenv("BERGLAS_UI_CONFIG") != ""
 		flag.Visit(func(f *flag.Flag) { configSet = configSet || f.Name == "config" })
 		if !configSet {
@@ -69,6 +68,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	creds := cfg.Get().Credentials
+	auth := gcpauth.Auth{Impersonate: creds.ImpersonateServiceAccount, QuotaProject: creds.QuotaProject}
+	var store secrets.Store = &secrets.Service{Auth: auth}
+	if *demo {
+		store = secrets.NewDemo()
+	}
+	*open = *open || cfg.Get().OpenBrowser
 	if *listen == "" {
 		*listen = cfg.Get().Listen
 	}
@@ -105,6 +111,7 @@ func run() error {
 
 	api := server.New(token, store, cfg, ui, version, log)
 	api.Demo = *demo
+	api.Auth = auth
 	srv := &http.Server{
 		Addr:              *listen,
 		Handler:           api.Handler(),

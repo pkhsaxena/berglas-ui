@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/berglas/v2/pkg/berglas"
+
+	"berglas-ui/core/internal/gcpauth"
 )
 
 // Backend selects where a secret lives.
@@ -84,6 +86,9 @@ var _ Store = (*Service)(nil)
 // call until it succeeds, so the UI recovers once the user runs
 // `gcloud auth application-default login` without restarting the core.
 type Service struct {
+	// Auth picks the Google identity; the zero value is plain ADC.
+	Auth gcpauth.Auth
+
 	mu     sync.Mutex
 	client *berglas.Client
 }
@@ -94,7 +99,11 @@ func (s *Service) c(ctx context.Context) (*berglas.Client, error) {
 	if s.client != nil {
 		return s.client, nil
 	}
-	c, err := berglas.New(ctx)
+	opts, err := s.Auth.ClientOptions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c, err := berglas.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("create berglas client: %w", err)
 	}

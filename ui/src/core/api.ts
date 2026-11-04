@@ -28,6 +28,9 @@ export type Status = {
   hint?: string
   /** in-memory demo store; nothing reaches google cloud */
   demo?: boolean
+  /** service account the core acts as, from credentials.impersonateServiceAccount */
+  impersonating?: string
+  quotaProject?: string
 }
 
 export class ApiError extends Error {

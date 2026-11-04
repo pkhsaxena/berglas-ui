@@ -56,7 +56,9 @@ export default function App() {
           ) : (
             <span className="muted small">
               {session.status.account || 'unknown account'}
+              {session.status.impersonating && ' (impersonated)'}
               {session.status.project && ` · ${session.status.project}`}
+              {session.status.quotaProject && ` · quota: ${session.status.quotaProject}`}
             </span>
           ))}
         <span className="spacer" />

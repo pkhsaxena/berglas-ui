@@ -13,12 +13,12 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/berglas/v2/pkg/berglas"
-	"golang.org/x/oauth2/google"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"berglas-ui/core/internal/config"
+	"berglas-ui/core/internal/gcpauth"
 	"berglas-ui/core/internal/secrets"
 )
 
@@ -38,6 +38,8 @@ type Server struct {
 	// Demo marks an in-memory store: /api/status skips the credential check
 	// and says that nothing reaches Google Cloud.
 	Demo bool
+	// Auth is the identity /api/status checks; it should match the store's.
+	Auth gcpauth.Auth
 }
 
 // New builds a server. token must be a random per-launch secret.
@@ -159,31 +161,37 @@ type statusResp struct {
 	Error       string `json:"error,omitempty"`
 	Hint        string `json:"hint,omitempty"`
 	Demo        bool   `json:"demo,omitempty"`
+	// Impersonating is the service account the core acts as, if any.
+	Impersonating string `json:"impersonating,omitempty"`
+	QuotaProject  string `json:"quotaProject,omitempty"`
 }
 
-// handleStatus reports whether Application Default Credentials resolve and,
-// when Google's tokeninfo endpoint says so, which account they belong to.
+// handleStatus reports whether the configured identity can get a token and,
+// when Google's tokeninfo endpoint says so, which account it is.
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
-	out := statusResp{Version: s.version}
+	out := statusResp{Version: s.version, Impersonating: s.Auth.Impersonate, QuotaProject: s.Auth.QuotaProject}
 	if s.Demo {
 		out.Credentials, out.Account, out.Demo = true, "demo mode", true
 		writeJSON(w, http.StatusOK, out)
 		return
 	}
-	const hint = "run: gcloud auth application-default login"
+	hint := "run: gcloud auth application-default login"
+	if s.Auth.Impersonate != "" {
+		hint += " — and check you have roles/iam.serviceAccountTokenCreator on " + s.Auth.Impersonate
+	}
 
-	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	ts, project, err := s.Auth.TokenSource(ctx)
 	if err != nil {
 		out.Error, out.Hint = err.Error(), hint
 		writeJSON(w, http.StatusOK, out)
 		return
 	}
-	out.Project = creds.ProjectID
-	tok, err := creds.TokenSource.Token()
+	out.Project = project
+	tok, err := ts.Token()
 	if err != nil {
-		out.Error, out.Hint = "credentials found but token refresh failed: "+err.Error(), hint
+		out.Error, out.Hint = "credentials found but getting a token failed: "+err.Error(), hint
 		writeJSON(w, http.StatusOK, out)
 		return
 	}
