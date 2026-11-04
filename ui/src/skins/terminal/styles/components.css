@@ -107,6 +107,19 @@ pre.value {
 }
 .masked { color: var(--t-comment); letter-spacing: 2px; }
 
+/* diffs: colour carries the meaning, the +/-/~ marker repeats it for
+   colour-blind readers */
+table.diff td { overflow-wrap: anywhere; }
+table.diff td:first-child { width: 1.5ch; padding-right: 6px; }
+pre.diff-lines { color: var(--t-fg); }
+pre.diff-lines .add { color: var(--t-function); background: color-mix(in srgb, var(--t-function) 10%, transparent); }
+pre.diff-lines .del { color: var(--t-error); background: color-mix(in srgb, var(--t-error) 10%, transparent); }
+pre.diff-lines .same { color: var(--t-comment); }
+
+/* a/b pickers in the versions table */
+button.flag { border: 0; padding: 0 4px; color: var(--t-comment); }
+button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-prompt); }
+
 /* toast */
 .toast {
   position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60;

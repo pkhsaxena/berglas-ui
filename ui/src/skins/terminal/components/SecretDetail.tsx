@@ -3,6 +3,7 @@ import { type Ref, refString, versionOf } from '../../../core/api'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { ago, stamp } from '../../../core/time'
 import { Value } from './Value'
+import { Versions } from './Versions'
 
 type Props = {
   base: Ref // backend + parent + name, no version
@@ -91,54 +92,7 @@ export function SecretDetail({ base, onToast }: Props) {
         <Value value={revealed} onCopy={copy} />
       </div>
 
-      <div className="card">
-        <h2>
-          versions <span className="muted">— newest first</span>
-        </h2>
-        {s.versionsError ? (
-          <div className="muted"># unavailable — see the error above.</div>
-        ) : s.versions === null ? (
-          <div className="muted"># loading…</div>
-        ) : (
-          <>
-            <div className="tablewrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th />
-                    <th>{base.backend === 'storage' ? 'generation' : 'version'}</th>
-                    <th>updated</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.versions.map((v) => {
-                    const id = versionOf(v)
-                    const active = v === shown
-                    return (
-                      <tr key={id} className={active ? 'active' : undefined}>
-                        <td className="t-prompt">{active ? '▶' : ''}</td>
-                        <td className="t-number">{id}</td>
-                        <td className="muted">{stamp(v.updatedAt)}</td>
-                        <td>
-                          {!active && (
-                            <button className="link" onClick={() => s.selectVersion(id)}>
-                              view
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {base.backend === 'storage' && s.versions.length <= 1 && (
-              <div className="muted small"># only the live generation exists. older generations are kept only if object versioning is on for the bucket.</div>
-            )}
-          </>
-        )}
-      </div>
+      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />
     </>
   )
 }
