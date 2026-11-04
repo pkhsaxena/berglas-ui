@@ -258,14 +258,21 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.B
 // from the ui; it only takes effect at startup.
 func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Theme   *string          `json:"theme"`
-		Sources *[]config.Source `json:"sources"`
+		Theme    *string          `json:"theme"`
+		TimeZone *string          `json:"timeZone"`
+		Sources  *[]config.Source `json:"sources"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
 	if in.Sources != nil {
 		if err := s.cfg.SetSources(*in.Sources); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	if in.TimeZone != nil {
+		if err := s.cfg.SetTimeZone(*in.TimeZone); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
 			return
 		}

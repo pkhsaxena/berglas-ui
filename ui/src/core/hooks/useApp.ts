@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError, type Status } from '../api'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
+import type { TimeZone } from '../time'
 
 export type Session =
   | { kind: 'loading' }
@@ -80,11 +81,17 @@ export function useApp() {
     if (active && sourceId(active) === sourceId(s)) setActive(list[0] ?? null)
   }
 
+  const setTimeZone = (timeZone: TimeZone) => {
+    setBase((b) => ({ ...b, timeZone }))
+    setConfigError('')
+    api.setConfig({ timeZone }).catch((e) => setConfigError(`time zone applied but not saved — ${errText(e)}`))
+  }
+
   const setTheme = (name: string) => {
     setThemeState(name)
     setConfigError('')
     api.setConfig({ theme: name }).catch((e) => setConfigError(`theme applied but not saved — ${errText(e)}`))
   }
 
-  return { session, retry, theme, setTheme, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, theme, setTheme, setTimeZone, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

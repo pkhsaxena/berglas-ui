@@ -79,6 +79,7 @@ func TestInvalidConfigIsRejected(t *testing.T) {
 		"kms on sm":    "sources:\n  - {backend: sm, parent: a, kmsKey: k}\n",
 		"bad group":    "sources:\n  - {backend: sm, parent: a, group: plain}\n",
 		"neg reveal":   "revealSeconds: -1\n",
+		"bad tz":       "timeZone: mars\n",
 		"bad sa":       "credentials: {impersonateServiceAccount: nope}\n",
 	} {
 		t.Run(name, func(t *testing.T) {

@@ -5,9 +5,9 @@ import { useEditor } from '../../../core/hooks/useEditor'
 import { DeleteSecret } from './DeleteSecret'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { history } from '../../../core/overview'
-import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
+import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import { Editor } from './Editor'
-import { ago, stamp } from '../../../core/time'
+import { ago } from '../../../core/time'
 import { Value } from './Value'
 import { Versions } from './Versions'
 
@@ -32,6 +32,7 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
     onDeleted()
   })
   const settings = useSettings()
+  const stamp = useStamp()
   const readOnly = readOnlyFor(settings, base)
   const isProtected = protectedFor(settings, base)
 

@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { type Ref, type Secret, versionOf } from '../../../core/api'
 import { useVersionDiff } from '../../../core/hooks/useVersionDiff'
-import { useSettings } from '../../../core/settings'
-import { stamp } from '../../../core/time'
+import { useSettings, useStamp } from '../../../core/settings'
 import { DiffView } from './DiffView'
 
 type Props = {
@@ -17,6 +16,7 @@ type Props = {
 export function Versions({ base, versions, versionsError, shown, onView }: Props) {
   const d = useVersionDiff(base, versions)
   const { revealSeconds } = useSettings()
+  const stamp = useStamp()
   const { clear } = d
   const label = base.backend === 'storage' ? 'generation' : 'version'
 

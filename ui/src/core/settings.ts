@@ -4,10 +4,12 @@
 import { createContext, useContext } from 'react'
 import type { Config, Ref } from './api'
 import { sourceId } from './sources'
+import { stamp } from './time'
 
 export type Settings = Omit<Config, 'theme' | 'path'>
 
 export const DEFAULT_SETTINGS: Settings = {
+  timeZone: 'local',
   readOnly: false,
   protect: [],
   revealSeconds: 60,
@@ -20,6 +22,12 @@ export const DEFAULT_SETTINGS: Settings = {
 export const SettingsContext = createContext<Settings>(DEFAULT_SETTINGS)
 
 export const useSettings = () => useContext(SettingsContext)
+
+/** Formats a timestamp in the configured zone (local or utc). */
+export function useStamp(): (iso: string) => string {
+  const { timeZone } = useSettings()
+  return (iso) => stamp(iso, timeZone)
+}
 
 type Where = Pick<Ref, 'backend' | 'parent'>
 

@@ -4,6 +4,7 @@ import { useApp } from '../../core/hooks/useApp'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
+import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
 import { Overview } from './components/Overview'
 import { SecretDetail } from './components/SecretDetail'
@@ -73,6 +74,15 @@ export default function App() {
             </span>
           ))}
         <span className="spacer" />
+        {session.kind === 'ready' && (
+          <label>
+            time
+            <select value={app.settings.timeZone} onChange={(e) => app.setTimeZone(e.target.value as TimeZone)}>
+              <option value="local">local ({zoneName(new Date())})</option>
+              <option value="utc">utc</option>
+            </select>
+          </label>
+        )}
         <label>
           theme
           <select value={theme} onChange={(e) => app.setTheme(e.target.value)}>

@@ -1,9 +1,9 @@
 import type { Ref as ReactRef } from 'react'
 import { versionOf } from '../../../core/api'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
-import { readOnlyFor, useSettings } from '../../../core/settings'
+import { readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import type { Source } from '../../../core/sources'
-import { ago, stamp } from '../../../core/time'
+import { ago } from '../../../core/time'
 
 type Props = {
   ref?: ReactRef<HTMLInputElement>
@@ -19,6 +19,7 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
   const { secrets, shown, groups, loading, error, filter, setFilter, refresh } = list
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
   const readOnly = readOnlyFor(useSettings(), source)
+  const stamp = useStamp()
 
   return (
     <div className="card list-pane">

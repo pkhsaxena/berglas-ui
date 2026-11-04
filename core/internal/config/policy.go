@@ -17,6 +17,7 @@ const (
 // expanded. It is what GET /api/config returns besides the raw sources.
 type Settings struct {
 	Theme                 string      `json:"theme"`
+	TimeZone              string      `json:"timeZone"`
 	ReadOnly              bool        `json:"readOnly"`
 	Protect               []string    `json:"protect"`
 	RevealSeconds         int         `json:"revealSeconds"`
@@ -29,7 +30,7 @@ type Settings struct {
 // Settings resolves c's defaults.
 func (c Config) Settings() Settings {
 	s := Settings{
-		Theme: c.Theme, ReadOnly: c.ReadOnly, Protect: c.Protect,
+		Theme: c.Theme, TimeZone: c.TimeZone, ReadOnly: c.ReadOnly, Protect: c.Protect,
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 	}
@@ -38,6 +39,9 @@ func (c Config) Settings() Settings {
 	}
 	if c.ClipboardClearSeconds != nil {
 		s.ClipboardClearSeconds = *c.ClipboardClearSeconds
+	}
+	if s.TimeZone == "" {
+		s.TimeZone = "local"
 	}
 	if s.Protect == nil {
 		s.Protect = []string{}

@@ -57,6 +57,8 @@ type Config struct {
 	OpenBrowser bool `yaml:"openBrowser,omitempty" json:"-"`
 	// Theme is the ui theme preset name.
 	Theme string `yaml:"theme,omitempty" json:"theme"`
+	// TimeZone shows times in the system's zone ("local", the default) or "utc".
+	TimeZone string `yaml:"timeZone,omitempty" json:"timeZone"`
 	// ReadOnly refuses every write, in every source.
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly"`
 	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
@@ -81,6 +83,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # listen: 127.0.0.1:0          # address for the core; port 0 picks a free one
 # openBrowser: true            # open the ui when the core starts
 # theme: Dracula
+# timeZone: local              # show times in the system zone, or utc
 # readOnly: false              # refuse every write
 # protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 # revealSeconds: 60            # hide revealed values after this long; 0 = never
@@ -149,6 +152,9 @@ func Load(path string) (*File, error) {
 func Validate(c Config) error {
 	if err := validPatterns("protect", c.Protect); err != nil {
 		return err
+	}
+	if c.TimeZone != "" && c.TimeZone != "local" && c.TimeZone != "utc" {
+		return fmt.Errorf("timeZone must be local or utc, got %q", c.TimeZone)
 	}
 	if c.RevealSeconds != nil && *c.RevealSeconds < 0 {
 		return fmt.Errorf("revealSeconds must be 0 or more")
@@ -224,6 +230,14 @@ func (f *File) SetSources(s []Source) error {
 		return err
 	}
 	return f.set("sources", s, func(c *Config) { c.Sources = s })
+}
+
+// SetTimeZone sets the time zone ("local" or "utc") and saves the file.
+func (f *File) SetTimeZone(tz string) error {
+	if err := Validate(Config{TimeZone: tz}); err != nil {
+		return err
+	}
+	return f.set("timeZone", tz, func(c *Config) { c.TimeZone = tz })
 }
 
 // SetTheme sets the theme name and saves the file.
