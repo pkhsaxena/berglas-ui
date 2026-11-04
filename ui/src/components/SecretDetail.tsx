@@ -162,7 +162,7 @@ export function SecretDetail({ base, onToast }: Props) {
             </button>
           )}
           <button onClick={() => copy(revealed?.text ?? undefined)} disabled={busy || !shown}>
-            copy<span className="wide-only"> value</span>
+            copy value
           </button>
           {revealed && env && (
             <div className="tabs" role="tablist" aria-label="value view">
@@ -227,7 +227,7 @@ export function SecretDetail({ base, onToast }: Props) {
         )}
         {revealed && (
           <div className="muted small">
-            # <span className="t-number">{revealed.size}</span> bytes · hidden again after 60s<span className="on-keys"> or esc</span>.
+            # <span className="t-number">{revealed.size}</span> bytes · hidden again after 60s or esc.
           </div>
         )}
       </div>

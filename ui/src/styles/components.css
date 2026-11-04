@@ -109,23 +109,3 @@ pre.value {
 @media (prefers-reduced-motion: reduce) {
   .cursor, .toast { animation: none; }
 }
-
-@media (max-width: 760px) {
-  .grid { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 600px) {
-  main { padding: 4px 10px 28px; }
-  .top { position: static; padding: 6px 10px; }
-  .card { padding: 14px 10px 10px; }
-  .card > h2 { max-width: calc(100% - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wide-only { display: none; }
-}
-@media (pointer: coarse) {
-  button, select { min-height: 40px; }
-  .tabs button { padding: 8px 10px; }
-  button, select, input, textarea { font-size: 16px; }
-  .on-keys { display: none; }
-}
-@media (pointer: fine) {
-  .on-touch { display: none; }
-}

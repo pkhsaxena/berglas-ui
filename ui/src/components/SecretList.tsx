@@ -55,7 +55,7 @@ export const SecretList = forwardRef<HTMLInputElement, Props>(function SecretLis
           {loading ? 'loading…' : 'refresh'}
         </button>
       </div>
-      <div className="muted small on-keys"># press / to filter</div>
+      <div className="muted small"># press / to filter</div>
 
       {error ? (
         <div role="alert" className="t-error">
