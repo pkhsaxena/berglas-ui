@@ -68,9 +68,28 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Pr
 
 const qs = (o: Record<string, string>) => new URLSearchParams(o).toString()
 
+/** A source as stored in the config file; see core/internal/config. */
+export type SourceConfig = {
+  backend: Backend
+  parent: string
+  label?: string
+  kmsKey?: string
+  readOnly?: boolean
+  protect?: string[]
+  group?: string
+  default?: boolean
+}
+
+/** The resolved config the core returns (defaults applied). */
 export type Config = {
   theme?: string
-  sources: { backend: Backend; parent: string }[]
+  readOnly: boolean
+  protect: string[]
+  revealSeconds: number
+  clipboardClearSeconds: number
+  auditLog: string
+  credentials: { impersonateServiceAccount?: string; quotaProject?: string }
+  sources: SourceConfig[]
   /** where the core keeps the file, for display */
   path: string
 }

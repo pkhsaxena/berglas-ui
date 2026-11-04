@@ -216,16 +216,22 @@ func tokenEmail(ctx context.Context, accessToken string) string {
 }
 
 type configResp struct {
-	config.Config
+	config.Settings
 	Path string `json:"path"`
 }
 
 func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
-	c := s.cfg.Get()
-	if c.Sources == nil {
-		c.Sources = []config.Source{}
+	writeJSON(w, http.StatusOK, configResp{Settings: s.cfg.Get().Settings(), Path: s.cfg.Path()})
+}
+
+// guard refuses writes the config forbids. The ui hides those actions too,
+// but the core is the one that enforces them.
+func (s *Server) guard(w http.ResponseWriter, backend secrets.Backend, parent string) bool {
+	if s.cfg.Get().ReadOnlyFor(string(backend), parent) {
+		writeError(w, http.StatusForbidden, "read_only", "read-only by config — writes to this source are turned off")
+		return false
 	}
-	writeJSON(w, http.StatusOK, configResp{Config: c, Path: s.cfg.Path()})
+	return true
 }
 
 // handleSetConfig saves the fields that are present. listen is not settable
@@ -296,7 +302,7 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var in secrets.CreateInput
-	if !decode(w, r, &in) {
+	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -312,7 +318,7 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	var in secrets.UpdateInput
-	if !decode(w, r, &in) {
+	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -328,7 +334,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	var in secrets.Ref
-	if !decode(w, r, &in) {
+	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -351,7 +357,7 @@ func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn func(context.Context, secrets.MembersInput) error) {
 	var in secrets.MembersInput
-	if !decode(w, r, &in) {
+	if !decode(w, r, &in) || !s.guard(w, in.Backend, in.Parent) {
 		return
 	}
 	ctx, cancel := timeout(r)
@@ -366,7 +372,7 @@ func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn
 
 func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
 	var in secrets.BootstrapInput
-	if !decode(w, r, &in) {
+	if !decode(w, r, &in) || !s.guard(w, secrets.Storage, in.Bucket) {
 		return
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)

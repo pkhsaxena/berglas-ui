@@ -73,6 +73,13 @@ func TestInvalidConfigIsRejected(t *testing.T) {
 		"empty parent": "sources:\n  - backend: sm\n",
 		"duplicate":    "sources:\n  - {backend: sm, parent: p}\n  - {backend: sm, parent: p}\n",
 		"not yaml":     "sources: [",
+		"typo key":     "readonly: true\n",
+		"bad protect":  "protect: ['[']\n",
+		"two defaults": "sources:\n  - {backend: sm, parent: a, default: true}\n  - {backend: sm, parent: b, default: true}\n",
+		"kms on sm":    "sources:\n  - {backend: sm, parent: a, kmsKey: k}\n",
+		"bad group":    "sources:\n  - {backend: sm, parent: a, group: plain}\n",
+		"neg reveal":   "revealSeconds: -1\n",
+		"bad sa":       "credentials: {impersonateServiceAccount: nope}\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := os.WriteFile(path, []byte(body), 0o600); err != nil {

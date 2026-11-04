@@ -7,39 +7,98 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
 	"go.yaml.in/yaml/v3"
 )
 
-// Source is a place to scan for secrets: a bucket (storage) or a project (sm).
+// Source is a place to scan for secrets: a bucket (storage) or a project
+// (sm), plus settings that apply only to it.
 type Source struct {
 	Backend string `yaml:"backend" json:"backend"`
 	Parent  string `yaml:"parent" json:"parent"`
+	// Label is shown instead of the bucket or project name.
+	Label string `yaml:"label,omitempty" json:"label,omitempty"`
+	// KMSKey is the default key for new secrets in a storage bucket.
+	KMSKey string `yaml:"kmsKey,omitempty" json:"kmsKey,omitempty"`
+	// ReadOnly refuses every write to this source.
+	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly,omitempty"`
+	// Protect adds name patterns to the global list for this source.
+	Protect []string `yaml:"protect,omitempty" json:"protect,omitempty"`
+	// Group is a name pattern like "{service}-{env}-env" used to group the
+	// list by its first placeholder.
+	Group string `yaml:"group,omitempty" json:"group,omitempty"`
+	// Default opens this source on startup.
+	Default bool `yaml:"default,omitempty" json:"default,omitempty"`
+}
+
+// Credentials changes which Google identity the core acts as. Both fields
+// are optional; by default it uses Application Default Credentials as is.
+type Credentials struct {
+	// ImpersonateServiceAccount makes every call as this service account,
+	// using the ADC identity's roles/iam.serviceAccountTokenCreator on it.
+	ImpersonateServiceAccount string `yaml:"impersonateServiceAccount,omitempty" json:"impersonateServiceAccount,omitempty"`
+	// QuotaProject bills api quota to this project.
+	QuotaProject string `yaml:"quotaProject,omitempty" json:"quotaProject,omitempty"`
 }
 
 // Config is the file's shape. Every field is optional.
 type Config struct {
 	// Listen is the address to listen on; -listen and BERGLAS_UI_LISTEN win.
 	Listen string `yaml:"listen,omitempty" json:"-"`
+	// OpenBrowser opens the ui in the default browser on startup.
+	OpenBrowser bool `yaml:"openBrowser,omitempty" json:"-"`
 	// Theme is the ui theme preset name.
 	Theme string `yaml:"theme,omitempty" json:"theme"`
+	// ReadOnly refuses every write, in every source.
+	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly"`
+	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
+	// whose writes and deletes need the secret's name typed to confirm.
+	Protect []string `yaml:"protect,omitempty" json:"protect"`
+	// RevealSeconds hides a revealed value after this long; 0 never hides.
+	// Unset means 60.
+	RevealSeconds *int `yaml:"revealSeconds,omitempty" json:"-"`
+	// ClipboardClearSeconds clears a copied value from the clipboard after
+	// this long, if it is still there; 0 never clears. Unset means 30.
+	ClipboardClearSeconds *int `yaml:"clipboardClearSeconds,omitempty" json:"-"`
+	// AuditLog is a file that gets one JSON line per write (never values).
+	// Empty turns it off.
+	AuditLog string `yaml:"auditLog,omitempty" json:"auditLog"`
+	// Credentials picks the Google identity; read at startup only.
+	Credentials Credentials `yaml:"credentials,omitempty" json:"credentials"`
 	// Sources are listed in the ui in this order.
 	Sources []Source `yaml:"sources,omitempty" json:"sources"`
 }
 
 const template = `# berglas-ui config. Edit by hand or from the ui; comments are kept.
-# listen: 127.0.0.1:0      # address for the core; port 0 picks a free one
+# listen: 127.0.0.1:0          # address for the core; port 0 picks a free one
+# openBrowser: true            # open the ui when the core starts
 # theme: Dracula
+# readOnly: false              # refuse every write
+# protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
+# revealSeconds: 60            # hide revealed values after this long; 0 = never
+# clipboardClearSeconds: 30    # clear copied values after this long; 0 = never
+# auditLog: ~/berglas-ui-audit.log   # one json line per write, never values
+# credentials:
+#   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
+#   quotaProject: my-project
 # sources:
-#   - backend: storage     # cloud storage + kms (berglas://bucket/...)
+#   - backend: storage         # cloud storage + kms (berglas://bucket/...)
 #     parent: my-bucket
-#   - backend: sm          # secret manager (sm://project/...)
+#     label: team secrets
+#     kmsKey: projects/my-project/locations/global/keyRings/berglas/cryptoKeys/berglas-key
+#     group: "{service}-{env}-env"   # group the list by service
+#     default: true            # open this source on startup
+#   - backend: sm              # secret manager (sm://project/...)
 #     parent: my-project
+#     readOnly: true
 `
 
 // DefaultPath is <user config dir>/berglas-ui/config.yaml, e.g.
@@ -74,7 +133,11 @@ func Load(path string) (*File, error) {
 	if err := yaml.Unmarshal(b, &f.doc); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
-	if err := f.doc.Decode(&f.cfg); err != nil && f.doc.Kind != 0 {
+	// Decode again with KnownFields so a typo like "readonly" is an error
+	// instead of a silently ignored safety setting.
+	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec.KnownFields(true)
+	if err := dec.Decode(&f.cfg); err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("parse %s: %w", path, err)
 	}
 	if err := Validate(f.cfg); err != nil {
@@ -85,7 +148,20 @@ func Load(path string) (*File, error) {
 
 // Validate checks a config for values the core cannot use.
 func Validate(c Config) error {
-	seen := map[Source]bool{}
+	if err := validPatterns("protect", c.Protect); err != nil {
+		return err
+	}
+	if c.RevealSeconds != nil && *c.RevealSeconds < 0 {
+		return fmt.Errorf("revealSeconds must be 0 or more")
+	}
+	if c.ClipboardClearSeconds != nil && *c.ClipboardClearSeconds < 0 {
+		return fmt.Errorf("clipboardClearSeconds must be 0 or more")
+	}
+	if sa := c.Credentials.ImpersonateServiceAccount; sa != "" && !strings.Contains(sa, "@") {
+		return fmt.Errorf("credentials.impersonateServiceAccount must be a service account email, got %q", sa)
+	}
+	seen := map[string]bool{}
+	defaults := 0
 	for i, s := range c.Sources {
 		if s.Backend != "storage" && s.Backend != "sm" {
 			return fmt.Errorf("sources[%d]: backend must be storage or sm, got %q", i, s.Backend)
@@ -93,10 +169,37 @@ func Validate(c Config) error {
 		if s.Parent == "" {
 			return fmt.Errorf("sources[%d]: parent (bucket or project) is empty", i)
 		}
-		if seen[s] {
-			return fmt.Errorf("sources[%d]: %s:%s is listed twice", i, s.Backend, s.Parent)
+		id := s.Backend + ":" + s.Parent
+		if seen[id] {
+			return fmt.Errorf("sources[%d]: %s is listed twice", i, id)
 		}
-		seen[s] = true
+		seen[id] = true
+		if s.KMSKey != "" && s.Backend != "storage" {
+			return fmt.Errorf("sources[%d]: kmsKey only applies to storage sources", i)
+		}
+		if err := validPatterns(fmt.Sprintf("sources[%d].protect", i), s.Protect); err != nil {
+			return err
+		}
+		if s.Group != "" && !groupPlaceholder.MatchString(s.Group) {
+			return fmt.Errorf("sources[%d].group needs at least one {placeholder}, got %q", i, s.Group)
+		}
+		if s.Default {
+			defaults++
+		}
+	}
+	if defaults > 1 {
+		return fmt.Errorf("only one source can be default: true")
+	}
+	return nil
+}
+
+var groupPlaceholder = regexp.MustCompile(`\{[A-Za-z_][A-Za-z0-9_]*\}`)
+
+func validPatterns(field string, pats []string) error {
+	for _, p := range pats {
+		if _, err := path.Match(p, ""); err != nil {
+			return fmt.Errorf("%s: bad pattern %q: %w", field, p, err)
+		}
 	}
 	return nil
 }

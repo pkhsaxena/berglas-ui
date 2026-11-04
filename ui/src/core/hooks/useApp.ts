@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError, type Status } from '../api'
+import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
 
 export type Session =
@@ -23,14 +24,18 @@ export function useApp() {
   const [configPath, setConfigPath] = useState('')
   const [configError, setConfigError] = useState('')
   const [active, setActive] = useState<Source | null>(null)
+  const [base, setBase] = useState<Omit<Settings, 'sources'>>(DEFAULT_SETTINGS)
+  const settings: Settings = useMemo(() => ({ ...base, sources }), [base, sources])
 
   const load = useCallback(async () => {
     try {
       const [status, config] = await Promise.all([api.status(), api.config()])
-      setThemeState(config.theme)
-      setSources(config.sources)
-      setConfigPath(config.path)
-      setActive((a) => a ?? config.sources[0] ?? null)
+      const { theme, sources, path, ...rest } = config
+      setThemeState(theme)
+      setSources(sources)
+      setConfigPath(path)
+      setBase(rest)
+      setActive((a) => a ?? sources[0] ?? null)
       setSession(status.credentials ? { kind: 'ready', status } : { kind: 'no-credentials', status })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setSession({ kind: 'unauthorized' })
@@ -81,5 +86,5 @@ export function useApp() {
     api.setConfig({ theme: name }).catch((e) => setConfigError(`theme applied but not saved — ${errText(e)}`))
   }
 
-  return { session, retry, theme, setTheme, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, theme, setTheme, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }
