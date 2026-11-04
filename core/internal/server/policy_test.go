@@ -97,6 +97,53 @@ func TestCreateUsesSourceKMSKey(t *testing.T) {
 	}
 }
 
+func TestAuditLogRecordsWritesWithoutValues(t *testing.T) {
+	logPath := filepath.Join(t.TempDir(), "sub", "audit.log")
+	h := demoServer(t, "auditLog: "+logPath+"\n")
+	value := "dG9wLXNlY3JldC12YWx1ZQ==" // base64("top-secret-value")
+	if rec := post(h, "/api/secrets/update", `{"backend":"storage","parent":"demo-bucket","name":"search-api-key","plaintext":"`+value+`"}`); rec.Code != http.StatusOK {
+		t.Fatalf("update: %d %s", rec.Code, rec.Body)
+	}
+	if rec := post(h, "/api/secrets/delete", `{"backend":"sm","parent":"demo-project","name":"missing"}`); rec.Code != http.StatusNotFound {
+		t.Fatalf("delete missing: %d", rec.Code)
+	}
+	b, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(b)), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("want 2 lines, got %d:\n%s", len(lines), b)
+	}
+	for _, want := range []string{`"action":"update"`, `"name":"search-api-key"`, `"result":"ok"`, `"actor":"demo"`, `"version":"`} {
+		if !strings.Contains(lines[0], want) {
+			t.Errorf("first line lacks %s: %s", want, lines[0])
+		}
+	}
+	if !strings.Contains(lines[1], `"result":"error"`) || !strings.Contains(lines[1], `"action":"delete"`) {
+		t.Errorf("second line should record the failed delete: %s", lines[1])
+	}
+	if strings.Contains(string(b), value) || strings.Contains(string(b), "top-secret-value") {
+		t.Fatal("audit log contains the secret value")
+	}
+	if info, _ := os.Stat(logPath); info.Mode().Perm() != 0o600 {
+		t.Errorf("audit log perm = %v, want 0600", info.Mode().Perm())
+	}
+}
+
+func TestAuditFailureIsReported(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(blocker, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// a path under a regular file cannot be created
+	h := demoServer(t, "auditLog: "+filepath.Join(blocker, "audit.log")+"\n")
+	rec := post(h, "/api/secrets/update", update)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"auditError"`) {
+		t.Fatalf("want 200 with auditError, got %d %s", rec.Code, rec.Body)
+	}
+}
+
 func TestWritableSourceStillWrites(t *testing.T) {
 	h := demoServer(t, "sources:\n  - {backend: sm, parent: demo-project, readOnly: true}\n")
 	if rec := post(h, "/api/secrets/update", update); rec.Code != http.StatusOK {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Ref } from '../../core/api'
+import { onAuditError, type Ref } from '../../core/api'
 import { useApp } from '../../core/hooks/useApp'
 import { SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
@@ -17,6 +17,9 @@ export default function App() {
   // bumped after a create or delete so the list reloads
   const [listRev, setListRev] = useState(0)
   const [toast, setToast] = useState('')
+  const [auditError, setAuditError] = useState('')
+
+  useEffect(() => onAuditError(setAuditError), [])
   const filterRef = useRef<HTMLInputElement>(null)
   const theme = knownTheme(app.theme)
 
@@ -74,6 +77,12 @@ export default function App() {
 
       <SettingsContext.Provider value={app.settings}>
         <main>
+          {auditError && (
+            <div role="alert" className="row" style={{ marginTop: 8 }}>
+              <span className="t-error">error: {auditError}</span>
+              <button onClick={() => setAuditError('')}>dismiss</button>
+            </div>
+          )}
           {session.kind === 'loading' && (
             <div className="term-ln" style={{ marginTop: 12 }}>
               <span className="t-prompt">$</span> <span className="t-function">gcloud</span> <span className="t-string">auth check</span>

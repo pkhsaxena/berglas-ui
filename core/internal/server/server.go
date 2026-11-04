@@ -40,6 +40,8 @@ type Server struct {
 	Demo bool
 	// Auth is the identity /api/status checks; it should match the store's.
 	Auth gcpauth.Auth
+
+	audit auditor
 }
 
 // New builds a server. token must be a random per-launch secret.
@@ -329,12 +331,13 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := timeout(r)
 	defer cancel()
 	sec, err := s.svc.Create(ctx, in)
+	audit := s.record(ctx, auditEntry{Action: "create", Backend: string(in.Backend), Parent: in.Parent, Name: in.Name, Version: versionOf(sec)}, err)
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	s.log.Info("secret created", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
-	writeJSON(w, http.StatusOK, map[string]any{"secret": sec})
+	writeOK(w, map[string]any{"secret": sec}, audit)
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -345,12 +348,13 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := timeout(r)
 	defer cancel()
 	sec, err := s.svc.Update(ctx, in)
+	audit := s.record(ctx, auditEntry{Action: "update", Backend: string(in.Backend), Parent: in.Parent, Name: in.Name, Version: versionOf(sec)}, err)
 	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	s.log.Info("secret updated", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
-	writeJSON(w, http.StatusOK, map[string]any{"secret": sec})
+	writeOK(w, map[string]any{"secret": sec}, audit)
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -360,35 +364,39 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := timeout(r)
 	defer cancel()
-	if err := s.svc.Delete(ctx, in); err != nil {
+	err := s.svc.Delete(ctx, in)
+	audit := s.record(ctx, auditEntry{Action: "delete", Backend: string(in.Backend), Parent: in.Parent, Name: in.Name}, err)
+	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	s.log.Info("secret deleted", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeOK(w, map[string]any{"ok": true}, audit)
 }
 
 func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request) {
-	s.members(w, r, "granted", s.svc.Grant)
+	s.members(w, r, "grant", s.svc.Grant)
 }
 
 func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request) {
-	s.members(w, r, "revoked", s.svc.Revoke)
+	s.members(w, r, "revoke", s.svc.Revoke)
 }
 
-func (s *Server) members(w http.ResponseWriter, r *http.Request, verb string, fn func(context.Context, secrets.MembersInput) error) {
+func (s *Server) members(w http.ResponseWriter, r *http.Request, action string, fn func(context.Context, secrets.MembersInput) error) {
 	var in secrets.MembersInput
 	if !decode(w, r, &in) || !s.guard(w, r, in.Backend, in.Parent, in.Name) {
 		return
 	}
 	ctx, cancel := timeout(r)
 	defer cancel()
-	if err := fn(ctx, in); err != nil {
+	err := fn(ctx, in)
+	audit := s.record(ctx, auditEntry{Action: action, Backend: string(in.Backend), Parent: in.Parent, Name: in.Name, Members: in.Members}, err)
+	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
-	s.log.Info("access "+verb, "backend", in.Backend, "parent", in.Parent, "name", in.Name, "members", in.Members)
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	s.log.Info("access "+action, "backend", in.Backend, "parent", in.Parent, "name", in.Name, "members", in.Members)
+	writeOK(w, map[string]any{"ok": true}, audit)
 }
 
 func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
@@ -398,12 +406,23 @@ func (s *Server) handleBootstrap(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Minute)
 	defer cancel()
-	if err := s.svc.Bootstrap(ctx, in); err != nil {
+	err := s.svc.Bootstrap(ctx, in)
+	audit := s.record(ctx, auditEntry{Action: "bootstrap", Backend: string(secrets.Storage), Parent: in.Bucket}, err)
+	if err != nil {
 		s.fail(w, r, err)
 		return
 	}
 	s.log.Info("bootstrapped", "project", in.ProjectID, "bucket", in.Bucket)
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+	writeOK(w, map[string]any{"ok": true}, audit)
+}
+
+// writeOK answers a successful write, adding auditError when the audit log
+// could not record it.
+func writeOK(w http.ResponseWriter, body map[string]any, auditErr string) {
+	if auditErr != "" {
+		body["auditError"] = auditErr
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 func (s *Server) handleResolve(w http.ResponseWriter, r *http.Request) {

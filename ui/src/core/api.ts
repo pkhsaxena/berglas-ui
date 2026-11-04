@@ -72,7 +72,21 @@ async function call<T>(method: 'GET' | 'POST', path: string, body?: unknown, con
     const e = (data as { error?: { code: string; message: string } }).error
     throw new ApiError(res.status, e?.code ?? 'error', e?.message ?? `request failed (${res.status})`)
   }
+  const auditError = (data as { auditError?: string }).auditError
+  if (auditError) window.dispatchEvent(new CustomEvent(AUDIT_ERROR_EVENT, { detail: auditError }))
   return data as T
+}
+
+const AUDIT_ERROR_EVENT = 'berglas-ui:audit-error'
+
+/**
+ * Calls cb when a write succeeded but the core could not add it to the audit
+ * log. Returns an unsubscribe function.
+ */
+export function onAuditError(cb: (message: string) => void): () => void {
+  const h = (e: Event) => cb((e as CustomEvent<string>).detail)
+  window.addEventListener(AUDIT_ERROR_EVENT, h)
+  return () => window.removeEventListener(AUDIT_ERROR_EVENT, h)
 }
 
 const qs = (o: Record<string, string>) => new URLSearchParams(o).toString()
