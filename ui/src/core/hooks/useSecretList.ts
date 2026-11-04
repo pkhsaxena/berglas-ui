@@ -38,9 +38,10 @@ export function useSecretList(source: Source | null, enabled: boolean) {
   }, [secrets, filter])
 
   /** shown, grouped by the source's group pattern; one unkeyed group when it has none */
+  const pattern = source?.group
   const groups = useMemo(
-    () => (source?.group ? groupByPattern(shown, (s) => s.name, source.group) : [{ key: null, items: shown.map((item) => ({ item, label: item.name })) }]),
-    [shown, source?.group],
+    () => (pattern ? groupByPattern(shown, (s) => s.name, pattern) : [{ key: null, items: shown.map((item) => ({ item, label: item.name })) }]),
+    [shown, pattern],
   )
 
   return { secrets, shown, groups, loading, error, filter, setFilter, refresh }
