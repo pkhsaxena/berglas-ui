@@ -4,7 +4,6 @@ import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
 import { DeleteSecret } from './DeleteSecret'
 import { useSecret } from '../../../core/hooks/useSecret'
-import { history } from '../../../core/overview'
 import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import { Editor } from './Editor'
 import { ago } from '../../../core/time'
@@ -26,7 +25,6 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
-  const hist = s.versions ? history(s.versions) : null
   const del = useDelete(base, () => {
     onToast('deleted')
     onDeleted()
@@ -84,15 +82,6 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
               <div className="kv">
                 <span className="label">kms key</span>
                 <span className="str">{shown.kmsKey}</span>
-              </div>
-            )}
-            {hist && hist.first && (
-              <div className="kv">
-                <span className="label">history</span>
-                <span className="str">
-                  {hist.count} version{hist.count === 1 ? '' : 's'} since {stamp(hist.first).slice(0, 10)}
-                  {hist.everyDays && <span className="muted"> · a change every ~{hist.everyDays}d</span>}
-                </span>
               </div>
             )}
             {base.backend === 'sm' && (

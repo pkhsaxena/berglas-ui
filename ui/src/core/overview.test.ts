@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { Secret } from './api'
-import { history, matrixOf, overview } from './overview'
+import { matrixOf, overview } from './overview'
 
 const now = Date.parse('2026-06-01T00:00:00Z')
 const at = (days: number) => new Date(now - days * 86_400_000).toISOString()
@@ -30,9 +30,4 @@ test('matrix orders known environments and leaves gaps empty', () => {
   ])
   expect(matrixOf(list, '{service}')).toBeNull()
   expect(matrixOf(list, undefined)).toBeNull()
-})
-
-test('history: count, first kept version, average days between changes', () => {
-  expect(history([{ updatedAt: at(0) }, { updatedAt: at(10) }, { updatedAt: at(20) }])).toEqual({ count: 3, first: at(20), everyDays: 10 })
-  expect(history([{ updatedAt: at(5) }])).toEqual({ count: 1, first: at(5), everyDays: null })
 })

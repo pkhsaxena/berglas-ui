@@ -81,15 +81,3 @@ export function overview(secrets: Secret[], groupPattern: string | undefined, no
     matrix: matrixOf(secrets, groupPattern),
   }
 }
-
-/** Version history facts for one secret, from its versions list (newest first). */
-export function history(versions: { updatedAt: string }[]): { count: number; first: string | null; everyDays: number | null } {
-  if (versions.length === 0) return { count: 0, first: null, everyDays: null }
-  const first = versions[versions.length - 1].updatedAt
-  const span = Date.parse(versions[0].updatedAt) - Date.parse(first)
-  return {
-    count: versions.length,
-    first,
-    everyDays: versions.length > 1 && span > 0 ? Math.max(1, Math.round(span / DAY / (versions.length - 1))) : null,
-  }
-}
