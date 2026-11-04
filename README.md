@@ -45,6 +45,16 @@ The core picks a free port on 127.0.0.1 and prints a link with a per-launch toke
 pairs the browser via an HttpOnly cookie. Flags: `-listen` (default `127.0.0.1:0`, a random
 port), `-open`, `-api-only`, `-allow-non-loopback` (containers only).
 
+### demo mode
+
+```bash
+cd core && go run ./cmd/berglas-ui -demo -open
+```
+
+This serves made-up secrets from memory (`demo-bucket`, `demo-project`) with version history,
+and needs no Google credentials. Nothing reaches Google Cloud, edits vanish on exit, and a
+throwaway config is used unless `-config` is given. It's for trying the ui and developing skins.
+
 ### config file
 
 Sources and the theme are saved to a YAML file, so they survive restarts. Because the port is

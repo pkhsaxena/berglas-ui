@@ -26,6 +26,8 @@ export type Status = {
   project?: string
   error?: string
   hint?: string
+  /** in-memory demo store; nothing reaches google cloud */
+  demo?: boolean
 }
 
 export class ApiError extends Error {

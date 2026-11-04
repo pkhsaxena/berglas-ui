@@ -55,6 +55,31 @@ var ErrModified = errors.New("secret was modified since it was loaded")
 // ErrInvalid wraps request validation failures.
 var ErrInvalid = errors.New("invalid request")
 
+// ErrNotFound and ErrExists are returned by stores other than Service; the
+// berglas library has its own equivalents, which callers check as well.
+var (
+	ErrNotFound = errors.New("secret does not exist")
+	ErrExists   = errors.New("secret already exists")
+)
+
+// Store is everything the api needs from a secrets backend. Service talks to
+// Google Cloud through berglas; Memory is an in-process stand-in for demos and
+// tests.
+type Store interface {
+	List(ctx context.Context, backend Backend, parent, prefix string) ([]Secret, error)
+	Versions(ctx context.Context, r Ref) ([]Secret, error)
+	Read(ctx context.Context, r Ref) (Secret, error)
+	Create(ctx context.Context, in CreateInput) (Secret, error)
+	Update(ctx context.Context, in UpdateInput) (Secret, error)
+	Delete(ctx context.Context, r Ref) error
+	Grant(ctx context.Context, in MembersInput) error
+	Revoke(ctx context.Context, in MembersInput) error
+	Bootstrap(ctx context.Context, in BootstrapInput) error
+	Resolve(ctx context.Context, ref string) ([]byte, error)
+}
+
+var _ Store = (*Service)(nil)
+
 // Service holds a lazily created berglas client. Creation is retried on each
 // call until it succeeds, so the UI recovers once the user runs
 // `gcloud auth application-default login` without restarting the core.

@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"syscall"
@@ -46,9 +47,23 @@ func run() error {
 		"allow listening on a non-loopback address (only for containers with a 127.0.0.1-bound port mapping)")
 	open := flag.Bool("open", false, "open the ui in the default browser")
 	apiOnly := flag.Bool("api-only", false, "serve the api without the embedded ui")
+	demo := flag.Bool("demo", false, "serve made-up secrets from memory; nothing reaches google cloud")
 	flag.Parse()
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	var store secrets.Store = &secrets.Service{}
+	if *demo {
+		store = secrets.NewDemo()
+		configSet := os.Getenv("BERGLAS_UI_CONFIG") != ""
+		flag.Visit(func(f *flag.Flag) { configSet = configSet || f.Name == "config" })
+		if !configSet {
+			// Keep demo sources out of the real config file.
+			if *configPath, err = demoConfig(); err != nil {
+				return err
+			}
+		}
+	}
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
@@ -88,9 +103,11 @@ func run() error {
 		log.Warn("ui not built; serving the api only")
 	}
 
+	api := server.New(token, store, cfg, ui, version, log)
+	api.Demo = *demo
 	srv := &http.Server{
 		Addr:              *listen,
-		Handler:           server.New(token, &secrets.Service{}, cfg, ui, version, log).Handler(),
+		Handler:           api.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	ln, err := net.Listen("tcp", *listen)
@@ -105,6 +122,9 @@ func run() error {
 		linkHost = "127.0.0.1"
 	}
 	link := fmt.Sprintf("http://%s/auth?token=%s", net.JoinHostPort(linkHost, port), token)
+	if *demo {
+		fmt.Fprintln(os.Stderr, "# demo mode: made-up secrets in memory, nothing reaches google cloud, changes vanish on exit")
+	}
 	fmt.Fprintf(os.Stderr, "berglas-ui %s\n# config: %s\n# open this link; it carries this session's access token:\n%s\n", version, cfg.Path(), link)
 	if *open {
 		openBrowser(link, log)
@@ -122,6 +142,17 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+// demoConfig writes a fresh config listing the demo sources to a temp dir.
+func demoConfig() (string, error) {
+	dir, err := os.MkdirTemp("", "berglas-ui-demo-")
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "config.yaml")
+	body := "# demo config; deleted with your temp dir\nsources:\n  - backend: storage\n    parent: demo-bucket\n  - backend: sm\n    parent: demo-project\n"
+	return path, os.WriteFile(path, []byte(body), 0o600)
 }
 
 func envOr(key, def string) string {

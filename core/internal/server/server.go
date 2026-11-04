@@ -29,15 +29,19 @@ const maxBody = 8 << 20
 // Server is the HTTP API. UI may be nil to run the API alone.
 type Server struct {
 	token   string
-	svc     *secrets.Service
+	svc     secrets.Store
 	cfg     *config.File
 	ui      fs.FS
 	version string
 	log     *slog.Logger
+
+	// Demo marks an in-memory store: /api/status skips the credential check
+	// and says that nothing reaches Google Cloud.
+	Demo bool
 }
 
 // New builds a server. token must be a random per-launch secret.
-func New(token string, svc *secrets.Service, cfg *config.File, ui fs.FS, version string, log *slog.Logger) *Server {
+func New(token string, svc secrets.Store, cfg *config.File, ui fs.FS, version string, log *slog.Logger) *Server {
 	return &Server{token: token, svc: svc, cfg: cfg, ui: ui, version: version, log: log}
 }
 
@@ -112,9 +116,9 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 		code, kind = http.StatusBadRequest, "invalid"
 	case errors.Is(err, secrets.ErrModified):
 		code, kind = http.StatusConflict, "modified"
-	case berglas.IsSecretDoesNotExistErr(err):
+	case berglas.IsSecretDoesNotExistErr(err), errors.Is(err, secrets.ErrNotFound):
 		code, kind = http.StatusNotFound, "not_found"
-	case berglas.IsSecretAlreadyExistsErr(err):
+	case berglas.IsSecretAlreadyExistsErr(err), errors.Is(err, secrets.ErrExists):
 		code, kind = http.StatusConflict, "exists"
 	case errors.As(err, &gerr):
 		code, kind = gerr.Code, "google"
@@ -154,6 +158,7 @@ type statusResp struct {
 	Project     string `json:"project,omitempty"`
 	Error       string `json:"error,omitempty"`
 	Hint        string `json:"hint,omitempty"`
+	Demo        bool   `json:"demo,omitempty"`
 }
 
 // handleStatus reports whether Application Default Credentials resolve and,
@@ -162,6 +167,11 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 	out := statusResp{Version: s.version}
+	if s.Demo {
+		out.Credentials, out.Account, out.Demo = true, "demo mode", true
+		writeJSON(w, http.StatusOK, out)
+		return
+	}
 	const hint = "run: gcloud auth application-default login"
 
 	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/cloud-platform")

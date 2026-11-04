@@ -45,12 +45,15 @@ export default function App() {
     <>
       <header className="top">
         <span className="app">berglas-ui</span>
-        {session.kind === 'ready' && (
-          <span className="muted small">
-            {session.status.account || 'unknown account'}
-            {session.status.project && ` · ${session.status.project}`}
-          </span>
-        )}
+        {session.kind === 'ready' &&
+          (session.status.demo ? (
+            <span className="t-keyword small">demo · made-up secrets in memory · nothing reaches google cloud</span>
+          ) : (
+            <span className="muted small">
+              {session.status.account || 'unknown account'}
+              {session.status.project && ` · ${session.status.project}`}
+            </span>
+          ))}
         <span className="spacer" />
         <label>
           theme
