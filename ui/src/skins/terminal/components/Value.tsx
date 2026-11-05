@@ -7,10 +7,12 @@ const MASK = '••••••••••••'
 type Props = {
   value: Revealed | null
   onCopy: (text: string) => void
+  /** pinned values do not hide on a timer */
+  persistent?: boolean
 }
 
 /** A secret value: masked, binary notice, env table or raw text. */
-export function Value({ value, onCopy }: Props) {
+export function Value({ value, onCopy, persistent = false }: Props) {
   const [view, setView] = useState<'env' | 'raw'>('env')
   const { revealSeconds } = useSettings()
 
@@ -82,7 +84,7 @@ export function Value({ value, onCopy }: Props) {
         <pre className="value">{value.text}</pre>
       )}
       <div className="muted small">
-        # <span className="t-number">{value.size}</span> bytes · {revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
+        # <span className="t-number">{value.size}</span> bytes · {persistent ? 'shown until unpinned.' : revealSeconds > 0 ? `hidden again after ${revealSeconds}s or esc.` : 'esc hides it.'}
       </div>
     </>
   )

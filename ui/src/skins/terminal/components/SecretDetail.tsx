@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
 import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
+import { type Pinned, pinnedId } from '../../../core/hooks/usePinned'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import { ago } from '../../../core/time'
@@ -14,9 +15,12 @@ type Props = {
   base: Ref // backend + parent + name, no version
   onToast: (msg: string) => void
   onDeleted: () => void
+  /** the pinned value, if any, shown beside this secret */
+  pinned: Pinned | null
+  onPin: (p: Pinned) => void
 }
 
-export function SecretDetail({ base, onToast, onDeleted }: Props) {
+export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -115,6 +119,15 @@ export function SecretDetail({ base, onToast, onDeleted }: Props) {
             <button onClick={() => copy(revealed?.text ?? undefined)} disabled={s.busy || !shown}>
               copy value
             </button>
+            {revealed && shown && revealed.text !== null && (
+              <button
+                onClick={() => onPin({ ref: s.ref, secret: shown, value: revealed })}
+                disabled={!!pinned && pinnedId(pinned) === refString(s.ref)}
+                title="keep this value on screen while you open another secret"
+              >
+                {pinned && pinnedId(pinned) === refString(s.ref) ? 'pinned' : 'pin'}
+              </button>
+            )}
             {readOnly && <span className="muted small"># read-only by config</span>}
             {!readOnly && isProtected && <span className="pill warn small">protected — saving asks for the name</span>}
             {shown && !editing && !readOnly && (

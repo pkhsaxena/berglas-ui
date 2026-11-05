@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { onAuditError, type Ref } from '../../core/api'
+import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
+import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { matrixOf } from '../../core/overview'
 import { SettingsContext } from '../../core/settings'
@@ -8,6 +10,7 @@ import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
 import { MatrixPane, OverviewPane } from './components/Overview'
+import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
@@ -24,9 +27,9 @@ export default function App() {
   // bumped after a create or delete so the list reloads
   const [listRev, setListRev] = useState(0)
   const [toast, setToast] = useState('')
-  const [auditError, setAuditError] = useState('')
+  const [errorLine, setErrorLine] = useState('')
 
-  useEffect(() => onAuditError(setAuditError), [])
+  useEffect(() => onAuditError(setErrorLine), [])
   const filterRef = useRef<HTMLInputElement>(null)
   const theme = knownTheme(app.theme)
 
@@ -52,6 +55,15 @@ export default function App() {
   }, [toast])
 
   const list = useSecretList(active, session.kind === 'ready', listRev)
+  const { pinned, pin, unpin } = usePinned()
+  const copyText = async (text: string) => {
+    try {
+      await copySecret(text, app.settings.clipboardClearSeconds, setToast)
+      setToast(app.settings.clipboardClearSeconds > 0 ? `copied · clears in ${app.settings.clipboardClearSeconds}s` : 'copied')
+    } catch (e) {
+      setErrorLine(`couldn't copy — ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
   // which view the right column shows at normal width; zoomed out, the
   // overview and matrix have their own column and this stays on 'secret'
   const [view, setView] = useState<'secret' | 'overview' | 'matrix'>('secret')
@@ -105,10 +117,10 @@ export default function App() {
 
       <SettingsContext.Provider value={app.settings}>
         <main>
-          {auditError && (
+          {errorLine && (
             <div role="alert" className="row" style={{ marginTop: 8 }}>
-              <span className="t-error">error: {auditError}</span>
-              <button onClick={() => setAuditError('')}>dismiss</button>
+              <span className="t-error">error: {errorLine}</span>
+              <button onClick={() => setErrorLine('')}>dismiss</button>
             </div>
           )}
           {session.kind === 'loading' && (
@@ -199,7 +211,7 @@ export default function App() {
               )}
 
               {active && (
-                <div className="main-area">
+                <div className={pinned ? 'main-area with-pin' : 'main-area'}>
                   {/* normal width only: get back to the overview or matrix without losing the open secret */}
                   <div className="view-tabs tabs" role="tablist" aria-label="right column">
                     <button role="tab" aria-selected={view === 'secret'} onClick={() => setView('secret')}>
@@ -214,6 +226,21 @@ export default function App() {
                       </button>
                     )}
                   </div>
+
+                  {pinned && (
+                    <PinnedPane
+                      key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
+                      pinned={pinned}
+                      other={base}
+                      onUnpin={unpin}
+                      onCopy={copyText}
+                      onOpen={() => {
+                        const src = app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)
+                        if (src && sourceId(src) !== sourceId(active)) app.setActive(src)
+                        select(pinned.ref.name)
+                      }}
+                    />
+                  )}
 
                   {view === 'overview' ? (
                     <div className="right single">
@@ -245,6 +272,11 @@ export default function App() {
                       onDeleted={() => {
                         setSelected(null)
                         setListRev((n) => n + 1)
+                      }}
+                      pinned={pinned}
+                      onPin={(p) => {
+                        pin(p)
+                        setToast(`pinned ${p.ref.name} — open another secret to compare`)
                       }}
                     />
                   ) : (

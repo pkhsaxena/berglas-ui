@@ -55,6 +55,11 @@ main {
 .view-tabs button { overflow-wrap: anywhere; text-align: left; }
 .right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
+/* a pinned value takes the left half of the main area, the open secret the right */
+.main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; }
+.main-area.with-pin > .view-tabs { grid-column: 1 / -1; }
+.main-area.with-pin > .pinned-pane { grid-row: 2; grid-column: 1; }
+.main-area.with-pin > .right { grid-column: 2; }
 
 /* a pane: the title sits in the border, the body scrolls inside it */
 .pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
@@ -75,6 +80,8 @@ main {
   .main-area > .wide-only { display: grid; }
   .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .right.single, .right.overview { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  /* pinned | secret | versions */
+  .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 }
 
 @media (max-width: 819px) {
@@ -84,6 +91,10 @@ main {
   /* the page scrolls here, so other panes take their natural height */
   .left, .right, .main-area, .left > .sources-pane, .right > .pane { min-height: auto; }
   .left > .sources-pane > .body, .right > .pane > .body { flex: none; overflow: visible; }
+  .main-area.with-pin { grid-template-columns: minmax(0, 1fr); }
+  .main-area.with-pin > .view-tabs, .main-area.with-pin > .pinned-pane, .main-area.with-pin > .right { grid-column: 1; grid-row: auto; }
+  .main-area > .pinned-pane { min-height: auto; }
+  .main-area > .pinned-pane > .body { flex: none; overflow: visible; }
 }
 
 /* scrollbars: a thin square thumb in the line colour, brighter while the
