@@ -23,10 +23,11 @@ strong { color: var(--t-string); font-weight: 500; }
 /* app shell. The page itself never scrolls: every section is a fixed-height
    pane whose body scrolls on its own.
    - default: left column = sources (as tall as needed, up to 40%) over the
-     secret list; right column = secret pane over versions pane. Editing or
-     creating replaces the whole right column.
-   - 2000px+ (zoomed out): left | matrix (when the source has a group
-     pattern) | secret | versions, each full height.
+     secret list; main area = a tab row (secret · overview · matrix) over the
+     chosen view. The secret view is the secret pane over the versions pane;
+     editing or creating replaces both.
+   - 2000px+ (zoomed out): left | side (matrix over overview) | main, where
+     the secret and versions panes sit side by side. No tab row.
    - under 820px: one column and the page scrolls, as a fallback. */
 html, body, #root { height: 100%; }
 #root { display: flex; flex-direction: column; }
@@ -38,13 +39,20 @@ main {
   flex: 1; min-height: 0; display: grid; gap: 0 14px;
   grid-template-columns: minmax(260px, 1fr) minmax(0, 2.4fr);
   grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: "left right";
+  grid-template-areas: "left main";
 }
 .layout > .left { grid-area: left; }
-.layout > .right { grid-area: right; }
-.layout > .matrix-col { grid-area: matrix; display: none; }
-.left, .right { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
+.layout > .main-area { grid-area: main; }
+.layout > .side-col { grid-area: side; display: none; }
+.left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
 .left { grid-template-rows: fit-content(40%) minmax(0, 1fr); }
+.side-col { grid-template-rows: fit-content(55%) minmax(0, 1fr); }
+.side-col > :only-child { grid-row: 1 / -1; }
+.main-area { display: grid; min-height: 0; min-width: 0; grid-template-rows: auto minmax(0, 1fr); }
+.main-area > .right { grid-row: 2; }
+.main-area > .wide-only { display: none; }
+.view-tabs { margin-top: 6px; flex-wrap: wrap; }
+.view-tabs button { overflow-wrap: anywhere; text-align: left; }
 .right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
 
@@ -60,19 +68,21 @@ main {
 
 @media (min-width: 2000px) {
   .layout { grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr); }
-  .layout.has-matrix { grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "left matrix right"; }
-  .layout > .matrix-col { display: flex; }
-  .right > .matrix-inline { display: none; }
+  .layout.has-side { grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "left side main"; }
+  .layout > .side-col { display: grid; }
+  .main-area > .view-tabs { display: none; }
+  .main-area > .normal-only { display: none; }
+  .main-area > .wide-only { display: grid; }
   .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .right.single, .right.overview { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 }
 
 @media (max-width: 819px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "right"; overflow-y: auto; }
-  .left, .right, .right.single { grid-template-rows: none; }
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; }
+  .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left > .list-pane { height: min(60vh, 560px); }
   /* the page scrolls here, so other panes take their natural height */
-  .left, .right, .left > .sources-pane, .right > .pane { min-height: auto; }
+  .left, .right, .main-area, .left > .sources-pane, .right > .pane { min-height: auto; }
   .left > .sources-pane > .body, .right > .pane > .body { flex: none; overflow: visible; }
 }
 

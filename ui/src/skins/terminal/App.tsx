@@ -52,9 +52,13 @@ export default function App() {
   }, [toast])
 
   const list = useSecretList(active, session.kind === 'ready', listRev)
+  // which view the right column shows at normal width; zoomed out, the
+  // overview and matrix have their own column and this stays on 'secret'
+  const [view, setView] = useState<'secret' | 'overview' | 'matrix'>('secret')
   const select = (name: string) => {
     setCreating(false)
     setSelected(name)
+    setView('secret')
   }
 
   const matrix = useMemo(() => (active && list.secrets ? matrixOf(list.secrets, active.group) : null), [active, list.secrets])
@@ -145,7 +149,7 @@ export default function App() {
           )}
 
           {session.kind === 'ready' && (
-            <div className={matrix ? 'layout has-matrix' : 'layout'}>
+            <div className={active ? 'layout has-side' : 'layout'}>
               <div className="left">
                 <Sources
                   sources={app.sources}
@@ -157,6 +161,7 @@ export default function App() {
                       app.setActive(s)
                       setSelected(null)
                       setCreating(false)
+                      setView('secret')
                     }
                   }}
                   onAdd={(s) => {
@@ -179,43 +184,88 @@ export default function App() {
                     onCreate={() => {
                       setSelected(null)
                       setCreating(true)
+                      setView('secret')
                     }}
                   />
                 )}
               </div>
-              {/* its own column only when zoomed out; see .matrix-col in the css */}
-              {active && matrix && <MatrixPane className="matrix-col" source={active} matrix={matrix} selected={selected} onSelect={select} />}
-              {active &&
-                (creating ? (
-                  <div className="right single">
-                    <CreateSecret
-                      key={sourceId(active)}
-                      source={active}
-                      onCancel={() => setCreating(false)}
-                      onCreated={(s) => {
-                        setToast('created')
-                        setCreating(false)
+
+              {/* zoomed out only: the matrix over the overview, always in view */}
+              {active && (
+                <div className="side-col">
+                  {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                  <OverviewPane source={active} list={list} onSelect={select} />
+                </div>
+              )}
+
+              {active && (
+                <div className="main-area">
+                  {/* normal width only: get back to the overview or matrix without losing the open secret */}
+                  <div className="view-tabs tabs" role="tablist" aria-label="right column">
+                    <button role="tab" aria-selected={view === 'secret'} onClick={() => setView('secret')}>
+                      {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
+                    </button>
+                    <button role="tab" aria-selected={view === 'overview'} onClick={() => setView('overview')}>
+                      overview
+                    </button>
+                    {matrix && (
+                      <button role="tab" aria-selected={view === 'matrix'} onClick={() => setView('matrix')}>
+                        matrix
+                      </button>
+                    )}
+                  </div>
+
+                  {view === 'overview' ? (
+                    <div className="right single">
+                      <OverviewPane source={active} list={list} onSelect={select} />
+                    </div>
+                  ) : view === 'matrix' && matrix ? (
+                    <div className="right single">
+                      <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />
+                    </div>
+                  ) : creating ? (
+                    <div className="right single">
+                      <CreateSecret
+                        key={sourceId(active)}
+                        source={active}
+                        onCancel={() => setCreating(false)}
+                        onCreated={(s) => {
+                          setToast('created')
+                          setCreating(false)
+                          setListRev((n) => n + 1)
+                          setSelected(s.name)
+                        }}
+                      />
+                    </div>
+                  ) : base ? (
+                    <SecretDetail
+                      key={`${base.backend}:${base.parent}/${base.name}`}
+                      base={base}
+                      onToast={setToast}
+                      onDeleted={() => {
+                        setSelected(null)
                         setListRev((n) => n + 1)
-                        setSelected(s.name)
                       }}
                     />
-                  </div>
-                ) : base ? (
-                  <SecretDetail
-                    key={`${base.backend}:${base.parent}/${base.name}`}
-                    base={base}
-                    onToast={setToast}
-                    onDeleted={() => {
-                      setSelected(null)
-                      setListRev((n) => n + 1)
-                    }}
-                  />
-                ) : (
-                  <div className={matrix ? 'right overview' : 'right overview single'}>
-                    <OverviewPane source={active} list={list} onSelect={select} />
-                    {matrix && <MatrixPane className="matrix-inline" source={active} matrix={matrix} selected={selected} onSelect={select} />}
-                  </div>
-                ))}
+                  ) : (
+                    <>
+                      {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
+                      <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
+                        <OverviewPane source={active} list={list} onSelect={select} />
+                        {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                      </div>
+                      <div className="right single wide-only">
+                        <div className="card pane">
+                          <h2>secret</h2>
+                          <div className="body">
+                            <div className="muted"># pick a secret in the list or the matrix. values stay hidden until you reveal them.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </main>
