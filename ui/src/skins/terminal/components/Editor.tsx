@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { type Ref, refString } from '../../../core/api'
+import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
+import type { Pinned } from '../../../core/hooks/usePinned'
 import { protectedFor, useSettings } from '../../../core/settings'
 import { ConfirmName } from './ConfirmName'
 import { DiffView } from './DiffView'
 
-type Props = { base: Ref; ed: ReturnType<typeof useEditor> }
+type Props = {
+  base: Ref
+  ed: ReturnType<typeof useEditor>
+  /** a pinned .env secret to line keys up against and copy values from */
+  pinned?: Pinned | null
+}
 
-export function Editor({ base, ed }: Props) {
+export function Editor({ base, ed, pinned }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [addErr, setAddErr] = useState('')
@@ -27,6 +34,26 @@ export function Editor({ base, ed }: Props) {
 
   const target = refString({ ...base, version: undefined })
   const envAvailable = looksLikeEnv(ed.draft)
+  const ref = pinned?.value.env && pinned.value.text !== null ? pinned.value.text : null
+  const vs = ref !== null && envAvailable ? matchAgainst(ed.draft, ref) : null
+
+  // how one key compares with the pinned secret: = same, ≠ differs (with a
+  // one-click copy of the pinned value), + only in this secret
+  const pinMark = (c: KeyChange | undefined, line: number) => {
+    if (!c) return null
+    if (c.kind === 'same') return <span className="t-function" title="same as pinned">=</span>
+    if (c.kind === 'removed') return <span className="muted" title="not in the pinned secret">+ only here</span>
+    if (c.kind === 'changed')
+      return (
+        <>
+          <span className="t-keyword" title="differs from pinned">≠ </span>
+          <button className="link" onClick={() => ed.edits.setLineValue(line, c.after)} title={`set to the pinned value`}>
+            use pinned
+          </button>
+        </>
+      )
+    return null
+  }
 
   const add = (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +93,13 @@ export function Editor({ base, ed }: Props) {
                 {ed.mode === 'env' ? '# editing a value rewrites only its own line.' : '# the whole value, exactly as stored.'}
               </span>
             </div>
+            {vs && (
+              <div className={vs.matches ? 't-function' : 'muted small'}>
+                {vs.matches
+                  ? `✓ matches pinned ${pinned!.ref.name} exactly`
+                  : `# vs pinned ${pinned!.ref.name}: ${vs.differ} differ · ${vs.missing.length} missing · ${vs.extra} only here`}
+              </div>
+            )}
 
             {ed.mode === 'env' && ed.env ? (
               <>
@@ -75,6 +109,7 @@ export function Editor({ base, ed }: Props) {
                       <tr>
                         <th>key</th>
                         <th>value</th>
+                        {vs && <th title={`compared with pinned ${pinned!.ref.name}`}>pinned</th>}
                         <th />
                       </tr>
                     </thead>
@@ -95,6 +130,7 @@ export function Editor({ base, ed }: Props) {
                                 style={{ width: '100%' }}
                               />
                             </td>
+                            {vs && <td style={{ whiteSpace: 'nowrap' }}>{pinMark(vs.byKey.get(l.key), i)}</td>}
                             <td>
                               <button className="link" onClick={() => ed.edits.removeLine(i)} aria-label={`remove ${l.key}`}>
                                 remove
@@ -103,7 +139,7 @@ export function Editor({ base, ed }: Props) {
                           </tr>
                         ) : l.raw.trim() === '' ? null : (
                           <tr key={i}>
-                            <td colSpan={3} className="muted">
+                            <td colSpan={vs ? 4 : 3} className="muted">
                               {l.raw}
                             </td>
                           </tr>
@@ -112,6 +148,28 @@ export function Editor({ base, ed }: Props) {
                     </tbody>
                   </table>
                 </div>
+                {vs && vs.missing.length > 0 && (
+                  <div className="section">
+                    <div className="row" style={{ margin: 0 }}>
+                      <span className="t-keyword">only in pinned</span>
+                      <button className="link" onClick={() => ed.edits.setKeys(vs.missing)}>
+                        add all {vs.missing.length}
+                      </button>
+                    </div>
+                    <ul className="clean">
+                      {vs.missing.map((m) => (
+                        <li key={m.key} className="kv">
+                          <span>
+                            <span className="t-keyword">{m.key}</span> <span className="t-string">{m.value}</span>
+                          </span>
+                          <button className="link" onClick={() => ed.edits.setKeys([m])} aria-label={`add ${m.key} from pinned`}>
+                            add
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <form className="row" onSubmit={add}>
                   <input aria-label="new key" placeholder="NEW_KEY" value={newKey} onChange={(e) => setNewKey(e.target.value)} spellCheck={false} autoComplete="off" style={{ flex: '0 1 22ch' }} />
                   <input aria-label="new value" placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} spellCheck={false} autoComplete="off" />

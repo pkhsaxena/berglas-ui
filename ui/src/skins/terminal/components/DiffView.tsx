@@ -7,6 +7,7 @@ export function DiffView({ diff }: { diff: Diff }) {
   const [showSame, setShowSame] = useState(false)
 
   if (diff.identical) return <div className="muted"># no differences.</div>
+  const formattingOnly = diff.sameKeys
 
   const mode = diff.keys ? view : 'lines'
   const sum = summarize(mode === 'keys' && diff.keys ? diff.keys : diff.lines)
@@ -14,6 +15,11 @@ export function DiffView({ diff }: { diff: Diff }) {
 
   return (
     <>
+      {formattingOnly && (
+        <div className="t-function">
+          ✓ same keys and values <span className="muted">— the text differs only in comments, order or formatting (see lines).</span>
+        </div>
+      )}
       <div className="row" style={{ margin: '4px 0' }}>
         <span className="small">
           <span className="t-function">+{sum.added} added</span> · <span className="t-error">-{sum.removed} removed</span>

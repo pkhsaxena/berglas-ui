@@ -87,6 +87,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
       tryEdit(() => setKey(draft, k, value))
       return ''
     },
+    /** Sets several keys at once (rewrites existing ones, appends new ones). */
+    setKeys: (pairs: { key: string; value: string }[]) => tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft)),
   }
 
   const diff: Diff | null = loaded && (phase === 'review' || phase === 'saving' || phase === 'conflict')

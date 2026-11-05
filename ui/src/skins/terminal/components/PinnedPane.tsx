@@ -58,7 +58,7 @@ export function PinnedPane({ pinned, other, onOpen, onUnpin, onCopy }: Props) {
               <span className="t-string">{c.result.current.name}</span>
             </div>
             {c.result.identical ? (
-              <div className="t-function">✓ identical — same keys, same values.</div>
+              <div className="t-function">✓ identical — same text, same keys, same values.</div>
             ) : (
               <>
                 <div className="muted small">

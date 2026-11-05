@@ -131,6 +131,13 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
 - **restore this version…** (on an old version) opens the editor with that version's value as a
   draft against the latest, and saves it as a new version.
 - **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
+- **pin:** after **reveal**, **pin** keeps that value in its own pane while you open other secrets.
+  It stays until **unpin** (it does not hide on the reveal timer). With a pin:
+  - **compare with …** diffs the pinned keys against the open secret's latest version. It reports
+    "identical", or "same keys and values" when only comments, order or formatting differ.
+  - the editor marks every key `=` (same as pinned), `≠` (differs, with **use pinned** to copy
+    the pinned value) or `+ only here`, lists keys only the pinned secret has (with **add** or
+    **add all**), and says when the draft matches the pinned secret exactly.
 - **new** (list pane) creates a secret after a review step. **delete…** needs the name typed
   and removes every version, history included.
   - storage: berglas finds generations by listing the name as a prefix, then deletes this name at

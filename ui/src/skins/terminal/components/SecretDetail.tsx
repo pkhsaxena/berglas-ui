@@ -29,6 +29,9 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props)
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
+  // the pinned value, unless it is this same secret (then there is nothing to line up against)
+  const pinnedOther =
+    pinned && !(pinned.ref.backend === base.backend && pinned.ref.parent === base.parent && pinned.ref.name === base.name) ? pinned : null
   const del = useDelete(base, () => {
     onToast('deleted')
     onDeleted()
@@ -55,7 +58,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props)
   if (editing) {
     return (
       <div className="right single">
-        <Editor base={base} ed={ed} />
+        <Editor base={base} ed={ed} pinned={pinnedOther} />
       </div>
     )
   }

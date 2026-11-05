@@ -66,6 +66,8 @@ export type Diff = {
   keys: KeyChange[] | null
   lines: DiffLine[]
   identical: boolean
+  /** .env files whose keys and values all match, though the text differs (comments, order, export, spacing) */
+  sameKeys: boolean
 }
 
 /**
@@ -89,5 +91,36 @@ export function reapplyEnv(original: string, draft: string, latest: string): { t
 
 /** Diffs two texts, adding the key view when both look like .env files. */
 export function diffValues(a: string, b: string, bothEnv: boolean): Diff {
-  return { keys: bothEnv ? envDiff(a, b) : null, lines: lineDiff(a, b), identical: a === b }
+  const keys = bothEnv ? envDiff(a, b) : null
+  return { keys, lines: lineDiff(a, b), identical: a === b, sameKeys: !!keys && keys.every((k) => k.kind === 'same') }
+}
+
+export type Match = {
+  /** per key of the draft: same / changed (after = reference value) / removed (not in reference) */
+  byKey: Map<string, KeyChange>
+  /** keys only the reference has, with its values */
+  missing: { key: string; value: string }[]
+  differ: number
+  extra: number
+  matches: boolean
+}
+
+/**
+ * How a .env draft lines up with a reference .env (e.g. a pinned secret), key
+ * by key, so an editor can mark each key and copy values across.
+ */
+export function matchAgainst(draft: string, reference: string): Match {
+  const byKey = new Map<string, KeyChange>()
+  const missing: { key: string; value: string }[] = []
+  let differ = 0
+  let extra = 0
+  for (const c of envDiff(draft, reference)) {
+    if (c.kind === 'added') missing.push({ key: c.key, value: c.after })
+    else {
+      byKey.set(c.key, c)
+      if (c.kind === 'changed') differ++
+      if (c.kind === 'removed') extra++
+    }
+  }
+  return { byKey, missing, differ, extra, matches: differ === 0 && extra === 0 && missing.length === 0 }
 }
