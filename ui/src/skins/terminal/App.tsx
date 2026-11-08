@@ -67,10 +67,8 @@ export default function App() {
   // which view the right column shows at normal width; zoomed out, the
   // overview and matrix have their own column and this stays on 'secret'
   const [view, setView] = useState<'secret' | 'versions' | 'overview' | 'matrix'>('secret')
-  // whether the open secret's value is revealed; the versions tab only exists then
-  const [revealed, setRevealed] = useState(false)
-  // with nothing revealed, versions show under the secret, so there is no versions view
-  const shownView = view === 'versions' && !revealed ? 'secret' : view
+  // with no secret open there are no versions to show
+  const shownView = view === 'versions' && !selected ? 'secret' : view
   const select = (name: string) => {
     setCreating(false)
     setSelected(name)
@@ -221,7 +219,7 @@ export default function App() {
                     <button role="tab" aria-selected={shownView === 'secret'} onClick={() => setView('secret')}>
                       {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
                     </button>
-                    {base && revealed && !creating && (
+                    {base && !creating && (
                       <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
                         versions
                       </button>
@@ -283,7 +281,6 @@ export default function App() {
                         setListRev((n) => n + 1)
                       }}
                       showVersions={shownView === 'versions'}
-                      onRevealedChange={setRevealed}
                       pinned={pinned}
                       onPin={(p) => {
                         pin(p)

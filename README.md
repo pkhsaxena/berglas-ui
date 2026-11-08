@@ -130,8 +130,9 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
     before writing. The race window is small but not zero.
 - **restore this version…** (on an old version) opens the editor with that version's value as a
   draft against the latest, and saves it as a new version.
-- **reveal** (normal width): the value fills the right column and the versions pane steps aside;
-  a **versions** tab next to overview and matrix brings it back. Zoomed out, both stay side by side.
+- **versions** tab (normal width, whenever a secret is open): shows just the versions pane. On
+  **reveal** the value fills the right column and versions step aside until you pick that tab.
+  Zoomed out, secret and versions stay side by side.
 - **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
 - **pin:** after **reveal**, **pin** keeps that value in its own pane while you open other secrets.
   It stays until **unpin** (it does not hide on the reveal timer). With a pin:
