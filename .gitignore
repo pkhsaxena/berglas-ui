@@ -4,3 +4,6 @@ core/webui/dist/*
 !core/webui/dist/.gitkeep
 *.log
 .DS_Store
+# locally built core binaries
+core/main
+core/berglas-ui
