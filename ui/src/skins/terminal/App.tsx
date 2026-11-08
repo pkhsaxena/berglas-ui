@@ -66,7 +66,11 @@ export default function App() {
   }
   // which view the right column shows at normal width; zoomed out, the
   // overview and matrix have their own column and this stays on 'secret'
-  const [view, setView] = useState<'secret' | 'overview' | 'matrix'>('secret')
+  const [view, setView] = useState<'secret' | 'versions' | 'overview' | 'matrix'>('secret')
+  // whether the open secret's value is revealed; the versions tab only exists then
+  const [revealed, setRevealed] = useState(false)
+  // with nothing revealed, versions show under the secret, so there is no versions view
+  const shownView = view === 'versions' && !revealed ? 'secret' : view
   const select = (name: string) => {
     setCreating(false)
     setSelected(name)
@@ -214,14 +218,19 @@ export default function App() {
                 <div className={pinned ? 'main-area with-pin' : 'main-area'}>
                   {/* normal width only: get back to the overview or matrix without losing the open secret */}
                   <div className="view-tabs tabs" role="tablist" aria-label="right column">
-                    <button role="tab" aria-selected={view === 'secret'} onClick={() => setView('secret')}>
+                    <button role="tab" aria-selected={shownView === 'secret'} onClick={() => setView('secret')}>
                       {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
                     </button>
-                    <button role="tab" aria-selected={view === 'overview'} onClick={() => setView('overview')}>
+                    {base && revealed && !creating && (
+                      <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
+                        versions
+                      </button>
+                    )}
+                    <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
                       overview
                     </button>
                     {matrix && (
-                      <button role="tab" aria-selected={view === 'matrix'} onClick={() => setView('matrix')}>
+                      <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
                         matrix
                       </button>
                     )}
@@ -242,11 +251,11 @@ export default function App() {
                     />
                   )}
 
-                  {view === 'overview' ? (
+                  {shownView === 'overview' ? (
                     <div className="right single">
                       <OverviewPane source={active} list={list} onSelect={select} />
                     </div>
-                  ) : view === 'matrix' && matrix ? (
+                  ) : shownView === 'matrix' && matrix ? (
                     <div className="right single">
                       <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />
                     </div>
@@ -273,6 +282,8 @@ export default function App() {
                         setSelected(null)
                         setListRev((n) => n + 1)
                       }}
+                      showVersions={shownView === 'versions'}
+                      onRevealedChange={setRevealed}
                       pinned={pinned}
                       onPin={(p) => {
                         pin(p)

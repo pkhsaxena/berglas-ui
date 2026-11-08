@@ -18,9 +18,13 @@ type Props = {
   /** the pinned value, if any, shown beside this secret */
   pinned: Pinned | null
   onPin: (p: Pinned) => void
+  /** normal width: show the versions pane in place of the revealed value */
+  showVersions: boolean
+  /** told whether a value is revealed, so the app can offer a versions tab */
+  onRevealedChange: (revealed: boolean) => void
 }
 
-export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props) {
+export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions, onRevealedChange }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -40,6 +44,12 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props)
   const stamp = useStamp()
   const readOnly = readOnlyFor(settings, base)
   const isProtected = protectedFor(settings, base)
+
+  const isRevealed = !!revealed
+  useEffect(() => {
+    onRevealedChange(isRevealed)
+    return () => onRevealedChange(false)
+  }, [isRevealed, onRevealedChange])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,8 +73,11 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin }: Props)
     )
   }
 
+  // At normal width a revealed value fills the column and versions get a tab
+  // of their own; the css keeps both side by side when zoomed out.
+  const mode = !revealed ? '' : showVersions ? ' show-versions' : ' revealed'
   return (
-    <div className="right">
+    <div className={`right${mode}`}>
       <div className="card pane secret-pane">
         <h2>
           secret <span className="muted">— {base.name}</span>

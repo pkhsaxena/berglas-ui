@@ -55,6 +55,10 @@ main {
 .view-tabs button { overflow-wrap: anywhere; text-align: left; }
 .right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
+/* normal width, value revealed: the secret fills the column; the versions
+   tab swaps in the versions pane instead */
+.right.revealed, .right.show-versions { grid-template-rows: minmax(0, 1fr); }
+.right.revealed > .versions-pane, .right.show-versions > .secret-pane { display: none; }
 /* a pinned value takes the left half of the main area, the open secret the right */
 .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; }
 .main-area.with-pin > .view-tabs { grid-column: 1 / -1; }
@@ -80,6 +84,9 @@ main {
   .main-area > .wide-only { display: grid; }
   .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
   .right.single, .right.overview { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+  /* zoomed out there is room for both, revealed or not */
+  .right.revealed > .versions-pane, .right.show-versions > .versions-pane { display: flex; }
+  .right.revealed > .secret-pane, .right.show-versions > .secret-pane { display: flex; }
   /* pinned | secret | versions */
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 }
