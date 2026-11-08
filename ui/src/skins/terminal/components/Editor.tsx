@@ -4,9 +4,14 @@ import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
 import type { Pinned } from '../../../core/hooks/usePinned'
+import { type Section, sortEnv } from '../../../core/envsort'
 import { protectedFor, useSettings } from '../../../core/settings'
 import { ConfirmName } from './ConfirmName'
 import { DiffView } from './DiffView'
+import { EnvRows, OrderToggle } from './EnvRows'
+
+// a section's id in the picker: its header line, or '-' for the no-section group
+const sectionValue = (x: Section) => (x.header[0]?.raw ?? '-')
 
 type Props = {
   base: Ref
@@ -20,6 +25,8 @@ export function Editor({ base, ed, pinned }: Props) {
   const [newValue, setNewValue] = useState('')
   const [addErr, setAddErr] = useState('')
   const [typed, setTyped] = useState('')
+  const [section, setSection] = useState('') // '' = end of file
+  const { envOrder } = useSettings()
   const isProtected = protectedFor(useSettings(), base)
 
   if (ed.phase === 'idle') return null
@@ -34,6 +41,10 @@ export function Editor({ base, ed, pinned }: Props) {
 
   const target = refString({ ...base, version: undefined })
   const envAvailable = looksLikeEnv(ed.draft)
+  // sections a new key can go into, named by their header ("Server") or "no section"
+  const sections = envAvailable
+    ? sortEnv(ed.draft).sections.map((x) => ({ value: sectionValue(x), label: x.title ? `# ${x.title}` : 'no section' }))
+    : []
   const ref = pinned?.value.env && pinned.value.text !== null ? pinned.value.text : null
   const vs = ref !== null && envAvailable ? matchAgainst(ed.draft, ref) : null
 
@@ -57,7 +68,9 @@ export function Editor({ base, ed, pinned }: Props) {
 
   const add = (e: React.FormEvent) => {
     e.preventDefault()
-    const msg = ed.edits.addKey(newKey, newValue)
+    // the section is chosen by name and resolved now, since line numbers move as the draft changes
+    const target = section ? sortEnv(ed.draft).sections.find((x) => sectionValue(x) === section) : undefined
+    const msg = ed.edits.addKey(newKey, newValue, target?.lastKeyIndex)
     setAddErr(msg)
     if (!msg) {
       setNewKey('')
@@ -89,8 +102,13 @@ export function Editor({ base, ed, pinned }: Props) {
                   raw
                 </button>
               </div>
+              {ed.mode === 'env' && <OrderToggle />}
               <span className="muted small">
-                {ed.mode === 'env' ? '# editing a value rewrites only its own line.' : '# the whole value, exactly as stored.'}
+                {ed.mode === 'env'
+                  ? envOrder === 'sorted'
+                    ? '# shown sorted; saving keeps the file order, editing a value rewrites only its own line.'
+                    : '# editing a value rewrites only its own line.'
+                  : '# the whole value, exactly as stored.'}
               </span>
             </div>
             {vs && (
@@ -113,39 +131,34 @@ export function Editor({ base, ed, pinned }: Props) {
                         <th />
                       </tr>
                     </thead>
-                    <tbody>
-                      {ed.env.map((l, i) =>
-                        l.kind === 'pair' ? (
-                          <tr key={i}>
-                            <td className="t-keyword" style={{ whiteSpace: 'nowrap' }}>
-                              {l.key}
-                            </td>
-                            <td style={{ width: '100%' }}>
-                              <input
-                                aria-label={`value of ${l.key}`}
-                                value={l.value}
-                                onChange={(e) => ed.edits.setLineValue(i, e.target.value)}
-                                spellCheck={false}
-                                autoComplete="off"
-                                style={{ width: '100%' }}
-                              />
-                            </td>
-                            {vs && <td style={{ whiteSpace: 'nowrap' }}>{pinMark(vs.byKey.get(l.key), i)}</td>}
-                            <td>
-                              <button className="link" onClick={() => ed.edits.removeLine(i)} aria-label={`remove ${l.key}`}>
-                                remove
-                              </button>
-                            </td>
-                          </tr>
-                        ) : l.raw.trim() === '' ? null : (
-                          <tr key={i}>
-                            <td colSpan={vs ? 4 : 3} className="muted">
-                              {l.raw}
-                            </td>
-                          </tr>
-                        ),
+                    <EnvRows
+                      text={ed.draft}
+                      order={envOrder}
+                      cols={vs ? 4 : 3}
+                      renderPair={(l, i) => (
+                        <tr key={i}>
+                          <td className="t-keyword" style={{ whiteSpace: 'nowrap' }}>
+                            {l.key}
+                          </td>
+                          <td style={{ width: '100%' }}>
+                            <input
+                              aria-label={`value of ${l.key}`}
+                              value={l.value}
+                              onChange={(e) => ed.edits.setLineValue(i, e.target.value)}
+                              spellCheck={false}
+                              autoComplete="off"
+                              style={{ width: '100%' }}
+                            />
+                          </td>
+                          {vs && <td style={{ whiteSpace: 'nowrap' }}>{pinMark(vs.byKey.get(l.key), i)}</td>}
+                          <td>
+                            <button className="link" onClick={() => ed.edits.removeLine(i)} aria-label={`remove ${l.key}`}>
+                              remove
+                            </button>
+                          </td>
+                        </tr>
                       )}
-                    </tbody>
+                    />
                   </table>
                 </div>
                 {vs && vs.missing.length > 0 && (
@@ -173,6 +186,19 @@ export function Editor({ base, ed, pinned }: Props) {
                 <form className="row" onSubmit={add}>
                   <input aria-label="new key" placeholder="NEW_KEY" value={newKey} onChange={(e) => setNewKey(e.target.value)} spellCheck={false} autoComplete="off" style={{ flex: '0 1 22ch' }} />
                   <input aria-label="new value" placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} spellCheck={false} autoComplete="off" />
+                  {sections.length > 0 && (
+                    <label className="muted" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                      in
+                      <select aria-label="section for the new key" value={section} onChange={(e) => setSection(e.target.value)}>
+                        <option value="">end of file</option>
+                        {sections.map((x) => (
+                          <option key={x.value} value={x.value}>
+                            {x.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <button type="submit">add key</button>
                   <span role="alert" className="t-error">
                     {addErr}

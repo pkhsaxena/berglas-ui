@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { type Diff, summarize } from '../../../core/diff'
+import { useSettings } from '../../../core/settings'
+
+const keyOrder = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
 
 /** Renders a value diff: key view for .env files, line view for anything. */
 export function DiffView({ diff }: { diff: Diff }) {
   const [view, setView] = useState<'keys' | 'lines'>('keys')
   const [showSame, setShowSame] = useState(false)
+  const { envOrder } = useSettings()
 
   if (diff.identical) return <div className="muted"># no differences.</div>
   const formattingOnly = diff.sameKeys
@@ -51,7 +55,7 @@ export function DiffView({ diff }: { diff: Diff }) {
         <div className="tablewrap">
           <table className="diff">
             <tbody>
-              {diff.keys.map((c) =>
+              {(envOrder === 'sorted' ? [...diff.keys].sort((a, b) => keyOrder.compare(a.key, b.key)) : diff.keys).map((c) =>
                 c.kind === 'same' ? (
                   showSame && (
                     <tr key={c.key}>

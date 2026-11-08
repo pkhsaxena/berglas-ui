@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Revealed } from '../../../core/hooks/useSecret'
 import { useSettings } from '../../../core/settings'
+import { EnvRows, OrderToggle } from './EnvRows'
 
 const MASK = '••••••••••••'
 
@@ -14,7 +15,7 @@ type Props = {
 /** A secret value: masked, binary notice, env table or raw text. */
 export function Value({ value, onCopy, persistent = false }: Props) {
   const [view, setView] = useState<'env' | 'raw'>('env')
-  const { revealSeconds } = useSettings()
+  const { revealSeconds, envOrder } = useSettings()
 
   if (!value) {
     return (
@@ -36,13 +37,16 @@ export function Value({ value, onCopy, persistent = false }: Props) {
   return (
     <>
       {env && (
-        <div className="tabs" role="tablist" aria-label="value view">
-          <button role="tab" aria-selected={mode === 'env'} onClick={() => setView('env')}>
-            env
-          </button>
-          <button role="tab" aria-selected={mode === 'raw'} onClick={() => setView('raw')}>
-            raw
-          </button>
+        <div className="row" style={{ margin: 0 }}>
+          <div className="tabs" role="tablist" aria-label="value view">
+            <button role="tab" aria-selected={mode === 'env'} onClick={() => setView('env')}>
+              env
+            </button>
+            <button role="tab" aria-selected={mode === 'raw'} onClick={() => setView('raw')}>
+              raw
+            </button>
+          </div>
+          {mode === 'env' && <OrderToggle />}
         </div>
       )}
       {mode === 'env' && env ? (
@@ -55,29 +59,24 @@ export function Value({ value, onCopy, persistent = false }: Props) {
                 <th />
               </tr>
             </thead>
-            <tbody>
-              {env.map((l, i) =>
-                l.kind === 'pair' ? (
-                  <tr key={i}>
-                    <td className="t-keyword">{l.key}</td>
-                    <td className="t-string" style={{ overflowWrap: 'anywhere' }}>
-                      {l.value}
-                    </td>
-                    <td>
-                      <button className="link" onClick={() => onCopy(l.value)} aria-label={`copy ${l.key}`}>
-                        copy
-                      </button>
-                    </td>
-                  </tr>
-                ) : l.raw.trim() === '' ? null : (
-                  <tr key={i}>
-                    <td colSpan={3} className="muted">
-                      {l.raw}
-                    </td>
-                  </tr>
-                ),
+            <EnvRows
+              text={value.text}
+              order={envOrder}
+              cols={3}
+              renderPair={(l, i) => (
+                <tr key={i}>
+                  <td className="t-keyword">{l.key}</td>
+                  <td className="t-string" style={{ overflowWrap: 'anywhere' }}>
+                    {l.value}
+                  </td>
+                  <td>
+                    <button className="link" onClick={() => onCopy(l.value)} aria-label={`copy ${l.key}`}>
+                      copy
+                    </button>
+                  </td>
+                </tr>
               )}
-            </tbody>
+            />
           </table>
         </div>
       ) : (

@@ -149,6 +149,8 @@ table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 th, td { text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px dashed var(--t-line); vertical-align: top; }
 th { color: var(--t-comment); font-weight: 400; text-transform: lowercase; white-space: nowrap; }
 tr.active td { background: var(--t-soft); }
+/* a section header comment in a sorted .env table */
+td.section-head { padding-top: 10px; }
 .tablewrap { overflow-x: auto; }
 
 /* secret list rows are buttons for keyboard access */

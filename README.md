@@ -71,6 +71,7 @@ listen: 127.0.0.1:0          # -listen / BERGLAS_UI_LISTEN win; port 0 = a free 
 openBrowser: true            # open the ui on startup (same as -open)
 theme: Dracula
 timeZone: local             # times in the system zone, or utc (also a switch in the header)
+envOrder: sorted            # .env views sorted by section and key, or file (also a switch by env/raw)
 readOnly: false              # refuse every write, everywhere
 protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
@@ -103,6 +104,7 @@ sources:
 | `credentials.quotaProject` | api quota is billed to this project | core |
 | `label`, `group`, `default` | display only; `group` also adds the service × env matrix | ui |
 | `timeZone` | `local` (default) or `utc`; the header's time switch saves it | ui |
+| `envOrder` | `sorted` (default) or `file`; how `.env` secrets are listed. The stored file is never reordered | ui |
 | `openBrowser`, `listen` | startup only | core |
 
 ### ui development
@@ -115,6 +117,21 @@ npm --prefix ui run dev        # terminal 2; proxies /api to $BERGLAS_UI_CORE or
 Open the printed link with the port changed to vite's (5173) so the cookie is set for that origin.
 
 ## editing
+
+### sorted .env views
+
+`.env` secrets are shown sorted (switch with **sorted · file order** next to env/raw):
+
+- the file is read as blocks separated by blank lines; comment lines at the top of a block are
+  that block's section header (`# Server` over `PORT`, `READ_TIMEOUT`, …)
+- sections are listed A→Z by header, keys A→Z inside each (case-insensitive, `K2` before `K10`)
+- keys in blocks without a header are listed first as "no section"; comment-only blocks (a file
+  banner) are shown at the top; a comment between two keys stays with the key below it
+- only the view is sorted: editing a value rewrites that key's own line, so the saved file keeps
+  its order, comments and formatting. The raw tab always shows the file as stored
+- **add key** can go into a section (inserted after that section's last key) or at the end of the
+  file; keys added from a pin are appended at the end
+
 
 - **edit** opens the latest value. `.env` secrets get a key/value editor, where changing a value
   rewrites only that line and keeps comments, `export` prefixes and line endings. Any secret can be
