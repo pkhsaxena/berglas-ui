@@ -59,6 +59,9 @@ type Config struct {
 	Theme string `yaml:"theme,omitempty" json:"theme"`
 	// TimeZone shows times in the system's zone ("local", the default) or "utc".
 	TimeZone string `yaml:"timeZone,omitempty" json:"timeZone"`
+	// EnvOrder shows .env secrets "sorted" (the default: sections by header,
+	// keys inside) or in "file" order. The stored file is never reordered.
+	EnvOrder string `yaml:"envOrder,omitempty" json:"envOrder"`
 	// ReadOnly refuses every write, in every source.
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly"`
 	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
@@ -84,6 +87,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # openBrowser: true            # open the ui when the core starts
 # theme: Dracula
 # timeZone: local              # show times in the system zone, or utc
+# envOrder: sorted             # .env views sorted by section and key, or file
 # readOnly: false              # refuse every write
 # protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 # revealSeconds: 60            # hide revealed values after this long; 0 = never
@@ -152,6 +156,9 @@ func Load(path string) (*File, error) {
 func Validate(c Config) error {
 	if err := validPatterns("protect", c.Protect); err != nil {
 		return err
+	}
+	if c.EnvOrder != "" && c.EnvOrder != "sorted" && c.EnvOrder != "file" {
+		return fmt.Errorf("envOrder must be sorted or file, got %q", c.EnvOrder)
 	}
 	if c.TimeZone != "" && c.TimeZone != "local" && c.TimeZone != "utc" {
 		return fmt.Errorf("timeZone must be local or utc, got %q", c.TimeZone)
@@ -230,6 +237,14 @@ func (f *File) SetSources(s []Source) error {
 		return err
 	}
 	return f.set("sources", s, func(c *Config) { c.Sources = s })
+}
+
+// SetEnvOrder sets how .env views are ordered ("sorted" or "file") and saves the file.
+func (f *File) SetEnvOrder(order string) error {
+	if err := Validate(Config{EnvOrder: order}); err != nil {
+		return err
+	}
+	return f.set("envOrder", order, func(c *Config) { c.EnvOrder = order })
 }
 
 // SetTimeZone sets the time zone ("local" or "utc") and saves the file.

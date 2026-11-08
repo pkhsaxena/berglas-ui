@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api, ApiError, type Status } from '../api'
+import { api, ApiError, type EnvOrder, type Status } from '../api'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
 import type { TimeZone } from '../time'
@@ -87,11 +87,17 @@ export function useApp() {
     api.setConfig({ timeZone }).catch((e) => setConfigError(`time zone applied but not saved — ${errText(e)}`))
   }
 
+  const setEnvOrder = (envOrder: EnvOrder) => {
+    setBase((b) => ({ ...b, envOrder }))
+    setConfigError('')
+    api.setConfig({ envOrder }).catch((e) => setConfigError(`order applied but not saved — ${errText(e)}`))
+  }
+
   const setTheme = (name: string) => {
     setThemeState(name)
     setConfigError('')
     api.setConfig({ theme: name }).catch((e) => setConfigError(`theme applied but not saved — ${errText(e)}`))
   }
 
-  return { session, retry, theme, setTheme, setTimeZone, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

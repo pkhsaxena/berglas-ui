@@ -260,6 +260,7 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Theme    *string          `json:"theme"`
 		TimeZone *string          `json:"timeZone"`
+		EnvOrder *string          `json:"envOrder"`
 		Sources  *[]config.Source `json:"sources"`
 	}
 	if !decode(w, r, &in) {
@@ -267,6 +268,12 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.Sources != nil {
 		if err := s.cfg.SetSources(*in.Sources); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	if in.EnvOrder != nil {
+		if err := s.cfg.SetEnvOrder(*in.EnvOrder); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
 			return
 		}

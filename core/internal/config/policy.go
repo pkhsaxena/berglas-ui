@@ -18,6 +18,7 @@ const (
 type Settings struct {
 	Theme                 string      `json:"theme"`
 	TimeZone              string      `json:"timeZone"`
+	EnvOrder              string      `json:"envOrder"`
 	ReadOnly              bool        `json:"readOnly"`
 	Protect               []string    `json:"protect"`
 	RevealSeconds         int         `json:"revealSeconds"`
@@ -30,7 +31,7 @@ type Settings struct {
 // Settings resolves c's defaults.
 func (c Config) Settings() Settings {
 	s := Settings{
-		Theme: c.Theme, TimeZone: c.TimeZone, ReadOnly: c.ReadOnly, Protect: c.Protect,
+		Theme: c.Theme, TimeZone: c.TimeZone, EnvOrder: c.EnvOrder, ReadOnly: c.ReadOnly, Protect: c.Protect,
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 	}
@@ -39,6 +40,9 @@ func (c Config) Settings() Settings {
 	}
 	if c.ClipboardClearSeconds != nil {
 		s.ClipboardClearSeconds = *c.ClipboardClearSeconds
+	}
+	if s.EnvOrder == "" {
+		s.EnvOrder = "sorted"
 	}
 	if s.TimeZone == "" {
 		s.TimeZone = "local"

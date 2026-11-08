@@ -2,7 +2,7 @@
 // helpers built on them. The core enforces read-only and protection on its
 // own; the ui uses these to hide or gate actions before the core refuses.
 import { createContext, useContext } from 'react'
-import type { Config, Ref } from './api'
+import type { Config, EnvOrder, Ref } from './api'
 import { sourceId } from './sources'
 import { stamp } from './time'
 
@@ -10,6 +10,7 @@ export type Settings = Omit<Config, 'theme' | 'path'>
 
 export const DEFAULT_SETTINGS: Settings = {
   timeZone: 'local',
+  envOrder: 'sorted',
   readOnly: false,
   protect: [],
   revealSeconds: 60,
@@ -22,6 +23,13 @@ export const DEFAULT_SETTINGS: Settings = {
 export const SettingsContext = createContext<Settings>(DEFAULT_SETTINGS)
 
 export const useSettings = () => useContext(SettingsContext)
+
+/** Settings a view can change from where it is used; saved to the config file. */
+export type SettingsActions = { setEnvOrder: (o: EnvOrder) => void }
+
+export const SettingsActionsContext = createContext<SettingsActions>({ setEnvOrder: () => {} })
+
+export const useSettingsActions = () => useContext(SettingsActionsContext)
 
 /** Formats a timestamp in the configured zone (local or utc). */
 export function useStamp(): (iso: string) => string {

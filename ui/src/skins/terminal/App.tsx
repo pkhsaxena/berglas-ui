@@ -5,7 +5,7 @@ import { useApp } from '../../core/hooks/useApp'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { matrixOf } from '../../core/overview'
-import { SettingsContext } from '../../core/settings'
+import { SettingsActionsContext, SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
@@ -32,6 +32,8 @@ export default function App() {
   useEffect(() => onAuditError(setErrorLine), [])
   const filterRef = useRef<HTMLInputElement>(null)
   const theme = knownTheme(app.theme)
+  const { setEnvOrder } = app
+  const actions = useMemo(() => ({ setEnvOrder }), [setEnvOrder])
 
   useEffect(() => applyTheme(theme), [theme])
 
@@ -118,197 +120,199 @@ export default function App() {
       </header>
 
       <SettingsContext.Provider value={app.settings}>
-        <main>
-          {errorLine && (
-            <div role="alert" className="row" style={{ marginTop: 8 }}>
-              <span className="t-error">error: {errorLine}</span>
-              <button onClick={() => setErrorLine('')}>dismiss</button>
-            </div>
-          )}
-          {session.kind === 'loading' && (
-            <div className="term-ln" style={{ marginTop: 12 }}>
-              <span className="t-prompt">$</span> <span className="t-function">gcloud</span> <span className="t-string">auth check</span>
-              <div className="muted"># checking application default credentials…</div>
-            </div>
-          )}
-
-          {session.kind === 'unauthorized' && (
-            <div style={{ marginTop: 12 }}>
-              <div className="t-error">error: this browser is not paired with the running core.</div>
-              <div className="muted"># open the link printed in the terminal that started berglas-ui. it carries a one-session token.</div>
-            </div>
-          )}
-
-          {session.kind === 'offline' && (
-            <div style={{ marginTop: 12 }}>
-              <div className="t-error">error: {session.message}</div>
-              <div className="row">
-                <button onClick={app.retry}>retry</button>
+        <SettingsActionsContext.Provider value={actions}>
+          <main>
+            {errorLine && (
+              <div role="alert" className="row" style={{ marginTop: 8 }}>
+                <span className="t-error">error: {errorLine}</span>
+                <button onClick={() => setErrorLine('')}>dismiss</button>
               </div>
-            </div>
-          )}
-
-          {session.kind === 'no-credentials' && (
-            <div style={{ marginTop: 12 }}>
-              <div className="t-error">error: no usable google credentials — {session.status.error}</div>
-              <div className="term-ln">
-                <span className="t-prompt">$</span> <span className="t-function">gcloud</span>{' '}
-                <span className="t-string">auth application-default login</span>
+            )}
+            {session.kind === 'loading' && (
+              <div className="term-ln" style={{ marginTop: 12 }}>
+                <span className="t-prompt">$</span> <span className="t-function">gcloud</span> <span className="t-string">auth check</span>
+                <div className="muted"># checking application default credentials…</div>
               </div>
-              <div className="muted"># run that in a terminal, then retry. berglas-ui uses your own google identity and iam permissions.</div>
-              <div className="row">
-                <button onClick={app.retry}>retry</button>
-              </div>
-            </div>
-          )}
+            )}
 
-          {session.kind === 'ready' && (
-            <div className={active ? 'layout has-side' : 'layout'}>
-              <div className="left">
-                <Sources
-                  sources={app.sources}
-                  configPath={app.configPath}
-                  saveError={app.configError}
-                  active={active}
-                  onSelect={(s) => {
-                    if (!active || sourceId(active) !== sourceId(s)) {
-                      app.setActive(s)
-                      setSelected(null)
-                      setCreating(false)
-                      setView('secret')
-                    }
-                  }}
-                  onAdd={(s) => {
-                    const err = app.addSource(s)
-                    if (!err) setSelected(null)
-                    return err
-                  }}
-                  onRemove={(s) => {
-                    if (active && sourceId(active) === sourceId(s)) setSelected(null)
-                    app.removeSource(s)
-                  }}
-                />
-                {active && (
-                  <SecretList
-                    ref={filterRef}
-                    source={active}
-                    list={list}
-                    selected={selected}
-                    onSelect={select}
-                    onCreate={() => {
-                      setSelected(null)
-                      setCreating(true)
-                      setView('secret')
+            {session.kind === 'unauthorized' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="t-error">error: this browser is not paired with the running core.</div>
+                <div className="muted"># open the link printed in the terminal that started berglas-ui. it carries a one-session token.</div>
+              </div>
+            )}
+
+            {session.kind === 'offline' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="t-error">error: {session.message}</div>
+                <div className="row">
+                  <button onClick={app.retry}>retry</button>
+                </div>
+              </div>
+            )}
+
+            {session.kind === 'no-credentials' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="t-error">error: no usable google credentials — {session.status.error}</div>
+                <div className="term-ln">
+                  <span className="t-prompt">$</span> <span className="t-function">gcloud</span>{' '}
+                  <span className="t-string">auth application-default login</span>
+                </div>
+                <div className="muted"># run that in a terminal, then retry. berglas-ui uses your own google identity and iam permissions.</div>
+                <div className="row">
+                  <button onClick={app.retry}>retry</button>
+                </div>
+              </div>
+            )}
+
+            {session.kind === 'ready' && (
+              <div className={active ? 'layout has-side' : 'layout'}>
+                <div className="left">
+                  <Sources
+                    sources={app.sources}
+                    configPath={app.configPath}
+                    saveError={app.configError}
+                    active={active}
+                    onSelect={(s) => {
+                      if (!active || sourceId(active) !== sourceId(s)) {
+                        app.setActive(s)
+                        setSelected(null)
+                        setCreating(false)
+                        setView('secret')
+                      }
+                    }}
+                    onAdd={(s) => {
+                      const err = app.addSource(s)
+                      if (!err) setSelected(null)
+                      return err
+                    }}
+                    onRemove={(s) => {
+                      if (active && sourceId(active) === sourceId(s)) setSelected(null)
+                      app.removeSource(s)
                     }}
                   />
-                )}
-              </div>
-
-              {/* zoomed out only: the matrix over the overview, always in view */}
-              {active && (
-                <div className="side-col">
-                  {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
-                  <OverviewPane source={active} list={list} onSelect={select} />
-                </div>
-              )}
-
-              {active && (
-                <div className={pinned ? 'main-area with-pin' : 'main-area'}>
-                  {/* normal width only: get back to the overview or matrix without losing the open secret */}
-                  <div className="view-tabs tabs" role="tablist" aria-label="right column">
-                    <button role="tab" aria-selected={shownView === 'secret'} onClick={() => setView('secret')}>
-                      {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
-                    </button>
-                    {base && !creating && (
-                      <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
-                        versions
-                      </button>
-                    )}
-                    <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
-                      overview
-                    </button>
-                    {matrix && (
-                      <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
-                        matrix
-                      </button>
-                    )}
-                  </div>
-
-                  {pinned && (
-                    <PinnedPane
-                      key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
-                      pinned={pinned}
-                      other={base}
-                      onUnpin={unpin}
-                      onCopy={copyText}
-                      onOpen={() => {
-                        const src = app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)
-                        if (src && sourceId(src) !== sourceId(active)) app.setActive(src)
-                        select(pinned.ref.name)
+                  {active && (
+                    <SecretList
+                      ref={filterRef}
+                      source={active}
+                      list={list}
+                      selected={selected}
+                      onSelect={select}
+                      onCreate={() => {
+                        setSelected(null)
+                        setCreating(true)
+                        setView('secret')
                       }}
                     />
                   )}
+                </div>
 
-                  {shownView === 'overview' ? (
-                    <div className="right single">
-                      <OverviewPane source={active} list={list} onSelect={select} />
+                {/* zoomed out only: the matrix over the overview, always in view */}
+                {active && (
+                  <div className="side-col">
+                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                    <OverviewPane source={active} list={list} onSelect={select} />
+                  </div>
+                )}
+
+                {active && (
+                  <div className={pinned ? 'main-area with-pin' : 'main-area'}>
+                    {/* normal width only: get back to the overview or matrix without losing the open secret */}
+                    <div className="view-tabs tabs" role="tablist" aria-label="right column">
+                      <button role="tab" aria-selected={shownView === 'secret'} onClick={() => setView('secret')}>
+                        {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
+                      </button>
+                      {base && !creating && (
+                        <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
+                          versions
+                        </button>
+                      )}
+                      <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
+                        overview
+                      </button>
+                      {matrix && (
+                        <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
+                          matrix
+                        </button>
+                      )}
                     </div>
-                  ) : shownView === 'matrix' && matrix ? (
-                    <div className="right single">
-                      <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />
-                    </div>
-                  ) : creating ? (
-                    <div className="right single">
-                      <CreateSecret
-                        key={sourceId(active)}
-                        source={active}
-                        onCancel={() => setCreating(false)}
-                        onCreated={(s) => {
-                          setToast('created')
-                          setCreating(false)
-                          setListRev((n) => n + 1)
-                          setSelected(s.name)
+
+                    {pinned && (
+                      <PinnedPane
+                        key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
+                        pinned={pinned}
+                        other={base}
+                        onUnpin={unpin}
+                        onCopy={copyText}
+                        onOpen={() => {
+                          const src = app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)
+                          if (src && sourceId(src) !== sourceId(active)) app.setActive(src)
+                          select(pinned.ref.name)
                         }}
                       />
-                    </div>
-                  ) : base ? (
-                    <SecretDetail
-                      key={`${base.backend}:${base.parent}/${base.name}`}
-                      base={base}
-                      onToast={setToast}
-                      onDeleted={() => {
-                        setSelected(null)
-                        setListRev((n) => n + 1)
-                      }}
-                      showVersions={shownView === 'versions'}
-                      pinned={pinned}
-                      onPin={(p) => {
-                        pin(p)
-                        setToast(`pinned ${p.ref.name} — open another secret to compare`)
-                      }}
-                    />
-                  ) : (
-                    <>
-                      {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
-                      <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
+                    )}
+
+                    {shownView === 'overview' ? (
+                      <div className="right single">
                         <OverviewPane source={active} list={list} onSelect={select} />
-                        {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
                       </div>
-                      <div className="right single wide-only">
-                        <div className="card pane">
-                          <h2>secret</h2>
-                          <div className="body">
-                            <div className="muted"># pick a secret in the list or the matrix. values stay hidden until you reveal them.</div>
+                    ) : shownView === 'matrix' && matrix ? (
+                      <div className="right single">
+                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />
+                      </div>
+                    ) : creating ? (
+                      <div className="right single">
+                        <CreateSecret
+                          key={sourceId(active)}
+                          source={active}
+                          onCancel={() => setCreating(false)}
+                          onCreated={(s) => {
+                            setToast('created')
+                            setCreating(false)
+                            setListRev((n) => n + 1)
+                            setSelected(s.name)
+                          }}
+                        />
+                      </div>
+                    ) : base ? (
+                      <SecretDetail
+                        key={`${base.backend}:${base.parent}/${base.name}`}
+                        base={base}
+                        onToast={setToast}
+                        onDeleted={() => {
+                          setSelected(null)
+                          setListRev((n) => n + 1)
+                        }}
+                        showVersions={shownView === 'versions'}
+                        pinned={pinned}
+                        onPin={(p) => {
+                          pin(p)
+                          setToast(`pinned ${p.ref.name} — open another secret to compare`)
+                        }}
+                      />
+                    ) : (
+                      <>
+                        {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
+                        <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
+                          <OverviewPane source={active} list={list} onSelect={select} />
+                          {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                        </div>
+                        <div className="right single wide-only">
+                          <div className="card pane">
+                            <h2>secret</h2>
+                            <div className="body">
+                              <div className="muted"># pick a secret in the list or the matrix. values stay hidden until you reveal them.</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </main>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </SettingsActionsContext.Provider>
       </SettingsContext.Provider>
 
       {toast && (
