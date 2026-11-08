@@ -77,3 +77,14 @@ export function removeKey(text: string, key: string): string {
   const keep = parseEnv(text).map((l) => !(l.kind === 'pair' && l.key === key))
   return rewrite(text, (lines) => lines.filter((_, i) => keep[i]))
 }
+
+/** Inserts KEY=value right after line i (e.g. a section's last key), matching that line's ending. */
+export function insertKeyAfter(text: string, i: number, key: string, value: string): string {
+  if (!isValidKey(key)) throw new Error(`invalid key ${key}`)
+  if (value.includes('\n')) throw new Error('a value cannot span lines')
+  return rewrite(text, (lines) => {
+    if (i < 0 || i >= lines.length) throw new Error(`no line ${i + 1}`)
+    lines.splice(i + 1, 0, `${key}=${value}${eol(lines[i])}`)
+    return lines
+  })
+}

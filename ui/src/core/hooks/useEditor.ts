@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues, reapplyEnv } from '../diff'
-import { isValidKey, looksLikeEnv, parseEnv, removeLine, setKey, setLineValue } from '../envfile'
+import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
 
@@ -79,12 +79,15 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
     setText: (t: string) => setDraft(t),
     setLineValue: (i: number, v: string) => tryEdit(() => setLineValue(draft, i, v)),
     removeLine: (i: number) => tryEdit(() => removeLine(draft, i)),
-    /** Returns an error message, or '' when added. */
-    addKey: (key: string, value: string): string => {
+    /**
+     * Adds a key after line `afterLine` (e.g. a section's last key), or at
+     * the end of the file. Returns an error message, or '' when added.
+     */
+    addKey: (key: string, value: string, afterLine?: number): string => {
       const k = key.trim()
       if (!isValidKey(k)) return 'keys are letters, digits, _ . - and cannot start with a digit'
       if (parseEnv(draft).some((l) => l.kind === 'pair' && l.key === k)) return `${k} already exists — edit its value instead`
-      tryEdit(() => setKey(draft, k, value))
+      tryEdit(() => (afterLine === undefined ? setKey(draft, k, value) : insertKeyAfter(draft, afterLine, k, value)))
       return ''
     },
     /** Sets several keys at once (rewrites existing ones, appends new ones). */
