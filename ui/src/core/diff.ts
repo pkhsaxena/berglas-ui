@@ -20,8 +20,19 @@ export function lineDiff(a: string, b: string): DiffLine[] {
 export type KeyChange =
   | { kind: 'added'; key: string; after: string }
   | { kind: 'removed'; key: string; before: string }
-  | { kind: 'changed'; key: string; before: string; after: string }
+  /** quotesOnly: the values differ only by surrounding quotes ("x" vs x), which dotenv loaders read the same */
+  | { kind: 'changed'; key: string; before: string; after: string; quotesOnly: boolean }
   | { kind: 'same'; key: string; value: string }
+
+/**
+ * A value without one matching pair of surrounding quotes: "abc" and 'abc'
+ * become abc. Anything else (one-sided quotes, spaces outside the quotes) is
+ * returned as is, since those can be real differences.
+ */
+export function unquote(v: string): string {
+  if (v.length >= 2 && (v[0] === '"' || v[0] === "'") && v[v.length - 1] === v[0]) return v.slice(1, -1)
+  return v
+}
 
 /** Last value of each KEY=value line, in first-seen order. */
 function envMap(text: string): Map<string, string> {
@@ -42,21 +53,25 @@ export function envDiff(a: string, b: string): KeyChange[] {
   for (const [key, v] of after) {
     const old = before.get(key)
     if (old === undefined) out.push({ kind: 'added', key, after: v })
-    else if (old !== v) out.push({ kind: 'changed', key, before: old, after: v })
+    else if (old !== v) out.push({ kind: 'changed', key, before: old, after: v, quotesOnly: unquote(old) === unquote(v) })
     else out.push({ kind: 'same', key, value: v })
   }
   for (const [key, v] of before) if (!after.has(key)) out.push({ kind: 'removed', key, before: v })
   return out
 }
 
-export type DiffSummary = { added: number; removed: number; changed: number }
+/** changed counts every changed key; quotesOnly is how many of those differ only by quotes */
+export type DiffSummary = { added: number; removed: number; changed: number; quotesOnly: number }
 
 export function summarize(d: KeyChange[] | DiffLine[]): DiffSummary {
-  const s = { added: 0, removed: 0, changed: 0 }
+  const s = { added: 0, removed: 0, changed: 0, quotesOnly: 0 }
   for (const c of d) {
     if (c.kind === 'added' || c.kind === 'add') s.added++
     else if (c.kind === 'removed' || c.kind === 'del') s.removed++
-    else if (c.kind === 'changed') s.changed++
+    else if (c.kind === 'changed') {
+      s.changed++
+      if (c.quotesOnly) s.quotesOnly++
+    }
   }
   return s
 }
@@ -68,6 +83,8 @@ export type Diff = {
   identical: boolean
   /** .env files whose keys and values all match, though the text differs (comments, order, export, spacing) */
   sameKeys: boolean
+  /** .env files that would load the same values: keys match and values differ at most by quotes */
+  sameContent: boolean
 }
 
 /**
@@ -92,7 +109,13 @@ export function reapplyEnv(original: string, draft: string, latest: string): { t
 /** Diffs two texts, adding the key view when both look like .env files. */
 export function diffValues(a: string, b: string, bothEnv: boolean): Diff {
   const keys = bothEnv ? envDiff(a, b) : null
-  return { keys, lines: lineDiff(a, b), identical: a === b, sameKeys: !!keys && keys.every((k) => k.kind === 'same') }
+  return {
+    keys,
+    lines: lineDiff(a, b),
+    identical: a === b,
+    sameKeys: !!keys && keys.every((k) => k.kind === 'same'),
+    sameContent: !!keys && keys.every((k) => k.kind === 'same' || (k.kind === 'changed' && k.quotesOnly)),
+  }
 }
 
 export type Match = {
@@ -100,9 +123,15 @@ export type Match = {
   byKey: Map<string, KeyChange>
   /** keys only the reference has, with its values */
   missing: { key: string; value: string }[]
+  /** keys whose values differ, counting those that differ only by quotes */
   differ: number
+  /** how many of `differ` differ only by quotes */
+  quotesOnly: number
   extra: number
+  /** exactly the same keys and values */
   matches: boolean
+  /** the same once quotes are ignored (and not already an exact match) */
+  matchesUnquoted: boolean
 }
 
 /**
@@ -113,14 +142,27 @@ export function matchAgainst(draft: string, reference: string): Match {
   const byKey = new Map<string, KeyChange>()
   const missing: { key: string; value: string }[] = []
   let differ = 0
+  let quotesOnly = 0
   let extra = 0
   for (const c of envDiff(draft, reference)) {
     if (c.kind === 'added') missing.push({ key: c.key, value: c.after })
     else {
       byKey.set(c.key, c)
-      if (c.kind === 'changed') differ++
+      if (c.kind === 'changed') {
+        differ++
+        if (c.quotesOnly) quotesOnly++
+      }
       if (c.kind === 'removed') extra++
     }
   }
-  return { byKey, missing, differ, extra, matches: differ === 0 && extra === 0 && missing.length === 0 }
+  const sameKeys = extra === 0 && missing.length === 0
+  return {
+    byKey,
+    missing,
+    differ,
+    quotesOnly,
+    extra,
+    matches: sameKeys && differ === 0,
+    matchesUnquoted: sameKeys && differ > 0 && differ === quotesOnly,
+  }
 }
