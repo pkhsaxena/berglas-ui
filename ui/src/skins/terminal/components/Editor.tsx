@@ -60,7 +60,15 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
     if (c.kind === 'changed')
       return (
         <>
-          <span className="t-keyword" title="differs from pinned">≠ </span>
+          {c.quotesOnly ? (
+            <span className="muted" title={`same value, only the quotes differ (pinned: ${c.after})`}>
+              ≈ quotes{' '}
+            </span>
+          ) : (
+            <span className="t-keyword" title="differs from pinned">
+              ≠{' '}
+            </span>
+          )}
           <button className="link" onClick={() => ed.edits.setLineValue(line, c.after)} title={`set to the pinned value`}>
             use pinned
           </button>
@@ -115,10 +123,12 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
               </span>
             </div>
             {vs && (
-              <div className={vs.matches ? 't-function' : 'muted small'}>
+              <div className={vs.matches || vs.matchesUnquoted ? 't-function' : 'muted small'}>
                 {vs.matches
                   ? `✓ matches pinned ${pinned!.ref.name} exactly`
-                  : `# vs pinned ${pinned!.ref.name}: ${vs.differ} differ · ${vs.missing.length} missing · ${vs.extra} only here`}
+                  : vs.matchesUnquoted
+                    ? `✓ matches pinned ${pinned!.ref.name} apart from quoting on ${vs.quotesOnly} key${vs.quotesOnly === 1 ? '' : 's'} (≈)`
+                    : `# vs pinned ${pinned!.ref.name}: ${vs.differ - vs.quotesOnly} differ${vs.quotesOnly ? ` · ${vs.quotesOnly} only by quotes` : ''} · ${vs.missing.length} missing · ${vs.extra} only here`}
               </div>
             )}
 

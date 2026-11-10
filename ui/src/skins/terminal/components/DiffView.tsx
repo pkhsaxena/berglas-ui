@@ -24,13 +24,27 @@ export function DiffView({ diff }: { diff: Diff }) {
           ✓ same keys and values <span className="muted">— the text differs only in comments, order or formatting (see lines).</span>
         </div>
       )}
+      {!formattingOnly && diff.sameContent && (
+        <div className="t-function">
+          ✓ same keys and values{' '}
+          <span className="muted">
+            — only quoting differs, on {sum.quotesOnly} key{sum.quotesOnly === 1 ? '' : 's'} (≈ rows). dotenv loaders read these the same.
+          </span>
+        </div>
+      )}
       <div className="row" style={{ margin: '4px 0' }}>
         <span className="small">
           <span className="t-function">+{sum.added} added</span> · <span className="t-error">-{sum.removed} removed</span>
           {mode === 'keys' && (
             <>
               {' '}
-              · <span className="t-keyword">~{sum.changed} changed</span>
+              · <span className="t-keyword">~{sum.changed - sum.quotesOnly} changed</span>
+              {sum.quotesOnly > 0 && (
+                <>
+                  {' '}
+                  · <span className="muted">≈{sum.quotesOnly} quotes only</span>
+                </>
+              )}
             </>
           )}
         </span>
@@ -66,18 +80,26 @@ export function DiffView({ diff }: { diff: Diff }) {
                   )
                 ) : (
                   <tr key={c.key}>
-                    <td className={c.kind === 'added' ? 't-function' : c.kind === 'removed' ? 't-error' : 't-keyword'}>
-                      {c.kind === 'added' ? '+' : c.kind === 'removed' ? '-' : '~'}
+                    <td
+                      className={c.kind === 'added' ? 't-function' : c.kind === 'removed' ? 't-error' : c.quotesOnly ? 'muted' : 't-keyword'}
+                      title={c.kind === 'changed' && c.quotesOnly ? 'same value, only the quotes differ' : undefined}
+                    >
+                      {c.kind === 'added' ? '+' : c.kind === 'removed' ? '-' : c.quotesOnly ? '≈' : '~'}
                     </td>
                     <td className="t-keyword">{c.key}</td>
                     <td>
                       {c.kind === 'added' && <span className="t-function">{c.after}</span>}
                       {c.kind === 'removed' && <span className="t-error">{c.before}</span>}
-                      {c.kind === 'changed' && (
+                      {c.kind === 'changed' && !c.quotesOnly && (
                         <>
                           <span className="t-error">{c.before}</span> <span className="muted">→</span>{' '}
                           <span className="t-function">{c.after}</span>
                         </>
+                      )}
+                      {c.kind === 'changed' && c.quotesOnly && (
+                        <span className="muted">
+                          {c.before} → {c.after} <span className="t-keyword">quotes only</span>
+                        </span>
                       )}
                     </td>
                   </tr>

@@ -156,6 +156,11 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
   It stays until **unpin** (it does not hide on the reveal timer). With a pin:
   - **compare with …** diffs the pinned keys against the open secret's latest version. It reports
     "identical", or "same keys and values" when only comments, order or formatting differ.
+- **quotes:** values that differ only by one surrounding pair of quotes (`KEY="x"` vs `KEY=x`,
+  which dotenv loaders read the same) are marked `≈ quotes only` in diffs and comparisons and
+  `≈ quotes` in the editor beside a pin, instead of as changed. When quoting is the only difference
+  you get "same keys and values — only quoting differs". One-sided quotes or spaces outside the
+  quotes still count as real changes.
   - the editor marks every key `=` (same as pinned), `≠` (differs, with **use pinned** to copy
     the pinned value) or `+ only here`, lists keys only the pinned secret has (with **add** or
     **add all**), and says when the draft matches the pinned secret exactly.
