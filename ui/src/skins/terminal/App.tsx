@@ -9,6 +9,7 @@ import { SettingsActionsContext, SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
+import { Credit } from './components/Credit'
 import { MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
@@ -100,12 +101,6 @@ export default function App() {
             </span>
           ))}
         <span className="spacer" />
-        <span className="muted small credit">
-          made by{' '}
-          <a href="mailto:saxenaprakhar1998@gmail.com" title="saxenaprakhar1998@gmail.com">
-            Prakhar Saxena
-          </a>
-        </span>
         {session.kind === 'ready' && (
           <label>
             time
@@ -320,6 +315,8 @@ export default function App() {
           </main>
         </SettingsActionsContext.Provider>
       </SettingsContext.Provider>
+
+      <Credit />
 
       {toast && (
         <div className="toast" role="status">

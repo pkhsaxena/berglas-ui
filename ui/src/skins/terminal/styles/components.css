@@ -18,8 +18,11 @@ strong { color: var(--t-string); font-weight: 500; }
 }
 .top .spacer { flex: 1; }
 .top .app { color: var(--t-prompt); }
-.top .credit a { color: var(--t-prompt); text-decoration: none; }
-.top .credit a:hover, .top .credit a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
+/* the credit line under the panes; the line changes with a 0.15s fade */
+.credit-bar { flex: none; text-align: center; font-size: 12px; color: var(--t-comment); padding: 0 18px 6px; }
+.credit-bar a { color: var(--t-prompt); text-decoration: none; }
+.credit-bar a:hover, .credit-bar a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
+.credit-line { display: inline-block; animation: fade 0.15s ease-out; }
 .top label { color: var(--t-comment); display: inline-flex; align-items: center; gap: 6px; }
 
 /* app shell. The page itself never scrolls: every section is a fixed-height
@@ -229,5 +232,5 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 @keyframes blink { 50% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .cursor, .toast { animation: none; }
+  .cursor, .toast, .credit-line { animation: none; }
 }
