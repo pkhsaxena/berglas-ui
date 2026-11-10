@@ -100,6 +100,12 @@ export default function App() {
             </span>
           ))}
         <span className="spacer" />
+        <span className="muted small credit">
+          made by{' '}
+          <a href="mailto:saxenaprakhar1998@gmail.com" title="saxenaprakhar1998@gmail.com">
+            Prakhar Saxena
+          </a>
+        </span>
         {session.kind === 'ready' && (
           <label>
             time
