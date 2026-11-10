@@ -102,7 +102,7 @@ sources:
 | `auditLog` | appends `{time, actor, action, backend, parent, name, version, result, error}` per write attempt (never values), file mode 0600. If a line cannot be written, the write has still happened and the ui shows an error | core |
 | `credentials.impersonateServiceAccount` | every call is made as that service account; your ADC identity needs `roles/iam.serviceAccountTokenCreator` on it | core |
 | `credentials.quotaProject` | api quota is billed to this project | core |
-| `label`, `group`, `default` | display only; `group` also adds the service × env matrix | ui |
+| `label`, `group`, `default` | display only; `group` also adds the service × env matrix (click an env header to sort rows: newest first, oldest first, default) | ui |
 | `timeZone` | `local` (default) or `utc`; the header's time switch saves it | ui |
 | `envOrder` | `sorted` (default) or `file`; how `.env` secrets are listed. The stored file is never reordered | ui |
 | `openBrowser`, `listen` | startup only | core |

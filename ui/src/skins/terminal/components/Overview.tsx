@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { type Secret, versionOf } from '../../../core/api'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
-import { type Matrix, overview, STALE_DAYS } from '../../../core/overview'
+import { type Matrix, overview, type SortDir, sortMatrixRows, STALE_DAYS } from '../../../core/overview'
 import type { Source } from '../../../core/sources'
 import { ago } from '../../../core/time'
 
@@ -105,30 +105,51 @@ export function OverviewPane({ source, list, onSelect }: OverviewProps) {
   )
 }
 
+export type MatrixSort = { col: string; dir: SortDir } | null
+
 type MatrixProps = {
   source: Source
   matrix: Matrix
   selected: string | null
   onSelect: (name: string) => void
+  /** rows ordered by one column, or null for the default service order */
+  sort: MatrixSort
+  onSort: (s: MatrixSort) => void
   className?: string
 }
 
+// a column header click cycles: default → ascending → descending → default
+const nextSort = (cur: MatrixSort, col: string): MatrixSort =>
+  cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null
+
 /** The {first} × {second} placeholder grid, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix, selected, onSelect, className = '' }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '' }: MatrixProps) {
+  const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className={`card pane matrix-pane ${className}`}>
       <h2>
         matrix <span className="muted">— {source.group}</span>
       </h2>
       <div className="body">
-        <div className="muted small"># cells show time since the last change; – means no such secret.</div>
+        <div className="muted small">
+          # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default.
+        </div>
         <div className="tablewrap">
           <table className="matrix">
             <thead>
               <tr>
                 <th />
                 {matrix.cols.map((c) => (
-                  <th key={c}>{c}</th>
+                  <th key={c} aria-sort={sort?.col === c ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button
+                      className="th-sort"
+                      onClick={() => onSort(nextSort(sort, c))}
+                      title={sort?.col !== c ? `sort by ${c}: newest first` : sort.dir === 'asc' ? `sort by ${c}: oldest first` : 'back to the default order'}
+                    >
+                      {c}
+                      <span className="t-prompt">{sort?.col === c ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</span>
+                    </button>
+                  </th>
                 ))}
               </tr>
             </thead>

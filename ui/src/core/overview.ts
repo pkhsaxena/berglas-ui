@@ -81,3 +81,24 @@ export function overview(secrets: Secret[], groupPattern: string | undefined, no
     matrix: matrixOf(secrets, groupPattern),
   }
 }
+
+export type SortDir = 'asc' | 'desc'
+
+/**
+ * Matrix rows ordered by one column: 'asc' puts the most recently changed
+ * first (the smallest "time since last change"), 'desc' the least recently
+ * changed. Rows with no secret in that column go last either way; ties keep
+ * the default service order. Returns the matrix unchanged when col is null.
+ */
+export function sortMatrixRows(m: Matrix, col: string | null, dir: SortDir): Matrix {
+  const c = col === null ? -1 : m.cols.indexOf(col)
+  if (c < 0) return m
+  const rows = m.rows
+    .map((r, i) => ({ r, i, t: r.cells[c] ? time(r.cells[c]!) : null }))
+    .sort((a, b) => {
+      if (a.t === null || b.t === null) return a.t === null ? (b.t === null ? a.i - b.i : 1) : -1
+      return (dir === 'asc' ? b.t - a.t : a.t - b.t) || a.i - b.i
+    })
+    .map((x) => x.r)
+  return { ...m, rows }
+}

@@ -156,6 +156,9 @@ th { color: var(--t-comment); font-weight: 400; text-transform: lowercase; white
 tr.active td { background: var(--t-soft); }
 /* a section header comment in a sorted .env table */
 td.section-head { padding-top: 10px; }
+/* a sortable column header: looks like the header, acts like a button */
+button.th-sort { border: 0; padding: 0; color: inherit; font: inherit; text-transform: inherit; }
+button.th-sort:hover { background: none; color: var(--t-fg); }
 .tablewrap { overflow-x: auto; }
 
 /* secret list rows are buttons for keyboard access */

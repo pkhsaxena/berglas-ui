@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import type { Secret } from './api'
-import { matrixOf, overview } from './overview'
+import { matrixOf, overview, sortMatrixRows } from './overview'
 
 const now = Date.parse('2026-06-01T00:00:00Z')
 const at = (days: number) => new Date(now - days * 86_400_000).toISOString()
@@ -30,4 +30,14 @@ test('matrix orders known environments and leaves gaps empty', () => {
   ])
   expect(matrixOf(list, '{service}')).toBeNull()
   expect(matrixOf(list, undefined)).toBeNull()
+})
+
+test('sortMatrixRows orders by one env, missing cells last, default order otherwise', () => {
+  const m = matrixOf([s('a-dev-env', 30), s('b-dev-env', 5), s('c-dev-env', 90), s('d-prod-env', 1)], '{service}-{env}-env')!
+  const order = (x: typeof m) => x.rows.map((r) => r.key)
+  expect(order(m)).toEqual(['a', 'b', 'c', 'd'])
+  expect(order(sortMatrixRows(m, 'dev', 'asc'))).toEqual(['b', 'a', 'c', 'd'])
+  expect(order(sortMatrixRows(m, 'dev', 'desc'))).toEqual(['c', 'a', 'b', 'd'])
+  expect(order(sortMatrixRows(m, null, 'asc'))).toEqual(['a', 'b', 'c', 'd'])
+  expect(order(sortMatrixRows(m, 'nope', 'asc'))).toEqual(['a', 'b', 'c', 'd'])
 })

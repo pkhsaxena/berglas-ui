@@ -10,7 +10,7 @@ import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
 import { Credit } from './components/Credit'
-import { MatrixPane, OverviewPane } from './components/Overview'
+import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
@@ -70,6 +70,8 @@ export default function App() {
   // which view the right column shows at normal width; zoomed out, the
   // overview and matrix have their own column and this stays on 'secret'
   const [view, setView] = useState<'secret' | 'versions' | 'overview' | 'matrix'>('secret')
+  // the matrix's row order, kept while switching views so it does not reset
+  const [matrixSort, setMatrixSort] = useState<MatrixSort>(null)
   // with no secret open there are no versions to show
   const shownView = view === 'versions' && !selected ? 'secret' : view
   const select = (name: string) => {
@@ -211,7 +213,7 @@ export default function App() {
                 {/* zoomed out only: the matrix over the overview, always in view */}
                 {active && (
                   <div className="side-col">
-                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />}
                     <OverviewPane source={active} list={list} onSelect={select} />
                   </div>
                 )}
@@ -259,7 +261,7 @@ export default function App() {
                       </div>
                     ) : shownView === 'matrix' && matrix ? (
                       <div className="right single">
-                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />
+                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />
                       </div>
                     ) : creating ? (
                       <div className="right single">
@@ -296,7 +298,7 @@ export default function App() {
                         {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
                         <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
                           <OverviewPane source={active} list={list} onSelect={select} />
-                          {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} />}
+                          {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />}
                         </div>
                         <div className="right single wide-only">
                           <div className="card pane">
