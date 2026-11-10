@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { type Ref, type Secret, versionOf } from '../../../core/api'
 import { useVersionDiff } from '../../../core/hooks/useVersionDiff'
 import { useSettings, useStamp } from '../../../core/settings'
 import { DiffView } from './DiffView'
+import { PaneTitle } from './PaneTitle'
 
 type Props = {
   base: Ref
@@ -10,10 +11,12 @@ type Props = {
   versionsError: string
   shown: Secret | undefined
   onView: (id: string) => void
+  /** view tabs, when this is the top pane (the versions tab) */
+  titleTabs?: ReactNode
 }
 
 /** Version history with a/b pickers to diff any two versions. */
-export function Versions({ base, versions, versionsError, shown, onView }: Props) {
+export function Versions({ base, versions, versionsError, shown, onView, titleTabs }: Props) {
   const d = useVersionDiff(base, versions)
   const { revealSeconds } = useSettings()
   const stamp = useStamp()
@@ -30,9 +33,9 @@ export function Versions({ base, versions, versionsError, shown, onView }: Props
 
   return (
     <div className="card pane versions-pane">
-      <h2>
+      <PaneTitle tabs={titleTabs}>
         versions <span className="muted">— newest first</span>
-      </h2>
+      </PaneTitle>
       <div className="body">
         {versionsError ? (
           <div className="muted"># unavailable — see the error above.</div>

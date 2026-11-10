@@ -1,21 +1,22 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { refString, type Secret } from '../../../core/api'
 import { useCreate } from '../../../core/hooks/useCreate'
 import type { Source } from '../../../core/sources'
 import { ConfirmName } from './ConfirmName'
+import { PaneTitle } from './PaneTitle'
 
-type Props = { source: Source; onCreated: (s: Secret) => void; onCancel: () => void }
+type Props = { source: Source; onCreated: (s: Secret) => void; onCancel: () => void; titleTabs?: ReactNode }
 
-export function CreateSecret({ source, onCreated, onCancel }: Props) {
+export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) {
   const c = useCreate(source, onCreated)
   const [typed, setTyped] = useState('')
   const target = c.ref.name ? refString(c.ref) : refString({ ...c.ref, name: '<name>' })
 
   return (
     <div className="card pane">
-      <h2>
+      <PaneTitle tabs={titleTabs}>
         new secret <span className="muted">— {source.label || source.parent}</span>
-      </h2>
+      </PaneTitle>
       <div className="body">
         <div className="term-ln">
           <span className="t-prompt">$</span> <span className="t-function">create</span> <span className="t-string">{target}</span>

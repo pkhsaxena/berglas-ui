@@ -82,6 +82,28 @@ export default function App() {
 
   const matrix = useMemo(() => (active && list.secrets ? matrixOf(list.secrets, active.group) : null), [active, list.secrets])
 
+  // the view tabs, set into the title of the right column's top pane (normal width only)
+  const titleTabs = active && (
+    <span className="tabs pane-tabs" role="tablist" aria-label="right column">
+      <button role="tab" className="tab-secret" aria-selected={shownView === 'secret'} onClick={() => setView('secret')} title={selected ?? undefined}>
+        {creating ? 'new secret' : (selected ?? 'secret')}
+      </button>
+      {selected && !creating && (
+        <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
+          versions
+        </button>
+      )}
+      <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
+        overview
+      </button>
+      {matrix && (
+        <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
+          matrix
+        </button>
+      )}
+    </span>
+  )
+
   const base: Ref | null = useMemo(
     () => (active && selected ? { backend: active.backend, parent: active.parent, name: selected } : null),
     [active, selected],
@@ -220,26 +242,6 @@ export default function App() {
 
                 {active && (
                   <div className={pinned ? 'main-area with-pin' : 'main-area'}>
-                    {/* normal width only: get back to the overview or matrix without losing the open secret */}
-                    <div className="view-tabs tabs" role="tablist" aria-label="right column">
-                      <button role="tab" aria-selected={shownView === 'secret'} onClick={() => setView('secret')}>
-                        {creating ? 'new secret' : selected ? `secret: ${selected}` : 'secret'}
-                      </button>
-                      {base && !creating && (
-                        <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
-                          versions
-                        </button>
-                      )}
-                      <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
-                        overview
-                      </button>
-                      {matrix && (
-                        <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
-                          matrix
-                        </button>
-                      )}
-                    </div>
-
                     {pinned && (
                       <PinnedPane
                         key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
@@ -257,15 +259,16 @@ export default function App() {
 
                     {shownView === 'overview' ? (
                       <div className="right single">
-                        <OverviewPane source={active} list={list} onSelect={select} />
+                        <OverviewPane source={active} list={list} onSelect={select} titleTabs={titleTabs} />
                       </div>
                     ) : shownView === 'matrix' && matrix ? (
                       <div className="right single">
-                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />
+                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} titleTabs={titleTabs} />
                       </div>
                     ) : creating ? (
                       <div className="right single">
                         <CreateSecret
+                          titleTabs={titleTabs}
                           key={sourceId(active)}
                           source={active}
                           onCancel={() => setCreating(false)}
@@ -287,6 +290,7 @@ export default function App() {
                           setListRev((n) => n + 1)
                         }}
                         showVersions={shownView === 'versions'}
+                        titleTabs={titleTabs}
                         pinned={pinned}
                         onPin={(p) => {
                           pin(p)
@@ -297,7 +301,7 @@ export default function App() {
                       <>
                         {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
                         <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
-                          <OverviewPane source={active} list={list} onSelect={select} />
+                          <OverviewPane source={active} list={list} onSelect={select} titleTabs={titleTabs} />
                           {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />}
                         </div>
                         <div className="right single wide-only">

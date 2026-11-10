@@ -19,7 +19,7 @@ strong { color: var(--t-string); font-weight: 500; }
 .top .spacer { flex: 1; }
 .top .app { color: var(--t-prompt); }
 /* the credit line under the panes; it erases and retypes itself */
-.credit-bar { flex: none; text-align: center; font-size: 12px; color: var(--t-comment); padding: 0 18px 6px; }
+.credit-bar { flex: none; text-align: center; font-size: 12px; color: var(--t-comment); padding: 4px 18px 6px; }
 .credit-bar a { color: var(--t-prompt); text-decoration: none; }
 .credit-bar a:hover, .credit-bar a:focus-visible { text-decoration: underline; text-underline-offset: 2px; }
 .credit-cursor { display: inline-block; width: 0.55em; height: 1em; margin-left: 1px; background: var(--t-comment); vertical-align: text-bottom; }
@@ -37,7 +37,7 @@ strong { color: var(--t-string); font-weight: 500; }
 html, body, #root { height: 100%; }
 #root { display: flex; flex-direction: column; }
 main {
-  flex: 1; min-height: 0; width: 100%; padding: 0 18px 14px;
+  flex: 1; min-height: 0; width: 100%; padding: 0 18px;
   display: flex; flex-direction: column;
 }
 .layout {
@@ -53,11 +53,17 @@ main {
 .left { grid-template-rows: fit-content(40%) minmax(0, 1fr); }
 .side-col { grid-template-rows: fit-content(55%) minmax(0, 1fr); }
 .side-col > :only-child { grid-row: 1 / -1; }
-.main-area { display: grid; min-height: 0; min-width: 0; grid-template-rows: auto minmax(0, 1fr); }
-.main-area > .right { grid-row: 2; }
+.main-area { display: grid; min-height: 0; min-width: 0; grid-template-rows: minmax(0, 1fr); }
+.main-area > .right { grid-row: 1; }
 .main-area > .wide-only { display: none; }
-.view-tabs { margin-top: 6px; flex-wrap: wrap; }
-.view-tabs button { overflow-wrap: anywhere; text-align: left; }
+
+/* the view tabs live in the title border of the right column's top pane, so
+   both columns start on the same line; zoomed out the plain title shows */
+.card > h2.has-tabs .title-plain { display: none; }
+.card > h2 .pane-tabs { display: inline-flex; gap: 0; vertical-align: bottom; }
+.card > h2 .pane-tabs button { padding: 0 6px; font-size: 13px; line-height: 1.6; }
+.card > h2 .pane-tabs button:first-child { padding-left: 0; }
+.card > h2 .pane-tabs .tab-secret { max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
 /* normal width, value revealed: the secret fills the column; the versions
@@ -66,8 +72,7 @@ main {
 .right.revealed > .versions-pane, .right.show-versions > .secret-pane { display: none; }
 /* a pinned value takes the left half of the main area, the open secret the right */
 .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; }
-.main-area.with-pin > .view-tabs { grid-column: 1 / -1; }
-.main-area.with-pin > .pinned-pane { grid-row: 2; grid-column: 1; }
+.main-area.with-pin > .pinned-pane { grid-row: 1; grid-column: 1; }
 .main-area.with-pin > .right { grid-column: 2; }
 
 /* a pane: the title sits in the border, the body scrolls inside it */
@@ -84,7 +89,8 @@ main {
   .layout { grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr); }
   .layout.has-side { grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "left side main"; }
   .layout > .side-col { display: grid; }
-  .main-area > .view-tabs { display: none; }
+  .card > h2.has-tabs .title-tabs { display: none; }
+  .card > h2.has-tabs .title-plain { display: inline; }
   .main-area > .normal-only { display: none; }
   .main-area > .wide-only { display: grid; }
   .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
@@ -104,7 +110,7 @@ main {
   .left, .right, .main-area, .left > .sources-pane, .right > .pane { min-height: auto; }
   .left > .sources-pane > .body, .right > .pane > .body { flex: none; overflow: visible; }
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr); }
-  .main-area.with-pin > .view-tabs, .main-area.with-pin > .pinned-pane, .main-area.with-pin > .right { grid-column: 1; grid-row: auto; }
+  .main-area.with-pin > .pinned-pane, .main-area.with-pin > .right { grid-column: 1; grid-row: auto; }
   .main-area > .pinned-pane { min-height: auto; }
   .main-area > .pinned-pane > .body { flex: none; overflow: visible; }
 }
@@ -226,7 +232,7 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 
 /* toast */
 .toast {
-  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 60;
+  position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%); z-index: 60;
   background: var(--t-fg); color: var(--t-bg); padding: 4px 12px; animation: fade 0.15s ease-out;
 }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }

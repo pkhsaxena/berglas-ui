@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { type ReactNode, useEffect } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
 import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
@@ -8,6 +8,7 @@ import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/
 import { ago } from '../../../core/time'
 import { DeleteSecret } from './DeleteSecret'
 import { Editor } from './Editor'
+import { PaneTitle } from './PaneTitle'
 import { Value } from './Value'
 import { Versions } from './Versions'
 
@@ -20,9 +21,11 @@ type Props = {
   onPin: (p: Pinned) => void
   /** normal width: show only the versions pane (the versions tab) */
   showVersions: boolean
+  /** view tabs, set into the title of whichever pane is on top */
+  titleTabs?: ReactNode
 }
 
-export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions }: Props) {
+export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions, titleTabs }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -60,7 +63,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   if (editing) {
     return (
       <div className="right single">
-        <Editor base={base} ed={ed} pinned={pinnedOther} />
+        <Editor base={base} ed={ed} pinned={pinnedOther} titleTabs={titleTabs} />
       </div>
     )
   }
@@ -71,9 +74,9 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   return (
     <div className={`right${mode}`}>
       <div className="card pane secret-pane">
-        <h2>
+        <PaneTitle tabs={showVersions ? undefined : titleTabs}>
           secret <span className="muted">— {base.name}</span>
-        </h2>
+        </PaneTitle>
         <div className="body">
           <div className="term-ln">
             <span className="t-prompt">$</span> <span className="t-function">cat</span> <span className="t-string">{refString(s.ref)}</span>
@@ -158,7 +161,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>
       </div>
-      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} />
+      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} titleTabs={showVersions ? titleTabs : undefined} />
     </div>
   )
 }

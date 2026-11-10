@@ -1,18 +1,21 @@
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { type Secret, versionOf } from '../../../core/api'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
 import { type Matrix, overview, type SortDir, sortMatrixRows, STALE_DAYS } from '../../../core/overview'
 import type { Source } from '../../../core/sources'
 import { ago } from '../../../core/time'
+import { PaneTitle } from './PaneTitle'
 
 type OverviewProps = {
+  /** view tabs, when this is the top pane of the right column */
+  titleTabs?: ReactNode
   source: Source
   list: SecretListState
   onSelect: (name: string) => void
 }
 
 /** Facts about the open source, from list metadata only; nothing is decrypted. */
-export function OverviewPane({ source, list, onSelect }: OverviewProps) {
+export function OverviewPane({ source, list, onSelect, titleTabs }: OverviewProps) {
   const o = useMemo(() => (list.secrets ? overview(list.secrets, source.group) : null), [list.secrets, source.group])
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
 
@@ -24,9 +27,9 @@ export function OverviewPane({ source, list, onSelect }: OverviewProps) {
 
   return (
     <div className="card pane overview-pane">
-      <h2>
+      <PaneTitle tabs={titleTabs}>
         overview <span className="muted">— {source.label || source.parent}</span>
-      </h2>
+      </PaneTitle>
       <div className="body">
         <div className="term-ln">
           <span className="t-prompt">$</span> <span className="t-function">stat</span>{' '}
@@ -108,6 +111,8 @@ export function OverviewPane({ source, list, onSelect }: OverviewProps) {
 export type MatrixSort = { col: string; dir: SortDir } | null
 
 type MatrixProps = {
+  /** view tabs, when this is the top pane of the right column */
+  titleTabs?: ReactNode
   source: Source
   matrix: Matrix
   selected: string | null
@@ -123,13 +128,13 @@ const nextSort = (cur: MatrixSort, col: string): MatrixSort =>
   cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null
 
 /** The {first} × {second} placeholder grid, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '' }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '', titleTabs }: MatrixProps) {
   const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className={`card pane matrix-pane ${className}`}>
-      <h2>
+      <PaneTitle tabs={titleTabs}>
         matrix <span className="muted">— {source.group}</span>
-      </h2>
+      </PaneTitle>
       <div className="body">
         <div className="muted small">
           # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default.

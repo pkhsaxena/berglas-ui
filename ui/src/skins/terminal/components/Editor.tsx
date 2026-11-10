@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
@@ -9,6 +9,7 @@ import { protectedFor, useSettings } from '../../../core/settings'
 import { ConfirmName } from './ConfirmName'
 import { DiffView } from './DiffView'
 import { EnvRows, OrderToggle } from './EnvRows'
+import { PaneTitle } from './PaneTitle'
 
 // a section's id in the picker: its header line, or '-' for the no-section group
 const sectionValue = (x: Section) => (x.header[0]?.raw ?? '-')
@@ -18,9 +19,11 @@ type Props = {
   ed: ReturnType<typeof useEditor>
   /** a pinned .env secret to line keys up against and copy values from */
   pinned?: Pinned | null
+  /** view tabs, shown in the title border */
+  titleTabs?: ReactNode
 }
 
-export function Editor({ base, ed, pinned }: Props) {
+export function Editor({ base, ed, pinned, titleTabs }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [addErr, setAddErr] = useState('')
@@ -33,7 +36,7 @@ export function Editor({ base, ed, pinned }: Props) {
   if (ed.phase === 'loading') {
     return (
       <div className="card">
-        <h2>edit</h2>
+        <PaneTitle tabs={titleTabs}>edit</PaneTitle>
         <div className="muted"># decrypting the latest version…</div>
       </div>
     )
@@ -80,9 +83,9 @@ export function Editor({ base, ed, pinned }: Props) {
 
   return (
     <div className="card pane">
-      <h2>
+      <PaneTitle tabs={titleTabs}>
         edit <span className="muted">— {base.name}</span>
-      </h2>
+      </PaneTitle>
       <div className="body">
         <div className="term-ln">
           <span className="t-prompt">$</span> <span className="t-function">edit</span> <span className="t-string">{target}</span>{' '}
