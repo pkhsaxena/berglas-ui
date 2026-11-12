@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, encodeText, type Secret } from '../api'
+import { metaCache, versionsKey } from '../cache'
 import { looksLikeEnv, parseEnv } from '../envfile'
 import { kmsKeyFor, protectedFor, useSettings } from '../settings'
 import type { Source } from '../sources'
@@ -53,6 +54,7 @@ export function useCreate(source: Source, onCreated: (s: Secret) => void) {
         { ...ref, plaintext: encodeText(text), kmsKey: source.backend === 'storage' ? kmsKey.trim() : undefined },
         confirm,
       )
+      metaCache.delete(versionsKey(ref)) // a re-used name must not show the old history
       onCreated(s)
     } catch (e) {
       setError(errText(e))

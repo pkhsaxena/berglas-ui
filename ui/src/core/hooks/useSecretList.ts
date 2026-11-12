@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Secret } from '../api'
+import { listKey, metaCache } from '../cache'
 import { groupByPattern } from '../group'
 import { type Source, sourceId } from '../sources'
 import { errText } from './useApp'
@@ -8,7 +9,8 @@ import { errText } from './useApp'
  * Lists the secrets in one source (names and metadata, never values) with a
  * name filter. Bump `rev` to reload, e.g. after a create or delete. Loaded
  * data is tagged with its source, so switching sources never shows the old
- * source's list.
+ * source's list. A source seen before shows its last list at once (see
+ * ../cache) while a fresh one loads.
  */
 export function useSecretList(source: Source | null, enabled: boolean, rev = 0) {
   const id = source ? sourceId(source) : ''
@@ -23,8 +25,9 @@ export function useSecretList(source: Source | null, enabled: boolean, rev = 0) 
     setLoading(true)
     setError(null)
     try {
-      const list = await api.list(source.backend, source.parent)
-      setData({ id: forId, list: list.sort((a, b) => a.name.localeCompare(b.name)) })
+      const list = (await api.list(source.backend, source.parent)).sort((a, b) => a.name.localeCompare(b.name))
+      metaCache.set(listKey(source), list)
+      setData({ id: forId, list })
     } catch (e) {
       setError({ id: forId, message: errText(e) })
     } finally {
@@ -38,7 +41,7 @@ export function useSecretList(source: Source | null, enabled: boolean, rev = 0) 
     if (enabled) void refresh()
   }, [enabled, refresh])
 
-  const secrets = data?.id === id ? data.list : null
+  const secrets = data?.id === id ? data.list : source ? (metaCache.get(listKey(source)) ?? null) : null
 
   const shown = useMemo(() => {
     const f = filter.trim().toLowerCase()

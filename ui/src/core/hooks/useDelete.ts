@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, type Ref } from '../api'
+import { metaCache, versionsKey } from '../cache'
 import { errText } from './useApp'
 
 /**
@@ -21,6 +22,7 @@ export function useDelete(base: Ref, onDeleted: () => void) {
     setError('')
     try {
       await api.remove({ backend: base.backend, parent: base.parent, name: base.name }, typed)
+      metaCache.delete(versionsKey(base))
       setOpen(false)
       onDeleted()
     } catch (e) {

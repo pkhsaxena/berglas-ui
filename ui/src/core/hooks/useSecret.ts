@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, decodeValue, type Ref, type Secret, versionOf } from '../api'
+import { metaCache, versionsKey } from '../cache'
 import { copySecret } from '../clipboard'
 import { type EnvLine, looksLikeEnv, parseEnv } from '../envfile'
 import { useSettings } from '../settings'
@@ -37,11 +38,12 @@ export async function readValue(ref: Ref): Promise<{ secret: Secret; value: Reve
  * change, on unmount and after the revealSeconds setting. Copies clear from
  * the clipboard per clipboardClearSeconds; `onNote` hears about that.
  * Callers should key the component using this hook by secret, so state
- * starts fresh per secret.
+ * starts fresh per secret. A secret opened before shows its last version
+ * list at once (see ../cache) while a fresh one loads.
  */
 export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
   const settings = useSettings()
-  const [versions, setVersions] = useState<Secret[] | null>(null)
+  const [versions, setVersions] = useState<Secret[] | null>(() => metaCache.get(versionsKey(base)) ?? null)
   const [versionsError, setVersionsError] = useState('')
   const [version, setVersion] = useState('') // '' = latest
   const [revealed, setRevealed] = useState<Revealed | null>(null)
@@ -56,7 +58,9 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
 
   const loadVersions = useCallback(async () => {
     try {
-      setVersions(await api.versions(base))
+      const list = await api.versions(base)
+      metaCache.set(versionsKey(base), list)
+      setVersions(list)
       setVersionsError('')
     } catch (e) {
       setVersionsError(errText(e))
