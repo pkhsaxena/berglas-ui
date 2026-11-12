@@ -80,17 +80,6 @@ func (s *Server) apiMux() http.Handler {
 	return api
 }
 
-// DesktopHandler serves the same api and ui to a desktop shell's own web view
-// (Wails), which hands requests to Go in-process with no network listener.
-// Nothing else can reach it, so the localhost defences (Host check, token,
-// Origin) do not apply; the config's read-only and protect rules still do.
-func (s *Server) DesktopHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/api/", s.apiMux())
-	mux.Handle("/", s.uiHandler())
-	return securityHeaders(mux)
-}
-
 func (s *Server) uiHandler() http.Handler {
 	if s.ui == nil {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
