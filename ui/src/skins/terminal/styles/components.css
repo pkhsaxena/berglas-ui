@@ -35,6 +35,10 @@ strong { color: var(--t-string); font-weight: 500; }
      the secret and versions panes sit side by side. No tab row.
    - under 820px: one column and the page scrolls, as a fallback. */
 html, body, #root { height: 100%; }
+/* the panes scroll, never the page: no page scrolling at all, and no elastic
+   bounce of the whole page on macOS (the desktop app's web view and Safari),
+   which made it feel scrollable. The narrow fallback scrolls .layout instead. */
+html, body { overflow: hidden; overscroll-behavior: none; }
 #root { display: flex; flex-direction: column; }
 main {
   flex: 1; min-height: 0; width: 100%; padding: 0 18px;
@@ -81,9 +85,9 @@ main {
 
 /* a pane: the title sits in the border, the body scrolls inside it */
 .pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-.pane > .body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+.pane > .body { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; overscroll-behavior: contain; }
 .list-pane { display: flex; flex-direction: column; min-height: 0; container: list / inline-size; }
-.list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; scrollbar-gutter: stable; }
+.list-pane .scroll { flex: 1; min-height: 0; overflow-y: auto; margin-top: 4px; scrollbar-gutter: stable; overscroll-behavior: contain; }
 
 /* a block inside a pane body, e.g. the diff or the delete confirmation */
 .section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--t-line); }
@@ -115,7 +119,7 @@ main {
 }
 
 @media (max-width: 819px) {
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; }
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left > .list-pane { height: min(60vh, 560px); }
   /* the page scrolls here, so other panes take their natural height */
