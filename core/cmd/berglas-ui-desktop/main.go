@@ -37,12 +37,16 @@ var version = "dev"
 //     secrets, so it refuses to run without BERGLAS_UI_DEMO=1.
 //   - "status" only asks the core whether google credentials work, as a
 //     check that the app finds them when started from Finder.
+//   - "layout" reports whether the page itself scrolls in the window.
 //
 //go:embed selftest.js
 var selftestJS string
 
 //go:embed selftest-status.js
 var selftestStatusJS string
+
+//go:embed selftest-layout.js
+var selftestLayoutJS string
 
 func main() {
 	if err := run(); err != nil {
@@ -87,8 +91,10 @@ func run() error {
 		testJS = selftestJS
 	case "status":
 		testJS = selftestStatusJS
+	case "layout":
+		testJS = selftestLayoutJS
 	default:
-		return fmt.Errorf("BERGLAS_UI_SELFTEST must be full or status")
+		return fmt.Errorf("BERGLAS_UI_SELFTEST must be full, status or layout")
 	}
 
 	configPath := os.Getenv("BERGLAS_UI_CONFIG")

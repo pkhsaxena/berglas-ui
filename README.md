@@ -141,7 +141,8 @@ finds them when started from Finder. Needs Xcode's command line tools, Go and No
 - **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives the api,
   the copy button, the clipboard auto-clear and a mailto link inside the real window, prints
   `SELFTEST [...]` and quits. It writes secrets, so it only runs with the demo store, and it
-  overwrites the clipboard. `BERGLAS_UI_SELFTEST=status` only checks that credentials are found.
+  overwrites the clipboard. `BERGLAS_UI_SELFTEST=status` only checks that credentials are found;
+  `layout` reports whether the page itself can scroll in the window.
 
 ### ui development
 
