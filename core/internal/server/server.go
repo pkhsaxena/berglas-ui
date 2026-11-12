@@ -51,6 +51,15 @@ func New(token string, svc secrets.Store, cfg *config.File, ui fs.FS, version st
 
 // Handler returns the full handler with security middleware applied.
 func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/api/", sameOrigin(s.requireToken(s.apiMux())))
+	mux.HandleFunc("GET /auth", s.handleAuth)
+	mux.Handle("/", s.uiHandler())
+	return loopbackHost(securityHeaders(mux))
+}
+
+// apiMux routes /api/ without any access checks; callers wrap it.
+func (s *Server) apiMux() http.Handler {
 	api := http.NewServeMux()
 	api.HandleFunc("GET /api/status", s.handleStatus)
 	api.HandleFunc("GET /api/config", s.handleGetConfig)
@@ -68,12 +77,18 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "no such endpoint")
 	})
+	return api
+}
 
+// DesktopHandler serves the same api and ui to a desktop shell's own web view
+// (Wails), which hands requests to Go in-process with no network listener.
+// Nothing else can reach it, so the localhost defences (Host check, token,
+// Origin) do not apply; the config's read-only and protect rules still do.
+func (s *Server) DesktopHandler() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("/api/", sameOrigin(s.requireToken(api)))
-	mux.HandleFunc("GET /auth", s.handleAuth)
+	mux.Handle("/api/", s.apiMux())
 	mux.Handle("/", s.uiHandler())
-	return loopbackHost(securityHeaders(mux))
+	return securityHeaders(mux)
 }
 
 func (s *Server) uiHandler() http.Handler {
