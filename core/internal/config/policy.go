@@ -11,6 +11,8 @@ import (
 const (
 	DefaultRevealSeconds         = 60
 	DefaultClipboardClearSeconds = 30
+	DefaultCacheSeconds          = 600
+	DefaultCacheEntries          = 500
 )
 
 // Settings is the resolved config the ui needs: defaults applied, paths
@@ -24,6 +26,8 @@ type Settings struct {
 	Protect               []string    `json:"protect"`
 	RevealSeconds         int         `json:"revealSeconds"`
 	ClipboardClearSeconds int         `json:"clipboardClearSeconds"`
+	CacheSeconds          int         `json:"cacheSeconds"`
+	CacheEntries          int         `json:"cacheEntries"`
 	AuditLog              string      `json:"auditLog"`
 	Credentials           Credentials `json:"credentials"`
 	Sources               []Source    `json:"sources"`
@@ -34,6 +38,7 @@ func (c Config) Settings() Settings {
 	s := Settings{
 		Skin: c.Skin, Theme: c.Theme, TimeZone: c.TimeZone, EnvOrder: c.EnvOrder, ReadOnly: c.ReadOnly, Protect: c.Protect,
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
+		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 	}
 	if c.RevealSeconds != nil {
@@ -41,6 +46,12 @@ func (c Config) Settings() Settings {
 	}
 	if c.ClipboardClearSeconds != nil {
 		s.ClipboardClearSeconds = *c.ClipboardClearSeconds
+	}
+	if c.CacheSeconds != nil {
+		s.CacheSeconds = *c.CacheSeconds
+	}
+	if c.CacheEntries != nil {
+		s.CacheEntries = *c.CacheEntries
 	}
 	if s.EnvOrder == "" {
 		s.EnvOrder = "sorted"

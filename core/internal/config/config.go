@@ -76,6 +76,13 @@ type Config struct {
 	// ClipboardClearSeconds clears a copied value from the clipboard after
 	// this long, if it is still there; 0 never clears. Unset means 30.
 	ClipboardClearSeconds *int `yaml:"clipboardClearSeconds,omitempty" json:"-"`
+	// CacheSeconds is how long the ui keeps secret and version lists
+	// (metadata, never values) to show at once on a revisit; 0 turns the
+	// cache off. Unset means 600.
+	CacheSeconds *int `yaml:"cacheSeconds,omitempty" json:"-"`
+	// CacheEntries caps how many lists the ui keeps (one per source or
+	// secret); the least recently used go first. Unset means 500.
+	CacheEntries *int `yaml:"cacheEntries,omitempty" json:"-"`
 	// AuditLog is a file that gets one JSON line per write (never values).
 	// Empty turns it off.
 	AuditLog string `yaml:"auditLog,omitempty" json:"auditLog"`
@@ -96,6 +103,8 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 # revealSeconds: 60            # hide revealed values after this long; 0 = never
 # clipboardClearSeconds: 30    # clear copied values after this long; 0 = never
+# cacheSeconds: 600            # keep secret/version lists (never values) this long; 0 = off
+# cacheEntries: 500            # at most this many cached lists
 # auditLog: ~/.berglas-ui/audit.log   # one json line per write, never values
 # credentials:
 #   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
@@ -172,6 +181,12 @@ func Validate(c Config) error {
 	}
 	if c.ClipboardClearSeconds != nil && *c.ClipboardClearSeconds < 0 {
 		return fmt.Errorf("clipboardClearSeconds must be 0 or more")
+	}
+	if c.CacheSeconds != nil && *c.CacheSeconds < 0 {
+		return fmt.Errorf("cacheSeconds must be 0 or more")
+	}
+	if c.CacheEntries != nil && *c.CacheEntries < 0 {
+		return fmt.Errorf("cacheEntries must be 0 or more")
 	}
 	if sa := c.Credentials.ImpersonateServiceAccount; sa != "" && !strings.Contains(sa, "@") {
 		return fmt.Errorf("credentials.impersonateServiceAccount must be a service account email, got %q", sa)

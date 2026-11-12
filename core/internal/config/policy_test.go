@@ -35,4 +35,10 @@ func TestPolicy(t *testing.T) {
 	if s.RevealSeconds != DefaultRevealSeconds || s.ClipboardClearSeconds != 0 {
 		t.Errorf("settings = %+v; want default reveal and explicit 0 clipboard", s)
 	}
+	if s.CacheSeconds != DefaultCacheSeconds || s.CacheEntries != DefaultCacheEntries {
+		t.Errorf("cache settings = %d s, %d entries; want the defaults", s.CacheSeconds, s.CacheEntries)
+	}
+	if off := (Config{CacheSeconds: &zero}).Settings(); off.CacheSeconds != 0 {
+		t.Errorf("explicit cacheSeconds: 0 must turn the cache off, got %d", off.CacheSeconds)
+	}
 }

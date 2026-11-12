@@ -118,6 +118,10 @@ export type Config = {
   protect: string[]
   revealSeconds: number
   clipboardClearSeconds: number
+  /** how long cached secret and version lists are kept; 0 = no cache */
+  cacheSeconds: number
+  /** at most this many cached lists */
+  cacheEntries: number
   auditLog: string
   credentials: { impersonateServiceAccount?: string; quotaProject?: string }
   sources: SourceConfig[]

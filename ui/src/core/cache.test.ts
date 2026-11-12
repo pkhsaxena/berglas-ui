@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import type { Secret } from './api'
-import { listKey, MAX_ENTRIES, metaCache, SWEEP_MS, TTL_MS, versionsKey } from './cache'
+import { configureCache, DEFAULT_MAX_ENTRIES as MAX_ENTRIES, DEFAULT_TTL_MS as TTL_MS, listKey, metaCache, versionsKey } from './cache'
+
+const SWEEP_MS = 60_000
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
+  configureCache(TTL_MS / 1000, MAX_ENTRIES)
   metaCache.clear()
   vi.useRealTimers()
 })
@@ -57,4 +60,35 @@ test('holds at most MAX_ENTRIES, dropping the least recently used', () => {
   expect(metaCache.get('k0')).toBeDefined()
   expect(metaCache.get('k1')).toBeUndefined()
   expect(metaCache.get('new')).toBeDefined()
+})
+
+test('cacheSeconds or cacheEntries at 0 turns the cache off and empties it', () => {
+  metaCache.set('k', [s('a')])
+  configureCache(0, 500)
+  expect(metaCache.size()).toBe(0)
+  metaCache.set('k', [s('a')])
+  expect(metaCache.get('k')).toBeUndefined()
+  configureCache(600, 0)
+  metaCache.set('k', [s('a')])
+  expect(metaCache.size()).toBe(0)
+})
+
+test('a smaller cacheEntries trims at once, oldest first', () => {
+  for (let i = 0; i < 10; i++) metaCache.set(`k${i}`, [s('a')])
+  configureCache(600, 3)
+  expect(metaCache.size()).toBe(3)
+  expect(metaCache.get('k9')).toBeDefined()
+  expect(metaCache.get('k0')).toBeUndefined()
+})
+
+test('a short ttl expires and is swept on its own schedule', () => {
+  configureCache(5, 500)
+  metaCache.set('k', [s('a')])
+  vi.advanceTimersByTime(4000)
+  expect(metaCache.get('k')).toBeDefined()
+  vi.advanceTimersByTime(2000)
+  expect(metaCache.get('k')).toBeUndefined()
+  metaCache.set('j', [s('a')])
+  vi.advanceTimersByTime(11_000) // well under the usual one-minute sweep
+  expect(metaCache.size()).toBe(0)
 })

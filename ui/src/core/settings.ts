@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS: Settings = {
   protect: [],
   revealSeconds: 60,
   clipboardClearSeconds: 30,
+  cacheSeconds: 600,
+  cacheEntries: 500,
   auditLog: '',
   credentials: {},
   sources: [],

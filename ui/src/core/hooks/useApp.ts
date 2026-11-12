@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError, type EnvOrder, type Status } from '../api'
+import { configureCache } from '../cache'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
 import type { TimeZone } from '../time'
@@ -50,6 +51,8 @@ export function useApp() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => configureCache(base.cacheSeconds, base.cacheEntries), [base.cacheSeconds, base.cacheEntries])
 
   const retry = () => {
     setSession({ kind: 'loading' })

@@ -84,6 +84,8 @@ readOnly: false              # refuse every write, everywhere
 protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
 revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
 clipboardClearSeconds: 30    # clear copied values after this; 0 = never
+cacheSeconds: 600            # keep secret/version lists (never values) for revisits; 0 = off
+cacheEntries: 500            # at most this many cached lists, least recently used out first
 auditLog: ~/.berglas-ui/audit.log   # one json line per write; empty = off
 credentials:                 # read at startup
   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
@@ -107,6 +109,7 @@ sources:
 | `protect` (global + per source) | `path.Match` globs; a matching name can only be written or deleted with its name in the `X-Berglas-Confirm` header (`428 confirm_required` otherwise). The ui asks you to type it | core |
 | `kmsKey` (per storage source) | default key for new secrets; the ui prefills it and the core fills it in when a create omits it | core |
 | `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; clipboard clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
+| `cacheSeconds`, `cacheEntries` | lists of secrets and versions (names and times, never values) seen before show at once on a revisit while a fresh copy loads. Each expires `cacheSeconds` after it was fetched and is freed by a sweep even if never used again; at most `cacheEntries` are kept. Either at 0 turns the cache off | ui |
 | `auditLog` | appends `{time, actor, action, backend, parent, name, version, result, error}` per write attempt (never values), file mode 0600. If a line cannot be written, the write has still happened and the ui shows an error | core |
 | `credentials.impersonateServiceAccount` | every call is made as that service account; your ADC identity needs `roles/iam.serviceAccountTokenCreator` on it | core |
 | `credentials.quotaProject` | api quota is billed to this project | core |
