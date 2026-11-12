@@ -64,3 +64,22 @@ test('0 never clears; a newer copy replaces the pending clear', async () => {
   await vi.advanceTimersByTimeAsync(5_000)
   expect(board).toBe('')
 })
+
+test('uses a swapped-in backend, e.g. the desktop app', async () => {
+  const calls: string[] = []
+  const { setClipboardBackend } = await import('./clipboard')
+  setClipboardBackend({
+    write: async (t) => void calls.push(`write ${t}`),
+    clearIf: async (t) => (calls.push(`clearIf ${t}`), true),
+  })
+  try {
+    const notes: string[] = []
+    await copySecret('s3cret', 30, (m) => notes.push(m))
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(calls).toEqual(['write s3cret', 'clearIf s3cret'])
+    expect(board).toBe('') // the browser clipboard was never touched
+    expect(notes).toEqual(['clipboard cleared'])
+  } finally {
+    setClipboardBackend(null)
+  }
+})
