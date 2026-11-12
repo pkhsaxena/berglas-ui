@@ -13,10 +13,12 @@ type Props = {
   onView: (id: string) => void
   /** view tabs, when this is the top pane (the versions tab) */
   titleTabs?: ReactNode
+  /** zoomed-out tabs (versions · overview · matrix) while comparing */
+  wideTabs?: ReactNode
 }
 
 /** Version history with a/b pickers to diff any two versions. */
-export function Versions({ base, versions, versionsError, shown, onView, titleTabs }: Props) {
+export function Versions({ base, versions, versionsError, shown, onView, titleTabs, wideTabs }: Props) {
   const d = useVersionDiff(base, versions)
   const { revealSeconds } = useSettings()
   const stamp = useStamp()
@@ -33,7 +35,7 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
 
   return (
     <div className="card pane versions-pane">
-      <PaneTitle tabs={titleTabs}>
+      <PaneTitle tabs={titleTabs} wideTabs={wideTabs}>
         versions <span className="muted">— newest first</span>
       </PaneTitle>
       <div className="body">

@@ -60,6 +60,7 @@ main {
 /* the view tabs live in the title border of the right column's top pane, so
    both columns start on the same line; zoomed out the plain title shows */
 .card > h2.has-tabs .title-plain { display: none; }
+.card > h2 .title-wide-tabs { display: none; }
 .card > h2 .pane-tabs { display: inline-flex; gap: 0; vertical-align: bottom; }
 .card > h2 .pane-tabs button { padding: 0 6px; font-size: 13px; line-height: 1.6; }
 .card > h2 .pane-tabs button:first-child { padding-left: 0; }
@@ -70,6 +71,9 @@ main {
    tab swaps in the versions pane instead */
 .right.revealed, .right.show-versions { grid-template-rows: minmax(0, 1fr); }
 .right.revealed > .versions-pane, .right.show-versions > .secret-pane { display: none; }
+/* zoomed out while comparing, the versions column can show the overview or
+   matrix instead (see .alt-wide below); at normal width they are tabs */
+.right > .wide-alt { display: none; }
 /* a pinned value takes the left half of the main area, the open secret the right */
 .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; }
 .main-area.with-pin > .pinned-pane { grid-row: 1; grid-column: 1; }
@@ -91,6 +95,8 @@ main {
   .layout > .side-col { display: grid; }
   .card > h2.has-tabs .title-tabs { display: none; }
   .card > h2.has-tabs .title-plain { display: inline; }
+  .card > h2.has-wide-tabs .title-wide-tabs { display: inline; }
+  .card > h2.has-wide-tabs .title-plain { display: none; }
   .main-area > .normal-only { display: none; }
   .main-area > .wide-only { display: grid; }
   .right { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
@@ -98,6 +104,12 @@ main {
   /* zoomed out there is room for both, revealed or not */
   .right.revealed > .versions-pane, .right.show-versions > .versions-pane { display: flex; }
   .right.revealed > .secret-pane, .right.show-versions > .secret-pane { display: flex; }
+  .right.alt-wide > .versions-pane { display: none; }
+  .right.alt-wide > .wide-alt { display: grid; grid-template-rows: minmax(0, 1fr); min-height: 0; min-width: 0; }
+  /* comparing (a pin and another secret open): the side column steps aside
+     so pinned | secret | versions get the width */
+  .layout.has-side.comparing { grid-template-columns: minmax(300px, 1fr) minmax(0, 4.4fr); grid-template-areas: "left main"; }
+  .layout.comparing > .side-col { display: none; }
   /* pinned | secret | versions */
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 }

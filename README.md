@@ -159,14 +159,17 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
     and values" when only comments, order or formatting differ.
   - revealing the open secret marks each key against the pin (`=`, `≈ quotes`, `≠ differs`,
     `+ only here`), with a one-line summary and the keys only the pinned secret has.
+  - the editor marks every key `=` (same as pinned), `≠` (differs, with **use pinned** to copy
+    the pinned value) or `+ only here`, lists keys only the pinned secret has (with **add** or
+    **add all**), and says when the draft matches the pinned secret exactly.
+  - zoomed out, while a pin and a different secret are both open, the matrix/overview column
+    steps aside so pinned, secret and versions share the width. **overview** and **matrix** move to
+    tabs in the versions pane's title (`versions · overview · matrix`); unpin to get the column back.
 - **quotes:** values that differ only by one surrounding pair of quotes (`KEY="x"` vs `KEY=x`,
   which dotenv loaders read the same) are marked `≈ quotes only` in diffs and comparisons and
   `≈ quotes` in the editor beside a pin, instead of as changed. When quoting is the only difference
   you get "same keys and values — only quoting differs". One-sided quotes or spaces outside the
   quotes still count as real changes.
-  - the editor marks every key `=` (same as pinned), `≠` (differs, with **use pinned** to copy
-    the pinned value) or `+ only here`, lists keys only the pinned secret has (with **add** or
-    **add all**), and says when the draft matches the pinned secret exactly.
 - **new** (list pane) creates a secret after a review step. **delete…** needs the name typed
   and removes every version, history included.
   - storage: berglas finds generations by listing the name as a prefix, then deletes this name at

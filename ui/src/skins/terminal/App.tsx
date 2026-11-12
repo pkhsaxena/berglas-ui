@@ -104,10 +104,38 @@ export default function App() {
     </span>
   )
 
+  // zoomed out, while a pin is compared with another open secret, the side
+  // column hides and the versions column offers the overview and matrix
+  const [wideView, setWideView] = useState<'versions' | 'overview' | 'matrix'>('versions')
+  const wideTabs = active && (
+    <span className="tabs pane-tabs" role="tablist" aria-label="versions column">
+      <button role="tab" aria-selected={wideView === 'versions'} onClick={() => setWideView('versions')}>
+        versions
+      </button>
+      <button role="tab" aria-selected={wideView === 'overview'} onClick={() => setWideView('overview')}>
+        overview
+      </button>
+      {matrix && (
+        <button role="tab" aria-selected={wideView === 'matrix'} onClick={() => setWideView('matrix')}>
+          matrix
+        </button>
+      )}
+    </span>
+  )
+
   const base: Ref | null = useMemo(
     () => (active && selected ? { backend: active.backend, parent: active.parent, name: selected } : null),
     [active, selected],
   )
+
+  const comparingPin =
+    !!pinned && !!base && !(pinned.ref.backend === base.backend && pinned.ref.parent === base.parent && pinned.ref.name === base.name)
+  const wideAlt =
+    comparingPin && active && wideView === 'overview' ? (
+      <OverviewPane source={active} list={list} onSelect={select} wideTabs={wideTabs} />
+    ) : comparingPin && active && wideView === 'matrix' && matrix ? (
+      <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} wideTabs={wideTabs} />
+    ) : null
 
   return (
     <>
@@ -191,7 +219,7 @@ export default function App() {
             )}
 
             {session.kind === 'ready' && (
-              <div className={active ? 'layout has-side' : 'layout'}>
+              <div className={`layout${active ? ' has-side' : ''}${comparingPin ? ' comparing' : ''}`}>
                 <div className="left">
                   <Sources
                     sources={app.sources}
@@ -291,6 +319,8 @@ export default function App() {
                         }}
                         showVersions={shownView === 'versions'}
                         titleTabs={titleTabs}
+                        wideTabs={comparingPin ? wideTabs : undefined}
+                        wideAlt={wideAlt}
                         pinned={pinned}
                         onPin={(p) => {
                           pin(p)

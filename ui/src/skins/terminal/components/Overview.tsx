@@ -9,13 +9,15 @@ import { PaneTitle } from './PaneTitle'
 type OverviewProps = {
   /** view tabs, when this is the top pane of the right column */
   titleTabs?: ReactNode
+  /** zoomed-out tabs, when shown in the versions column while comparing */
+  wideTabs?: ReactNode
   source: Source
   list: SecretListState
   onSelect: (name: string) => void
 }
 
 /** Facts about the open source, from list metadata only; nothing is decrypted. */
-export function OverviewPane({ source, list, onSelect, titleTabs }: OverviewProps) {
+export function OverviewPane({ source, list, onSelect, titleTabs, wideTabs }: OverviewProps) {
   const o = useMemo(() => (list.secrets ? overview(list.secrets, source.group) : null), [list.secrets, source.group])
   const scheme = source.backend === 'storage' ? 'berglas://' : 'sm://'
 
@@ -27,7 +29,7 @@ export function OverviewPane({ source, list, onSelect, titleTabs }: OverviewProp
 
   return (
     <div className="card pane overview-pane">
-      <PaneTitle tabs={titleTabs}>
+      <PaneTitle tabs={titleTabs} wideTabs={wideTabs}>
         overview <span className="muted">— {source.label || source.parent}</span>
       </PaneTitle>
       <div className="body">
@@ -113,6 +115,8 @@ export type MatrixSort = { col: string; dir: SortDir } | null
 type MatrixProps = {
   /** view tabs, when this is the top pane of the right column */
   titleTabs?: ReactNode
+  /** zoomed-out tabs, when shown in the versions column while comparing */
+  wideTabs?: ReactNode
   source: Source
   matrix: Matrix
   selected: string | null
@@ -128,11 +132,11 @@ const nextSort = (cur: MatrixSort, col: string): MatrixSort =>
   cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null
 
 /** The {first} × {second} placeholder grid, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '', titleTabs }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '', titleTabs, wideTabs }: MatrixProps) {
   const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className={`card pane matrix-pane ${className}`}>
-      <PaneTitle tabs={titleTabs}>
+      <PaneTitle tabs={titleTabs} wideTabs={wideTabs}>
         matrix <span className="muted">— {source.group}</span>
       </PaneTitle>
       <div className="body">

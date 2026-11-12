@@ -24,9 +24,13 @@ type Props = {
   showVersions: boolean
   /** view tabs, set into the title of whichever pane is on top */
   titleTabs?: ReactNode
+  /** zoomed out while comparing: tabs in the versions column's title */
+  wideTabs?: ReactNode
+  /** zoomed out while comparing: the overview or matrix shown in place of versions */
+  wideAlt?: ReactNode
 }
 
-export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions, titleTabs }: Props) {
+export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -74,7 +78,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   // At normal width the versions tab shows only versions, and a revealed
   // value fills the column; the css keeps both side by side when zoomed out.
   // a revealed value or an open comparison with the pin fills the column
-  const mode = showVersions ? ' show-versions' : revealed || comparing ? ' revealed' : ''
+  const mode = (showVersions ? ' show-versions' : revealed || comparing ? ' revealed' : '') + (wideAlt ? ' alt-wide' : '')
   return (
     <div className={`right${mode}`}>
       <div className="card pane secret-pane">
@@ -166,7 +170,8 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>
       </div>
-      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} titleTabs={showVersions ? titleTabs : undefined} />
+      <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} titleTabs={showVersions ? titleTabs : undefined} wideTabs={wideTabs} />
+      {wideAlt && <div className="wide-alt">{wideAlt}</div>}
     </div>
   )
 }
