@@ -15,6 +15,7 @@ import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
+import { SKINS, skinFor } from '../registry'
 import { applyTheme, knownTheme, PRESETS } from './theme'
 
 // the system zone's name for the time switch, e.g. "ist"
@@ -159,6 +160,18 @@ export default function App() {
             <select value={app.settings.timeZone} onChange={(e) => app.setTimeZone(e.target.value as TimeZone)}>
               <option value="local">local ({LOCAL_ZONE})</option>
               <option value="utc">utc</option>
+            </select>
+          </label>
+        )}
+        {SKINS.length > 1 && (
+          <label>
+            skin
+            <select value={skinFor(app.skin).name} onChange={(e) => app.setSkin(e.target.value)}>
+              {SKINS.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.label}
+                </option>
+              ))}
             </select>
           </label>
         )}

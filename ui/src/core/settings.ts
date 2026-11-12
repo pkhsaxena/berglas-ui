@@ -6,7 +6,7 @@ import type { Config, EnvOrder, Ref } from './api'
 import { sourceId } from './sources'
 import { stamp } from './time'
 
-export type Settings = Omit<Config, 'theme' | 'path'>
+export type Settings = Omit<Config, 'skin' | 'theme' | 'path'>
 
 export const DEFAULT_SETTINGS: Settings = {
   timeZone: 'local',

@@ -17,10 +17,12 @@ export const errText = (e: unknown) => (e instanceof Error ? e.message : String(
  * App-level state: the session with the core, the config file (sources and
  * theme), and which source is open. Holds no markup, so any skin can use it.
  * `theme` is an opaque name; each skin decides what names it understands.
+ * `skin` is too: main.tsx resolves it against the skins the build has.
  */
 export function useApp() {
   const [session, setSession] = useState<Session>({ kind: 'loading' })
   const [theme, setThemeState] = useState<string | undefined>(undefined)
+  const [skin, setSkinState] = useState<string | undefined>(undefined)
   const [sources, setSources] = useState<Source[]>([])
   const [configPath, setConfigPath] = useState('')
   const [configError, setConfigError] = useState('')
@@ -31,7 +33,8 @@ export function useApp() {
   const load = useCallback(async () => {
     try {
       const [status, config] = await Promise.all([api.status(), api.config()])
-      const { theme, sources, path, ...rest } = config
+      const { skin, theme, sources, path, ...rest } = config
+      setSkinState(skin)
       setThemeState(theme)
       setSources(sources)
       setConfigPath(path)
@@ -99,5 +102,20 @@ export function useApp() {
     api.setConfig({ theme: name }).catch((e) => setConfigError(`theme applied but not saved — ${errText(e)}`))
   }
 
-  return { session, retry, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  /**
+   * Saves the skin and reloads, so only the new skin's styles are loaded.
+   * Each skin keeps its own theme names, so the theme may fall back.
+   */
+  const setSkin = (name: string) => {
+    setConfigError('')
+    api
+      .setConfig({ skin: name })
+      .then(() => {
+        setSkinState(name)
+        window.location.reload()
+      })
+      .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
+  }
+
+  return { session, retry, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

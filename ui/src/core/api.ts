@@ -108,6 +108,8 @@ export type SourceConfig = {
 
 /** The resolved config the core returns (defaults applied). */
 export type Config = {
+  /** the ui skin to load; the ui falls back to its default for unknown names */
+  skin?: string
   theme?: string
   timeZone: TimeZone
   /** .env views: sorted by section and key, or in file order */
@@ -126,7 +128,7 @@ export type Config = {
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
-  setConfig: (c: Partial<Pick<Config, 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
+  setConfig: (c: Partial<Pick<Config, 'skin' | 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
   list: (backend: Backend, parent: string, prefix = '') =>
     call<{ secrets: Secret[] }>('GET', `/api/secrets?${qs({ backend, parent, prefix })}`).then((r) => r.secrets),
   versions: (r: Ref) =>

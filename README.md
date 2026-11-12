@@ -17,13 +17,20 @@ ui/src/core/            no markup, no css: api client, .env parsing, diffing, ti
 ui/src/core/hooks/      everything a screen needs: useApp (session, config, sources),
                         useSecretList, useSecret (versions, reveal, copy), and the edit/diff hooks
 ui/src/skins/terminal/  the current look: components, css and theme presets
-ui/src/main.tsx         picks the skin: import { App } from './skins/terminal'
+ui/src/skins/registry.ts  the skins this build has; main.tsx loads the one the config names
 ```
 
-To build a new look, add `ui/src/skins/<name>/` that exports an `App` built on the hooks,
-and change the one import in `main.tsx`. Skins must not call `fetch` or parse values
-themselves; anything a second skin would also need belongs in `core/`. The `theme` config key
-is an opaque name, so each skin decides which names it understands.
+To build a new look, add `ui/src/skins/<name>/` whose `index` exports an `App` built on the
+hooks, and add it to `SKINS` in `registry.ts`. Skins must not call `fetch` or parse values
+themselves; anything a second skin would also need belongs in `core/`.
+
+- `skin:` in the config picks the look; unset or unknown names load `terminal`. With more than
+  one skin registered, the header shows a **skin** picker (`useApp().setSkin`), which saves the
+  choice and reloads the page.
+- each skin is its own chunk, so only the chosen skin's code and css load. Every build carries
+  every registered skin, the web ui and the desktop app alike.
+- `theme:` is an opaque name, so each skin decides which names it understands; switching skin
+  may fall back to that skin's default theme.
 
 ## credentials
 
@@ -69,6 +76,7 @@ keys are an error, so a typo like `readonly` fails at startup instead of being s
 ```yaml
 listen: 127.0.0.1:0          # -listen / BERGLAS_UI_LISTEN win; port 0 = a free port
 openBrowser: true            # open the ui on startup (same as -open)
+skin: terminal
 theme: Dracula
 timeZone: local             # times in the system zone, or utc (also a switch in the header)
 envOrder: sorted            # .env views sorted by section and key, or file (also a switch by env/raw)
