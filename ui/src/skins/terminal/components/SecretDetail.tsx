@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
 import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
@@ -35,6 +35,8 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
     onToast('saved')
   })
   const editing = ed.phase !== 'idle'
+  // whether the compare-with-pin result is showing (it makes room like a reveal)
+  const [comparing, setComparing] = useState(false)
   // the pinned value, unless it is this same secret (then there is nothing to line up against)
   const pinnedOther =
     pinned && !(pinned.ref.backend === base.backend && pinned.ref.parent === base.parent && pinned.ref.name === base.name) ? pinned : null
@@ -71,7 +73,8 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
 
   // At normal width the versions tab shows only versions, and a revealed
   // value fills the column; the css keeps both side by side when zoomed out.
-  const mode = showVersions ? ' show-versions' : revealed ? ' revealed' : ''
+  // a revealed value or an open comparison with the pin fills the column
+  const mode = showVersions ? ' show-versions' : revealed || comparing ? ' revealed' : ''
   return (
     <div className={`right${mode}`}>
       <div className="card pane secret-pane">
@@ -158,7 +161,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
             </span>
           </div>
 
-          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} />}
+          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} onShowingChange={setComparing} />}
           <Value value={revealed} onCopy={copy} against={pinnedOther} />
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>

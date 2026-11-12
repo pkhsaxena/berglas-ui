@@ -1,14 +1,27 @@
+import { useEffect } from 'react'
 import { type Ref, versionOf } from '../../../core/api'
 import { type Pinned, useCompare } from '../../../core/hooks/usePinned'
 import { DiffView } from './DiffView'
+
+type Props = {
+  pinned: Pinned
+  base: Ref
+  /** told whether the comparison is showing, so the layout can make room for it */
+  onShowingChange?: (showing: boolean) => void
+}
 
 /**
  * "compare with pinned …" in the open secret's pane: diffs the pinned value
  * (a) against this secret's latest version (b) and shows the result here,
  * next to the secret it is about. Key it by pinned + open secret.
  */
-export function CompareWithPinned({ pinned, base }: { pinned: Pinned; base: Ref }) {
+export function CompareWithPinned({ pinned, base, onShowingChange }: Props) {
   const c = useCompare(pinned, base)
+  const showing = !!c.result
+  useEffect(() => {
+    onShowingChange?.(showing)
+    return () => onShowingChange?.(false)
+  }, [showing, onShowingChange])
   return (
     <>
       <div className="row">
