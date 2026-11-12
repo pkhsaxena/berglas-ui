@@ -7,3 +7,5 @@ core/webui/dist/*
 # locally built core binaries
 core/main
 core/berglas-ui
+# built mac app
+dist/

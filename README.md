@@ -118,6 +118,31 @@ sources:
 | `envOrder` | `sorted` (default) or `file`; how `.env` secrets are listed. The stored file is never reordered | ui |
 | `openBrowser`, `listen` | startup only | core |
 
+### mac app
+
+```bash
+scripts/build-mac.sh            # → dist/berglas-ui.app; UNIVERSAL=1 for Apple silicon + Intel
+open dist/berglas-ui.app
+```
+
+The same ui and core in a native window (Wails v2, the system's WKWebView), so no browser and
+no port: the web view hands requests to Go in-process. It reads the same
+`~/.berglas-ui/config.yaml` and uses the same gcloud application-default credentials, and it
+finds them when started from Finder. Needs Xcode's command line tools, Go and Node to build.
+
+- **clipboard and links:** a web view only lets a page touch the clipboard inside a click, so
+  copies and the clipboard auto-clear go through the core (`/api/desktop/clipboard`); there is
+  no route that reads the clipboard back. `mailto:` and `http(s)` links open in your mail app
+  or browser; other schemes are refused.
+- **menus:** the standard app, Edit (⌘C ⌘V ⌘X ⌘A, undo), View (reload ⌘R, full screen) and
+  Window menus.
+- **signing:** the build is signed ad hoc, which runs on the mac that built it. Handing it to
+  others without Gatekeeper warnings needs a Developer ID signature and notarization.
+- **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives the api,
+  the copy button, the clipboard auto-clear and a mailto link inside the real window, prints
+  `SELFTEST [...]` and quits. It writes secrets, so it only runs with the demo store, and it
+  overwrites the clipboard. `BERGLAS_UI_SELFTEST=status` only checks that credentials are found.
+
 ### ui development
 
 ```bash
@@ -199,6 +224,9 @@ The core serves secret values over plain HTTP on a local port, so:
 - responses are `Cache-Control: no-store`; values are never logged
 - `?destination=` references are refused by `/api/resolve`, because berglas would write the
   secret to that file path
+
+The mac app has no port, so it drops the loopback, token and origin checks (nothing outside
+the app can send it requests) and keeps everything else, including read-only and protect.
 
 ## api
 
