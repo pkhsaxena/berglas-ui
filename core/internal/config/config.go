@@ -55,6 +55,9 @@ type Config struct {
 	Listen string `yaml:"listen,omitempty" json:"-"`
 	// OpenBrowser opens the ui in the default browser on startup.
 	OpenBrowser bool `yaml:"openBrowser,omitempty" json:"-"`
+	// Skin is the ui design to load ("terminal" when unset or unknown). Each
+	// skin has its own themes, so theme names may only mean something to one.
+	Skin string `yaml:"skin,omitempty" json:"skin"`
 	// Theme is the ui theme preset name.
 	Theme string `yaml:"theme,omitempty" json:"theme"`
 	// TimeZone shows times in the system's zone ("local", the default) or "utc".
@@ -85,6 +88,7 @@ type Config struct {
 const template = `# berglas-ui config. Edit by hand or from the ui; comments are kept.
 # listen: 127.0.0.1:0          # address for the core; port 0 picks a free one
 # openBrowser: true            # open the ui when the core starts
+# skin: terminal               # the ui design; the ui lists the skins it has
 # theme: Dracula
 # timeZone: local              # show times in the system zone, or utc
 # envOrder: sorted             # .env views sorted by section and key, or file
@@ -253,6 +257,12 @@ func (f *File) SetTimeZone(tz string) error {
 		return err
 	}
 	return f.set("timeZone", tz, func(c *Config) { c.TimeZone = tz })
+}
+
+// SetSkin sets the ui skin name and saves the file. The name is the ui's
+// business: an unknown one loads the default skin.
+func (f *File) SetSkin(name string) error {
+	return f.set("skin", name, func(c *Config) { c.Skin = name })
 }
 
 // SetTheme sets the theme name and saves the file.

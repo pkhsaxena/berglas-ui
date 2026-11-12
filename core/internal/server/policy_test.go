@@ -150,3 +150,18 @@ func TestWritableSourceStillWrites(t *testing.T) {
 		t.Fatalf("update on a writable source: %d %s", rec.Code, rec.Body)
 	}
 }
+
+func TestSkinRoundTrips(t *testing.T) {
+	h := demoServer(t, "theme: Nord\n")
+	if rec := post(h, "/api/config", `{"skin":"mac"}`); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"skin":"mac"`) {
+		t.Fatalf("set skin: status %d body %s", rec.Code, rec.Body)
+	}
+	r := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	r.Host = "127.0.0.1:8740"
+	r.Header.Set("Authorization", "Bearer "+testToken)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	if !strings.Contains(rec.Body.String(), `"skin":"mac"`) || !strings.Contains(rec.Body.String(), `"theme":"Nord"`) {
+		t.Fatalf("get config lacks skin or theme: %s", rec.Body)
+	}
+}

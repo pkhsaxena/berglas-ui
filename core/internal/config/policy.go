@@ -16,6 +16,7 @@ const (
 // Settings is the resolved config the ui needs: defaults applied, paths
 // expanded. It is what GET /api/config returns besides the raw sources.
 type Settings struct {
+	Skin                  string      `json:"skin"`
 	Theme                 string      `json:"theme"`
 	TimeZone              string      `json:"timeZone"`
 	EnvOrder              string      `json:"envOrder"`
@@ -31,7 +32,7 @@ type Settings struct {
 // Settings resolves c's defaults.
 func (c Config) Settings() Settings {
 	s := Settings{
-		Theme: c.Theme, TimeZone: c.TimeZone, EnvOrder: c.EnvOrder, ReadOnly: c.ReadOnly, Protect: c.Protect,
+		Skin: c.Skin, Theme: c.Theme, TimeZone: c.TimeZone, EnvOrder: c.EnvOrder, ReadOnly: c.ReadOnly, Protect: c.Protect,
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 	}

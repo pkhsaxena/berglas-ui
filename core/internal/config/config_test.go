@@ -54,12 +54,18 @@ func TestWritesKeepCommentsAndOtherKeys(t *testing.T) {
 	if err := f.SetTheme("Monokai"); err != nil {
 		t.Fatal(err)
 	}
+	if err := f.SetSkin("mac"); err != nil {
+		t.Fatal(err)
+	}
+	if c := f.Get(); c.Skin != "mac" {
+		t.Fatalf("skin not applied: %+v", c)
+	}
 	if err := f.SetSources([]Source{{Backend: "sm", Parent: "p1"}, {Backend: "storage", Parent: "b2"}}); err != nil {
 		t.Fatal(err)
 	}
 	b, _ := os.ReadFile(path)
 	out := string(b)
-	for _, want := range []string{"# my notes", "# fixed port for bookmarks", "listen: 127.0.0.1:9000", "theme: Monokai", "\n  - backend: storage\n    parent: b2"} {
+	for _, want := range []string{"# my notes", "# fixed port for bookmarks", "listen: 127.0.0.1:9000", "theme: Monokai", "skin: mac", "\n  - backend: storage\n    parent: b2"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("saved file lacks %q:\n%s", want, out)
 		}
