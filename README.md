@@ -154,8 +154,11 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
 - **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
 - **pin:** after **reveal**, **pin** keeps that value in its own pane while you open other secrets.
   It stays until **unpin** (it does not hide on the reveal timer). With a pin:
-  - **compare with …** diffs the pinned keys against the open secret's latest version. It reports
-    "identical", or "same keys and values" when only comments, order or formatting differ.
+  - the open secret's pane does the comparing: **compare with pinned …** diffs the pinned value
+    against its latest version and shows the result there. It reports "identical", or "same keys
+    and values" when only comments, order or formatting differ.
+  - revealing the open secret marks each key against the pin (`=`, `≈ quotes`, `≠ differs`,
+    `+ only here`), with a one-line summary and the keys only the pinned secret has.
 - **quotes:** values that differ only by one surrounding pair of quotes (`KEY="x"` vs `KEY=x`,
   which dotenv loaders read the same) are marked `≈ quotes only` in diffs and comparisons and
   `≈ quotes` in the editor beside a pin, instead of as changed. When quoting is the only difference

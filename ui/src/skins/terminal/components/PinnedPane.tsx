@@ -1,7 +1,6 @@
 import { type Ref, refString, versionOf } from '../../../core/api'
-import { type Pinned, useCompare } from '../../../core/hooks/usePinned'
+import type { Pinned } from '../../../core/hooks/usePinned'
 import { useStamp } from '../../../core/settings'
-import { DiffView } from './DiffView'
 import { Value } from './Value'
 
 type Props = {
@@ -13,9 +12,11 @@ type Props = {
   onCopy: (text: string) => void
 }
 
-/** A pinned value, kept while other secrets are open, with a compare against the open one. */
+/**
+ * A pinned value, kept while other secrets are open. It is the reference: the
+ * open secret's pane marks its keys against it and offers the compare.
+ */
 export function PinnedPane({ pinned, other, onOpen, onUnpin, onCopy }: Props) {
-  const c = useCompare(pinned, other)
   const stamp = useStamp()
   const sameSecret = other && other.backend === pinned.ref.backend && other.parent === pinned.ref.parent && other.name === pinned.ref.name
 
@@ -38,37 +39,12 @@ export function PinnedPane({ pinned, other, onOpen, onUnpin, onCopy }: Props) {
           <span className="str">{stamp(pinned.secret.updatedAt)}</span>
         </div>
         <div className="row">
-          {other && !sameSecret && (
-            <button onClick={c.result ? c.clear : c.run} disabled={c.busy}>
-              {c.busy ? 'decrypting…' : c.result ? 'hide comparison' : `compare with ${other.name}`}
-            </button>
-          )}
           {!sameSecret && <button onClick={onOpen}>open</button>}
           <button onClick={onUnpin}>unpin</button>
-          <span role="alert" className="t-error">
-            {c.error && `error: ${c.error}`}
-          </span>
         </div>
-        <div className="muted small"># stays until you unpin it. open another secret to compare or edit it beside this one.</div>
-
-        {c.result && (
-          <div className="section">
-            <div className="term-ln">
-              <span className="t-prompt">$</span> <span className="t-function">diff</span> <span className="t-keyword">pinned</span>{' '}
-              <span className="t-string">{c.result.current.name}</span>
-            </div>
-            {c.result.identical ? (
-              <div className="t-function">✓ identical — same text, same keys, same values.</div>
-            ) : (
-              <>
-                <div className="muted small">
-                  # a: pinned {pinned.ref.name} #{versionOf(pinned.secret)} → b: {c.result.current.name} #{versionOf(c.result.current)} (latest)
-                </div>
-                <DiffView diff={c.result} />
-              </>
-            )}
-          </div>
-        )}
+        <div className="muted small">
+          # stays until you unpin it. open another secret: its pane compares against this one, and reveal or edit marks each key.
+        </div>
 
         <div className="section">
           <Value value={pinned.value} onCopy={onCopy} persistent />

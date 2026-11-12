@@ -6,6 +6,7 @@ import { type Pinned, pinnedId } from '../../../core/hooks/usePinned'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import { ago } from '../../../core/time'
+import { CompareWithPinned } from './CompareWithPinned'
 import { DeleteSecret } from './DeleteSecret'
 import { Editor } from './Editor'
 import { PaneTitle } from './PaneTitle'
@@ -157,7 +158,8 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
             </span>
           </div>
 
-          <Value value={revealed} onCopy={copy} />
+          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} />}
+          <Value value={revealed} onCopy={copy} against={pinnedOther} />
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>
       </div>
