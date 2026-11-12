@@ -1,4 +1,4 @@
-// Run in the desktop web view by BERGLAS_UI_SELFTEST=1 (demo store only).
+// Run in the desktop web view by BERGLAS_UI_SELFTEST=full (demo store only).
 // Checks that the ui loaded and that every kind of api call the ui makes
 // reaches the core through the web view, then reports to /__selftest.
 ;(async () => {
@@ -19,10 +19,30 @@
   }
   const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)))
   const ref = (name) => ({ backend: 'storage', parent: 'demo-bucket', name })
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
   try {
     check('page origin', true, location.href)
     await new Promise((r) => setTimeout(r, 1500))
     check('ui rendered', document.querySelectorAll('.card').length > 0, `${document.querySelectorAll('.card').length} panes, ${document.querySelectorAll('.rowbtn').length} rows`)
+
+    // copy through the real ui, before the api checks below change the demo data:
+    // reveal payments-prod-env and press copy on a key. This overwrites the
+    // mac clipboard, and the auto-clear then empties it.
+    const button = (text) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === text && b.getBoundingClientRect().width)
+    document.querySelector('.rowbtn[aria-label="payments-prod-env"]')?.click()
+    await wait(600)
+    button('reveal')?.click()
+    await wait(600)
+    const copyBtn = document.querySelector('button[aria-label="copy LOG_LEVEL"]')
+    check('copy button found after reveal', !!copyBtn, copyBtn ? 'yes' : document.querySelector('.card')?.innerText.slice(0, 120))
+    copyBtn?.click()
+    await wait(500)
+    const copied = await (await fetch('/__selftest/clipboard')).text()
+    // never echo the clipboard: it may hold the user's own text
+    check('copy puts the value on the mac clipboard', copied === 'warn', copied === 'warn' ? 'matches' : 'differs (not shown)')
+    await wait(3500) // the test config sets clipboardClearSeconds: 3
+    const after = await (await fetch('/__selftest/clipboard')).text()
+    check('clipboard auto-clears after clipboardClearSeconds', after === '', after === '' ? 'empty' : 'not empty (not shown)')
 
     const st = await call('GET', '/api/status')
     check('GET /api/status', st.status === 200, `${st.status} demo=${st.json?.demo}`)
@@ -55,15 +75,17 @@
     const spa = await fetch('/some/client/route')
     check('client route falls back to index.html', spa.status === 200 && (await spa.text()).includes('<div id="root"'), `${spa.status}`)
 
-    check('secure context (clipboard api allowed)', window.isSecureContext, String(window.isSecureContext))
-    try {
-      await navigator.clipboard.writeText('berglas-ui selftest')
-      check('clipboard write without a click', true, 'ok')
-    } catch (e) {
-      // informational: the real copy button runs inside a click
-      checks.push({ name: 'clipboard write without a click (info only)', ok: true, detail: String(e) })
-    }
-    await new Promise((r) => setTimeout(r, 3000)) // window for the port check
+    // desktop routes
+    check('GET /api/desktop', (await fetch('/api/desktop')).ok, 'desktop mode on')
+
+    // a mailto link leaves the app instead of replacing it
+    const before = location.href
+    const mail = document.querySelector('a[href^="mailto:"]')
+    mail?.click()
+    await wait(400)
+    const opened = await (await fetch('/__selftest/opened')).text()
+    check('mailto link handed to the system, app stays', !!mail && opened.startsWith('mailto:') && location.href === before, `opened ${JSON.stringify(opened)}, page ${location.href}`)
+    await wait(3000) // time for a port check from outside
   } catch (e) {
     check('exception', false, String(e))
   }

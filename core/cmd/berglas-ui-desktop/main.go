@@ -1,6 +1,7 @@
 // Command berglas-ui-desktop runs the core and the ui in a native window
 // (Wails v2): the web view hands requests to Go in-process, so there is no
-// browser, no port and no launch token.
+// browser, no port and no launch token. Build the .app with
+// scripts/build-mac.sh.
 package main
 
 import (
@@ -11,11 +12,15 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"berglas-ui/core/internal/config"
@@ -27,8 +32,17 @@ import (
 
 var version = "dev"
 
+// Self-tests, for development only (BERGLAS_UI_SELFTEST):
+//   - "full" drives the api through the web view; it writes and deletes
+//     secrets, so it refuses to run without BERGLAS_UI_DEMO=1.
+//   - "status" only asks the core whether google credentials work, as a
+//     check that the app finds them when started from Finder.
+//
 //go:embed selftest.js
 var selftestJS string
+
+//go:embed selftest-status.js
+var selftestStatusJS string
 
 func main() {
 	if err := run(); err != nil {
@@ -37,10 +51,45 @@ func main() {
 	}
 }
 
+// shell is the app's side of server.Desktop; ctx is set once Wails starts.
+type shell struct {
+	ctx context.Context
+	// opened records links instead of opening them, during a self-test
+	opened *[]string
+}
+
+func (s *shell) SetClipboard(text string) error {
+	return wruntime.ClipboardSetText(s.ctx, text)
+}
+
+func (s *shell) ClipboardText() (string, error) { return wruntime.ClipboardGetText(s.ctx) }
+
+func (s *shell) OpenURL(u string) error {
+	if s.opened != nil {
+		*s.opened = append(*s.opened, u)
+		return nil
+	}
+	wruntime.BrowserOpenURL(s.ctx, u)
+	return nil
+}
+
 func run() error {
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	demo := os.Getenv("BERGLAS_UI_DEMO") == "1"
-	selftest := os.Getenv("BERGLAS_UI_SELFTEST") == "1"
+	selftest := os.Getenv("BERGLAS_UI_SELFTEST")
+	var testJS string
+	switch selftest {
+	case "":
+	case "full", "1":
+		if !demo {
+			return fmt.Errorf("BERGLAS_UI_SELFTEST=full writes secrets; it only runs with BERGLAS_UI_DEMO=1")
+		}
+		testJS = selftestJS
+	case "status":
+		testJS = selftestStatusJS
+	default:
+		return fmt.Errorf("BERGLAS_UI_SELFTEST must be full or status")
+	}
 
 	configPath := os.Getenv("BERGLAS_UI_CONFIG")
 	if configPath == "" {
@@ -69,17 +118,21 @@ func run() error {
 	api := server.New("", store, cfg, ui, version, log)
 	api.Demo = demo
 	api.Auth = auth
-	handler := api.DesktopHandler()
+	sh := &shell{}
+	if testJS != "" {
+		sh.opened = &[]string{}
+	}
+	handler := api.DesktopHandler(sh)
 
-	var appCtx context.Context
 	exit := 0
-	if selftest {
-		handler = withSelftest(handler, func(report []byte, ok bool) {
+	if testJS != "" {
+		handler = withSelftest(handler, sh, func(report []byte, ok bool) {
 			fmt.Printf("SELFTEST %s\n", report)
 			if !ok {
 				exit = 1
 			}
-			wruntime.Quit(appCtx)
+			// let the web view finish the request before the app goes away
+			go func() { time.Sleep(200 * time.Millisecond); wruntime.Quit(sh.ctx) }()
 		})
 	}
 
@@ -89,18 +142,26 @@ func run() error {
 		Height:      900,
 		MinWidth:    900,
 		MinHeight:   600,
+		Menu:        appMenu(sh),
 		AssetServer: &assetserver.Options{Handler: handler},
-		OnStartup:   func(ctx context.Context) { appCtx = ctx },
+		Mac: &mac.Options{
+			About: &mac.AboutInfo{
+				Title:   "berglas-ui " + version,
+				Message: "A desktop ui for berglas secrets.\nUses your gcloud application-default credentials.",
+			},
+		},
+		OnStartup: func(ctx context.Context) { sh.ctx = ctx },
 		OnDomReady: func(ctx context.Context) {
-			if selftest {
-				wruntime.WindowExecJS(ctx, selftestJS)
-				go func() {
-					time.Sleep(60 * time.Second)
-					fmt.Println("SELFTEST timeout: no report from the web view")
-					exit = 1
-					wruntime.Quit(ctx)
-				}()
+			if testJS == "" {
+				return
 			}
+			wruntime.WindowExecJS(ctx, testJS)
+			go func() {
+				time.Sleep(90 * time.Second)
+				fmt.Println("SELFTEST timeout: no report from the web view")
+				exit = 1
+				wruntime.Quit(ctx)
+			}()
 		},
 	})
 	if err != nil {
@@ -112,10 +173,40 @@ func run() error {
 	return nil
 }
 
-// withSelftest adds POST /__selftest, where selftest.js reports its results.
-func withSelftest(next http.Handler, done func(report []byte, ok bool)) http.Handler {
+// appMenu is the standard mac menu bar. The Edit menu matters: without it,
+// ⌘C, ⌘V, ⌘X, ⌘A and undo do nothing in the app's text fields.
+func appMenu(sh *shell) *menu.Menu {
+	m := menu.NewMenu()
+	m.Append(menu.AppMenu())
+	m.Append(menu.EditMenu())
+	view := m.AddSubmenu("View")
+	view.AddText("Reload", keys.CmdOrCtrl("r"), func(*menu.CallbackData) { wruntime.WindowReloadApp(sh.ctx) })
+	view.AddText("Toggle Full Screen", keys.Combo("f", keys.CmdOrCtrlKey, keys.ControlKey), func(*menu.CallbackData) {
+		if wruntime.WindowIsFullscreen(sh.ctx) {
+			wruntime.WindowUnfullscreen(sh.ctx)
+		} else {
+			wruntime.WindowFullscreen(sh.ctx)
+		}
+	})
+	m.Append(menu.WindowMenu())
+	return m
+}
+
+// withSelftest adds the self-test's routes: POST /__selftest takes the
+// report; GET /__selftest/clipboard and /__selftest/opened let the script
+// check what the app did with a copy or a link.
+func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/__selftest" {
+		switch r.URL.Path {
+		case "/__selftest/clipboard":
+			t, _ := sh.ClipboardText()
+			_, _ = io.WriteString(w, t)
+			return
+		case "/__selftest/opened":
+			_, _ = fmt.Fprint(w, strings.Join(*sh.opened, "\n"))
+			return
+		case "/__selftest":
+		default:
 			next.ServeHTTP(w, r)
 			return
 		}
