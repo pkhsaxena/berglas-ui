@@ -4,6 +4,7 @@ import type { Pinned } from '../../../core/hooks/usePinned'
 import type { Revealed } from '../../../core/hooks/useSecret'
 import { useSettings } from '../../../core/settings'
 import { EnvRows, OrderToggle } from './EnvRows'
+import { KeyText } from './KeyText'
 
 // how one revealed key compares with the pinned secret
 function pinMark(c: KeyChange | undefined) {
@@ -102,7 +103,9 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               cols={vs ? 4 : 3}
               renderPair={(l, i) => (
                 <tr key={i}>
-                  <td className="t-keyword">{l.key}</td>
+                  <td className="t-keyword env-key">
+                    <KeyText k={l.key} />
+                  </td>
                   <td className="t-string" style={{ overflowWrap: 'anywhere' }}>
                     {l.value}
                   </td>

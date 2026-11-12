@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { type Diff, summarize } from '../../../core/diff'
 import { useSettings } from '../../../core/settings'
+import { KeyText } from './KeyText'
 
 const keyOrder = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
 
@@ -74,7 +75,9 @@ export function DiffView({ diff }: { diff: Diff }) {
                   showSame && (
                     <tr key={c.key}>
                       <td className="muted"> </td>
-                      <td className="muted">{c.key}</td>
+                      <td className="muted env-key">
+                        <KeyText k={c.key} />
+                      </td>
                       <td className="muted">{c.value}</td>
                     </tr>
                   )
@@ -86,7 +89,9 @@ export function DiffView({ diff }: { diff: Diff }) {
                     >
                       {c.kind === 'added' ? '+' : c.kind === 'removed' ? '-' : c.quotesOnly ? '≈' : '~'}
                     </td>
-                    <td className="t-keyword">{c.key}</td>
+                    <td className="t-keyword env-key">
+                      <KeyText k={c.key} />
+                    </td>
                     <td>
                       {c.kind === 'added' && <span className="t-function">{c.after}</span>}
                       {c.kind === 'removed' && <span className="t-error">{c.before}</span>}

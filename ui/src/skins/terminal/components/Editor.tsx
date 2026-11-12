@@ -9,6 +9,7 @@ import { protectedFor, useSettings } from '../../../core/settings'
 import { ConfirmName } from './ConfirmName'
 import { DiffView } from './DiffView'
 import { EnvRows, OrderToggle } from './EnvRows'
+import { KeyText } from './KeyText'
 import { PaneTitle } from './PaneTitle'
 
 // a section's id in the picker: its header line, or '-' for the no-section group
@@ -150,8 +151,8 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
                       cols={vs ? 4 : 3}
                       renderPair={(l, i) => (
                         <tr key={i}>
-                          <td className="t-keyword" style={{ whiteSpace: 'nowrap' }}>
-                            {l.key}
+                          <td className="t-keyword env-key">
+                            <KeyText k={l.key} />
                           </td>
                           <td style={{ width: '100%' }}>
                             <input

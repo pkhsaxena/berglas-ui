@@ -162,10 +162,14 @@ th { color: var(--t-comment); font-weight: 400; text-transform: lowercase; white
 tr.active td { background: var(--t-soft); }
 /* a section header comment in a sorted .env table */
 td.section-head { padding-top: 10px; }
+/* .env key cells: as narrow as the key, but at most ~28 characters or 40% of the table; longer
+   keys wrap after _ . - (see KeyText) instead of squeezing the value */
+td.env-key { width: 1%; }
+td.env-key > .k { display: inline-block; width: max-content; max-width: min(28ch, 40cqi); overflow-wrap: anywhere; }
 /* a sortable column header: looks like the header, acts like a button */
 button.th-sort { border: 0; padding: 0; color: inherit; font: inherit; text-transform: inherit; }
 button.th-sort:hover { background: none; color: var(--t-fg); }
-.tablewrap { overflow-x: auto; }
+.tablewrap { overflow-x: auto; container-type: inline-size; } /* cqi in key widths is relative to this */
 
 /* secret list rows are buttons for keyboard access */
 .rowbtn {
