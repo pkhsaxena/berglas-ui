@@ -116,6 +116,357 @@
     await wait(300)
     check('actual size resets zoom', document.documentElement.style.zoom === '', document.documentElement.style.zoom || '100%')
 
+    // ---- the ui, driven the way a person uses it (FEATURES.md rows) ----
+    // Skin-neutral: controls are found by aria-label or visible text, in any
+    // case, so the same checks run on every skin. Each step reports on its
+    // own, so one failure does not hide the rest.
+    const vis = (el) => !!el && el.getBoundingClientRect().width > 0
+    const norm = (s) => (s || '').replace(/\s+/g, ' ').trim().toLowerCase()
+    const findButton = (names, root = document) =>
+      [...root.querySelectorAll('button')].find(
+        (b) =>
+          vis(b) &&
+          names.some((name) => {
+            const n = name.toLowerCase()
+            const t = norm(b.textContent)
+            const a = norm(b.getAttribute('aria-label'))
+            return n.endsWith('*') ? t.startsWith(n.slice(0, -1)) || a.startsWith(n.slice(0, -1)) : t === n || a === n
+          }),
+      )
+    const press = async (names, root) => {
+      const list = [].concat(names)
+      const b = findButton(list, root)
+      if (!b) throw new Error(`no button "${list.join('" or "')}"`)
+      b.click()
+      await wait(500)
+      return b
+    }
+    const tab = (name) => [...document.querySelectorAll('[role=tab]')].find((b) => vis(b) && norm(b.textContent) === name)
+    const openSecret = async (name) => {
+      const r = document.querySelector(`.rowbtn[aria-label="${name}"]`)
+      if (!r) throw new Error(`no list row ${name}`)
+      r.click()
+      await wait(800)
+    }
+    const field = (label) => document.querySelector(`[aria-label="${label}"]`)
+    const setField = (target, v) => {
+      const el = typeof target === 'string' ? field(target) : target
+      if (!el) throw new Error(`no field "${target}"`)
+      const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
+      el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }))
+    }
+    const headerSelect = (name) => [...document.querySelectorAll('header label')].find((l) => norm(l.childNodes[0]?.textContent) === name)?.querySelector('select')
+    const readSecret = async (name) => {
+      const r = await call('POST', '/api/secrets/read', ref(name))
+      return r.json?.secret?.plaintext ? new TextDecoder().decode(Uint8Array.from(atob(r.json.secret.plaintext), (c) => c.charCodeAt(0))) : null
+    }
+    // the visible one: wide-layout copies of a pane stay in the page, hidden
+    const pane = (cls) => [...document.querySelectorAll(cls)].find(vis) || null
+    const cancelIfOpen = async () => {
+      const b = findButton(['cancel'])
+      if (b) {
+        b.click()
+        await wait(400)
+      }
+    }
+    // toasts last under 2 s, so record every one as it appears
+    const toasts = new Set()
+    const noteToast = () => {
+      const t = norm(document.querySelector('.toast')?.textContent)
+      if (t) toasts.add(t.split(' ')[0])
+    }
+    const toastWatch = new MutationObserver(noteToast)
+    toastWatch.observe(document.body, { subtree: true, childList: true, characterData: true })
+    const step = async (name, fn) => {
+      await cancelIfOpen() // a step that failed half-way may have left an editor open
+      try {
+        const [ok, detail] = await fn()
+        check(name, ok, detail)
+      } catch (e) {
+        check(name, false, String(e?.message || e))
+      }
+      noteToast()
+    }
+    const sourceRow = (text) => [...document.querySelectorAll('.sources-pane .rowbtn')].find((b) => norm(b.textContent).includes(text))
+
+    // window
+    await step('account line shows demo mode', async () => {
+      const t = norm(document.querySelector('header').textContent)
+      return [t.includes('demo'), t.slice(0, 80)]
+    })
+    await step('header controls: time, zoom, theme, skin', async () => {
+      const order = [...document.querySelectorAll('header label')].map((l) => norm(l.childNodes[0]?.textContent))
+      return [order.join(',') === 'time,zoom,theme,skin', order.join(', ')]
+    })
+    await step('theme picker applies and saves the theme', async () => {
+      const sel = headerSelect('theme')
+      const orig = sel.value
+      const bg0 = getComputedStyle(document.body).backgroundColor
+      let picked = null
+      for (const o of [...sel.options].map((x) => x.value).filter((v) => v !== orig)) {
+        setField(sel, o)
+        await wait(400)
+        if (getComputedStyle(document.body).backgroundColor !== bg0) {
+          picked = o
+          break
+        }
+      }
+      const saved = (await call('GET', '/api/config')).json?.theme
+      setField(headerSelect('theme'), orig)
+      await wait(400)
+      return [picked !== null && saved === picked, `picked ${picked}, saved ${saved}, back to ${orig}`]
+    })
+
+    // sources
+    await step('sources list both demo sources', async () => [!!sourceRow('demo-bucket') && !!sourceRow('demo-project'), [...document.querySelectorAll('.sources-pane .rowbtn')].map((b) => norm(b.textContent)).join(' | ')])
+    await step('config path is shown', async () => {
+      const t = norm(pane('.sources-pane').textContent)
+      return [t.includes('saved in') && t.includes('.yaml'), t.slice(t.indexOf('saved in'), t.indexOf('saved in') + 60)]
+    })
+    await step('add a source: bad names refused, a good one added and opened', async () => {
+      if (!field('bucket name')) await press(['add a source'])
+      setField('bucket name', 'bad name')
+      await press(['add'])
+      const err = norm(pane('.sources-pane').textContent).includes('no spaces')
+      setField('bucket name', 'selftest-bucket')
+      await press(['add'])
+      const row = sourceRow('selftest-bucket')
+      return [err && !!row && row.getAttribute('aria-current') === 'true', `error shown ${err}, added ${!!row}, active ${row?.getAttribute('aria-current')}`]
+    })
+    await step('remove a source', async () => {
+      await press(['remove selftest-bucket'])
+      return [!sourceRow('selftest-bucket'), 'removed']
+    })
+    await step('pick a source switches the list', async () => {
+      sourceRow('demo-project').click()
+      await wait(900)
+      const sm = !!document.querySelector('.rowbtn[aria-label="db-password"]')
+      sourceRow('demo-bucket').click()
+      await wait(900)
+      const bucket = !!document.querySelector('.rowbtn[aria-label="payments-dev-env"]')
+      return [sm && bucket, `secret manager list ${sm}, bucket list ${bucket}`]
+    })
+
+    // secret list
+    await step('filter narrows the list, / focuses it', async () => {
+      setField('filter secrets', 'payments')
+      await wait(300)
+      const rows = [...document.querySelectorAll('.rowbtn.secret')].filter(vis).map((b) => b.getAttribute('aria-label'))
+      setField('filter secrets', '')
+      field('filter secrets').blur()
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true }))
+      await wait(100)
+      const focused = document.activeElement === field('filter secrets')
+      document.activeElement.blur()
+      return [rows.length === 2 && rows.every((r) => r.includes('payments')) && focused, `${rows.join(', ')}; / focuses: ${focused}`]
+    })
+    await step('environment colors on list rows', async () => {
+      const prod = !!document.querySelector('.rowbtn[aria-label="payments-prod-env"] [class*="tone-prod"]')
+      const dev = !!document.querySelector('.rowbtn[aria-label="payments-dev-env"] [class*="tone-dev"]')
+      return [prod && dev, `prod ${prod}, dev ${dev}`]
+    })
+    await step('refresh keeps the list; new opens the create pane', async () => {
+      await press(['refresh'])
+      await wait(400)
+      const rows = document.querySelectorAll('.rowbtn.secret').length
+      await press(['new', 'new secret'])
+      const form = vis(field('secret name'))
+      await cancelIfOpen()
+      return [rows > 0 && form, `${rows} rows after refresh, create form ${form}`]
+    })
+
+    // a secret
+    await step('secret details: generation, updated, kms key, location', async () => {
+      await openSecret('payments-prod-env')
+      const t = norm(pane('.secret-pane').textContent)
+      const want = ['generation', 'updated', 'kms key', 'berglas://demo-bucket/payments-prod-env']
+      return [want.every((w) => t.includes(w)), want.filter((w) => !t.includes(w)).join(', ') || 'all shown']
+    })
+    await step('production banner on a protected prod secret; a strip on dev', async () => {
+      const banner = norm(document.querySelector('.secret-pane .env-banner')?.textContent)
+      await openSecret('payments-dev-env')
+      const devStrip = !!document.querySelector('.secret-pane .env-strip, .secret-pane .env-rule') && !document.querySelector('.secret-pane .env-banner')
+      return [banner.includes('production') && banner.includes('protected') && devStrip, `prod: "${banner}"; dev strip ${devStrip}`]
+    })
+    await step('version list: three versions, newest first', async () => {
+      const rows = [...document.querySelectorAll('.versions-pane tbody tr')].filter(vis)
+      const ids = rows.map((r) => Number((r.textContent.match(/\d{10,}/) || ['0'])[0]))
+      const sorted = ids.every((v, i) => i === 0 || ids[i - 1] > v)
+      return [rows.length === 3 && sorted, ids.join(' > ')]
+    })
+    await step('view an older version: marked old, restore offered', async () => {
+      await press(['view'], pane('.versions-pane'))
+      const t = norm(pane('.secret-pane').textContent)
+      const restore = !!findButton(['restore this version…'])
+      return [(t.includes(' old') || t.includes('older version')) && restore, `old marked ${t.includes(' old') || t.includes('older version')}, restore ${restore}`]
+    })
+    await step('restore a version opens the editor over the latest', async () => {
+      await press(['restore this version…'])
+      await wait(400)
+      const t = norm(document.querySelector('.right')?.textContent)
+      const ok = t.includes('restoring')
+      await cancelIfOpen()
+      await openSecret('payments-prod-env')
+      await openSecret('payments-dev-env')
+      return [ok, ok ? 'editor says restoring' : t.slice(0, 120)]
+    })
+    await step('a version diff replaces the table; hide diff brings it back', async () => {
+      const vp = pane('.versions-pane')
+      const flags = [...vp.querySelectorAll('.flag')]
+      flags[4].click()
+      await wait(50)
+      flags[1].click()
+      await wait(100)
+      await press(['diff a → b'], vp)
+      await wait(300)
+      const tableHidden = !vis(vp.querySelector('table:not(.diff)'))
+      const diff = !!vp.querySelector('table.diff, .diff-lines')
+      const head = vp.querySelector('h2, .pane-head')
+      const hide = findButton(['hide diff'], head)
+      hide?.click()
+      await wait(400)
+      const back = vis(vp.querySelector('table:not(.diff)'))
+      return [tableHidden && diff && !!hide && back, `table hidden ${tableHidden}, diff ${diff}, hide in header ${!!hide}, table back ${back}`]
+    })
+
+    // pin and compare
+    await step('pin keeps the value; marks and compare against it', async () => {
+      if (findButton(['reveal'])) await press(['reveal'])
+      await press(['pin'])
+      const pinned = vis(pane('.pinned-pane'))
+      await openSecret('payments-prod-env')
+      if (findButton(['reveal'])) await press(['reveal'])
+      const differs = [...document.querySelectorAll('.secret-pane td')].filter((td) => td.textContent.includes('≠')).length
+      await press(['compare with pinned*'])
+      await wait(400)
+      const diff = !!document.querySelector('.secret-pane table.diff, .secret-pane .diff-lines')
+      await press(['hide comparison'])
+      return [pinned && differs > 0 && diff, `pinned ${pinned}, ≠ marks ${differs}, comparison ${diff}`]
+    })
+    await step('comparing layout: the side column steps aside when zoomed out', async () => {
+      for (let i = 0; i < 5; i++) window.berglasUI.run('zoomOut')
+      await wait(500)
+      const layout = document.querySelector('.layout')
+      const ok = layout.classList.contains('comparing') && getComputedStyle(document.querySelector('.layout > .side-col')).display === 'none'
+      window.berglasUI.run('zoomReset')
+      await wait(400)
+      return [ok, `layout "${layout.className}"`]
+    })
+    await step('edit against the pin: use pinned, add all, typed name, save', async () => {
+      await press(['edit production…'])
+      await wait(400)
+      const before = document.querySelectorAll('.right button').length
+      let used = 0
+      for (let b = findButton(['use pinned']); b; b = findButton(['use pinned'])) {
+        b.click()
+        used++
+        await wait(150)
+        if (used > 20) break
+      }
+      await press(['add all*'])
+      const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
+      await press(['review changes'])
+      const save = findButton(['save*'])
+      const lockedBefore = save?.disabled
+      setField('type payments-prod-env to confirm', 'payments-prod-env')
+      await wait(150)
+      const unlocked = !findButton(['save*']).disabled
+      await press(['save*'])
+      await wait(500)
+      const v = (await readSecret('payments-prod-env')) || ''
+      await press(['unpin'])
+      return [used > 0 && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
+    })
+
+    // edit
+    await step('edit: change a value, remove a key, add a key into a section, save', async () => {
+      await openSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await wait(400)
+      setField('value of LOG_LEVEL', 'warn')
+      await press(['remove WEBHOOK_SECRET'])
+      setField('new key', 'SELFTEST_FLAG')
+      setField('new value', '1')
+      const sec = field('section for the new key')
+      if (sec && sec.options.length > 1) setField(sec, sec.options[1].value)
+      await press(['add key'])
+      await press(['review changes'])
+      await press(['save*'])
+      await wait(600)
+      const v = (await readSecret('payments-dev-env')) || ''
+      return [v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')]
+    })
+    await step('conflict: a newer save meanwhile is refused, not overwritten', async () => {
+      await press(['edit', 'edit…'])
+      await wait(400)
+      setField('value of LOG_LEVEL', 'error')
+      await call('POST', '/api/secrets/update', { ...ref('payments-dev-env'), plaintext: b64('LOG_LEVEL=debug\n') })
+      await press(['review changes'])
+      await press(['save*'])
+      await wait(500)
+      const t = norm(document.querySelector('.right').textContent)
+      const offered = !!findButton(['start over from latest', 'start over from the latest'])
+      const kept = (await readSecret('payments-dev-env')) === 'LOG_LEVEL=debug\n'
+      await cancelIfOpen()
+      return [t.includes('not saved') && offered && kept, `refused ${t.includes('not saved')}, start over offered ${offered}, other save kept ${kept}`]
+    })
+
+    // create and delete
+    await step('create a secret (its environment shows)', async () => {
+      await press(['new', 'new secret'])
+      setField('secret name', 'selftest-svc-nonprod-env')
+      setField('kms key', 'projects/demo-project/locations/global/keyRings/berglas/cryptoKeys/berglas-key')
+      setField('secret value', 'A=1\n')
+      await press(['review'])
+      await press(['create*'])
+      await wait(600)
+      const row = document.querySelector('.rowbtn[aria-label="selftest-svc-nonprod-env"]')
+      return [!!row && !!row.querySelector('[class*="tone-staging"]'), `in list ${!!row}, staging tone ${!!row?.querySelector('[class*="tone-staging"]')}`]
+    })
+    await step('delete needs the name typed', async () => {
+      await openSecret('selftest-svc-nonprod-env')
+      await press(['delete…'])
+      const locked = findButton(['delete permanently'])?.disabled
+      setField('type selftest-svc-nonprod-env to confirm', 'selftest-svc-nonprod-env')
+      await wait(150)
+      await press(['delete permanently'])
+      await wait(600)
+      const gone = !document.querySelector('.rowbtn[aria-label="selftest-svc-nonprod-env"]')
+      return [locked && gone, `locked until typed ${locked}, gone ${gone}`]
+    })
+
+    // overview and matrix
+    await step('view tabs, matrix colors, sort and open from a cell', async () => {
+      await openSecret('payments-dev-env')
+      tab('versions').click()
+      await wait(300)
+      const versionsOnly = vis(pane('.versions-pane')) && !vis(pane('.secret-pane'))
+      tab('overview').click()
+      await wait(300)
+      const overview = vis(pane('.overview-pane'))
+      tab('matrix').click()
+      await wait(300)
+      const matrix = vis(pane('.matrix-pane'))
+      const prodHead = [...document.querySelectorAll('.matrix-pane th button')].find((b) => norm(b.textContent).startsWith('prod'))
+      const tone = !!prodHead?.querySelector('[class*="tone-prod"]')
+      prodHead.click()
+      await wait(200)
+      const asc = prodHead.closest('th').getAttribute('aria-sort')
+      prodHead.click()
+      await wait(200)
+      const desc = prodHead.closest('th').getAttribute('aria-sort')
+      prodHead.click()
+      await wait(200)
+      document.querySelector('.matrix-pane td button[title="payments-prod-env"]').click()
+      await wait(800)
+      const opened = norm(document.querySelector('.secret-pane')?.textContent).includes('payments-prod-env')
+      return [versionsOnly && overview && matrix && tone && asc === 'ascending' && desc === 'descending' && opened, `versions only ${versionsOnly}, overview ${overview}, matrix ${matrix}, prod color ${tone}, sort ${asc} → ${desc}, cell opens ${opened}`]
+    })
+
+    toastWatch.disconnect()
+    check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
+
     const st = await call('GET', '/api/status')
     check('GET /api/status', st.status === 200, `${st.status} demo=${st.json?.demo}`)
     check('security headers', !!st.csp, st.csp ? 'csp present' : 'no csp')

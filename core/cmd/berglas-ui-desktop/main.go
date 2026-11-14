@@ -182,7 +182,7 @@ func run() error {
 			}
 			wruntime.WindowExecJS(ctx, testJS)
 			go func() {
-				time.Sleep(90 * time.Second)
+				time.Sleep(240 * time.Second)
 				fmt.Println("SELFTEST timeout: no report from the web view")
 				exit = 1
 				wruntime.Quit(ctx)
