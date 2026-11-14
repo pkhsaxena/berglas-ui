@@ -20,7 +20,8 @@ type Loaded = { secret: Secret; text: string }
  * is the confirmation step. Saving sends the loaded generation/version, so a
  * concurrent save by someone else is rejected instead of overwritten.
  */
-export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
+/** `latestId` is the newest version id when known fresh, so the load can use the core's prefetched copy. */
+export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: string) {
   const [phase, setPhase] = useState<EditPhase>('idle')
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [draft, setDraft] = useState('')
@@ -37,7 +38,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void) {
     setError('')
     setOverlaps([])
     try {
-      const latest = await readValue({ ...base, version: undefined })
+      const latest = await readValue({ ...base, version: latestId })
       if (latest.value.text === null) throw new Error('binary value — only text secrets can be edited here')
       let text = latest.value.text
       if (restore) {

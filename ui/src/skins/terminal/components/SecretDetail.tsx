@@ -37,7 +37,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
     s.selectVersion('')
     void s.reloadVersions()
     onToast('saved')
-  })
+  }, s.latestId)
   const editing = ed.phase !== 'idle'
   // whether the compare-with-pin result is showing (it makes room like a reveal)
   const [comparing, setComparing] = useState(false)
@@ -165,7 +165,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
             </span>
           </div>
 
-          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} onShowingChange={setComparing} />}
+          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} latestId={s.latestId} onShowingChange={setComparing} />}
           <Value value={revealed} onCopy={copy} against={pinnedOther} />
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>

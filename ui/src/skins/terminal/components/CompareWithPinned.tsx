@@ -6,6 +6,8 @@ import { DiffView } from './DiffView'
 type Props = {
   pinned: Pinned
   base: Ref
+  /** base's newest version id, when known fresh */
+  latestId?: string
   /** told whether the comparison is showing, so the layout can make room for it */
   onShowingChange?: (showing: boolean) => void
 }
@@ -15,8 +17,8 @@ type Props = {
  * (a) against this secret's latest version (b) and shows the result here,
  * next to the secret it is about. Key it by pinned + open secret.
  */
-export function CompareWithPinned({ pinned, base, onShowingChange }: Props) {
-  const c = useCompare(pinned, base)
+export function CompareWithPinned({ pinned, base, latestId, onShowingChange }: Props) {
+  const c = useCompare(pinned, base, latestId)
   const showing = !!c.result
   useEffect(() => {
     onShowingChange?.(showing)

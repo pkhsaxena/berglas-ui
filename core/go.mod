@@ -3,7 +3,10 @@ module berglas-ui/core
 go 1.27.3
 
 require (
+	cloud.google.com/go/kms v1.35.0
+	cloud.google.com/go/storage v1.69.0
 	github.com/GoogleCloudPlatform/berglas/v2 v2.0.18
+	github.com/googleapis/gax-go/v2 v2.26.2
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.306.0
@@ -17,11 +20,9 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
-	cloud.google.com/go/kms v1.35.0 // indirect
 	cloud.google.com/go/longrunning v1.3.0 // indirect
 	cloud.google.com/go/monitoring v1.31.0 // indirect
 	cloud.google.com/go/secretmanager v1.22.0 // indirect
-	cloud.google.com/go/storage v1.69.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.62.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.62.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -35,7 +36,6 @@ require (
 	github.com/google/s2a-go v0.1.11 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.23 // indirect
-	github.com/googleapis/gax-go/v2 v2.26.2 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/sethvargo/go-retry v0.5.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.9.0 // indirect

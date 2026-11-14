@@ -88,9 +88,13 @@ var _ Store = (*Service)(nil)
 type Service struct {
 	// Auth picks the Google identity; the zero value is plain ADC.
 	Auth gcpauth.Auth
+	// NoFastRead turns off the prefetching storage read (fastread.go), so
+	// every read goes through the berglas library as before.
+	NoFastRead bool
 
 	mu     sync.Mutex
 	client *berglas.Client
+	fast   *fastReader
 }
 
 func (s *Service) c(ctx context.Context) (*berglas.Client, error) {
@@ -193,6 +197,13 @@ func (s *Service) Versions(ctx context.Context, r Ref) ([]Secret, error) {
 		vj, _ := strconv.Atoi(out[j].Version)
 		return vi > vj
 	})
+	// someone looking at a secret's versions is likely to reveal the newest:
+	// start downloading it (still encrypted) so reveal only waits for kms
+	if r.Backend == Storage && len(out) > 0 && !s.NoFastRead {
+		if f, err := s.fastFor(ctx); err == nil {
+			f.Prefetch(r.Parent, r.Name, out[0].Generation)
+		}
+	}
 	return out, nil
 }
 
@@ -231,6 +242,19 @@ func (s *Service) Read(ctx context.Context, r Ref) (Secret, error) {
 		g, gerr := generation(r.Version)
 		if gerr != nil {
 			return Secret{}, gerr
+		}
+		// an exact generation can use the fast read; "latest" needs berglas
+		// to look it up. On any failure, fall back to the berglas library.
+		if g != 0 && !s.NoFastRead {
+			if f, ferr := s.fastFor(ctx); ferr == nil {
+				out, rerr := f.Read(ctx, r.Parent, r.Name, g)
+				if rerr == nil {
+					return out, nil
+				}
+				if ctx.Err() != nil {
+					return Secret{}, ctx.Err()
+				}
+			}
 		}
 		sec, err = c.Read(ctx, &berglas.StorageReadRequest{Bucket: r.Parent, Object: r.Name, Generation: g})
 	} else {

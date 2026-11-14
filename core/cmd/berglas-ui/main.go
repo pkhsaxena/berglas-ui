@@ -70,7 +70,8 @@ func run() error {
 	}
 	creds := cfg.Get().Credentials
 	auth := gcpauth.Auth{Impersonate: creds.ImpersonateServiceAccount, QuotaProject: creds.QuotaProject}
-	var store secrets.Store = &secrets.Service{Auth: auth}
+	// BERGLAS_UI_FAST_READ=0 makes every read go through the berglas library
+	var store secrets.Store = &secrets.Service{Auth: auth, NoFastRead: os.Getenv("BERGLAS_UI_FAST_READ") == "0"}
 	if *demo {
 		store = secrets.NewDemo()
 	}

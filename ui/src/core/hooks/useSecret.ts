@@ -45,6 +45,8 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
   const settings = useSettings()
   const [versions, setVersions] = useState<Secret[] | null>(() => metaCache.get(versionsKey(base)) ?? null)
   const [versionsError, setVersionsError] = useState('')
+  // the list came from the core just now, not from the cache
+  const [versionsFresh, setVersionsFresh] = useState(false)
   const [version, setVersion] = useState('') // '' = latest
   const [revealed, setRevealed] = useState<Revealed | null>(null)
   const [busy, setBusy] = useState(false)
@@ -61,6 +63,7 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
       const list = await api.versions(base)
       metaCache.set(versionsKey(base), list)
       setVersions(list)
+      setVersionsFresh(true)
       setVersionsError('')
     } catch (e) {
       setVersionsError(errText(e))
@@ -77,6 +80,13 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
   const shown = versions?.find((v) => versionOf(v) === version) ?? latest
   const isLatest = !!shown && shown === latest
   const ref: Ref = { ...base, version: version || undefined }
+  /**
+   * The newest version's id once the list is fresh. Reads ask for it instead
+   * of "latest": the core has usually downloaded that exact version already
+   * (still encrypted), so a reveal only waits for the decrypt.
+   */
+  const latestId = versionsFresh && latest ? versionOf(latest) : undefined
+  const readRef: Ref = { ...base, version: version || latestId }
 
   const selectVersion = (v: string) => {
     hide()
@@ -87,7 +97,7 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
     setBusy(true)
     setError('')
     try {
-      const { value } = await readValue(ref)
+      const { value } = await readValue(readRef)
       setRevealed(value)
       window.clearTimeout(timer.current)
       timer.current = scheduleHide(settings.revealSeconds, () => setRevealed(null))
@@ -105,7 +115,7 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
       let value = text
       if (value === undefined) {
         setBusy(true)
-        const r = (await readValue(ref)).value
+        const r = (await readValue(readRef)).value
         if (r.text === null) throw new Error('binary value — it cannot be copied as text')
         value = r.text
       }
@@ -125,6 +135,7 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
     versionsError,
     reloadVersions: loadVersions,
     latest,
+    latestId,
     shown,
     isLatest,
     selectVersion,

@@ -31,7 +31,8 @@ export type Comparison = Diff & { current: Secret }
  * Showing the result shows values, so it hides after revealSeconds like a
  * diff. Key the component using this by pinned + other secret so it resets.
  */
-export function useCompare(pinned: Pinned, other: Ref | null) {
+/** `otherLatestId` is the other secret's newest version id when known fresh, so the read can use the core's prefetched copy. */
+export function useCompare(pinned: Pinned, other: Ref | null, otherLatestId?: string) {
   const { revealSeconds } = useSettings()
   const [result, setResult] = useState<Comparison | null>(null)
   const [busy, setBusy] = useState(false)
@@ -51,7 +52,7 @@ export function useCompare(pinned: Pinned, other: Ref | null) {
     setBusy(true)
     setError('')
     try {
-      const cur = await readValue({ ...other, version: undefined })
+      const cur = await readValue({ ...other, version: otherLatestId })
       if (cur.value.text === null) throw new Error(`${other.name} is binary — only text can be compared`)
       setResult({ ...diffValues(pinned.value.text, cur.value.text, !!pinned.value.env && !!cur.value.env), current: cur.secret })
       window.clearTimeout(timer.current)
