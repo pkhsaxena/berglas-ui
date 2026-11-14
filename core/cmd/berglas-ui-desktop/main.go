@@ -234,6 +234,9 @@ func appMenu(sh *shell) *menu.Menu {
 	find.AddText("Find…", keys.CmdOrCtrl("f"), run("find"))
 	find.AddText("Find Next", keys.CmdOrCtrl("g"), run("findNext"))
 	find.AddText("Find Previous", keys.Combo("g", keys.CmdOrCtrlKey, keys.ShiftKey), run("findPrev"))
+	// ⌘K opens the command palette (core/palette.ts): secrets, sources, actions
+	goMenu := m.AddSubmenu("Go")
+	goMenu.AddText("Go To…", keys.CmdOrCtrl("k"), run("palette"))
 	view := m.AddSubmenu("View")
 	view.AddText("Zoom In", keys.CmdOrCtrl("="), run("zoomIn"))
 	view.AddText("Zoom Out", keys.CmdOrCtrl("-"), run("zoomOut"))

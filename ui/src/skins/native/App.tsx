@@ -3,21 +3,26 @@ import { onAuditError, type Ref } from '../../core/api'
 import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
+import { usePalette } from '../../core/hooks/usePalette'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { matrixOf } from '../../core/overview'
+import { paletteActions, paletteItems, type PaletteView } from '../../core/palette'
+import { readOnlyFor } from '../../core/settings'
+import { runCommand } from '../../core/commands'
 import { SettingsActionsContext, SettingsContext } from '../../core/settings'
 import { sourceId } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
-import { ZOOM_STEPS } from '../../core/zoom'
+import { stepZoom, ZOOM_STEPS } from '../../core/zoom'
 import { SKINS, skinFor } from '../registry'
 import { PaneHead } from './components/bits'
 import { CreateSecret } from './components/CreateSecret'
 import { Credit } from './components/Credit'
 import { DriftPane } from './components/Drift'
 import { FindBar } from './components/FindBar'
+import { Palette } from './components/Palette'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
@@ -95,6 +100,51 @@ export default function App() {
     setView('drift')
     void drift.run(service)
   }
+
+  // ⌘K: the open source's secrets (and cached ones of other sources), sources and actions
+  const openSource = (s: (typeof app.sources)[number]) => {
+    if (!active || sourceId(active) !== sourceId(s)) app.setActive(s)
+    setSelected(null)
+    setCreating(false)
+    setView('secret')
+  }
+  const palette = usePalette(() =>
+    paletteItems({
+      sources: app.sources,
+      active,
+      secrets: list.secrets ?? null,
+      openSecret: (src, name) => {
+        if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
+        select(name)
+      },
+      setActive: openSource,
+      actions: paletteActions({
+        newSecret:
+          active && !readOnlyFor(app.settings, active)
+            ? () => {
+                setSelected(null)
+                setCreating(true)
+                setView('secret')
+              }
+            : undefined,
+        refresh: active ? () => void list.refresh() : undefined,
+        views: active ? (['overview', ...(matrix ? ['matrix'] : []), ...(drift.services.length ? ['drift'] : [])] as PaletteView[]) : [],
+        showView: (v) => {
+          setCreating(false)
+          setView(v)
+        },
+        driftServices: drift.services,
+        openDrift,
+        find: () => runCommand('find'),
+        zoom: (d) => app.setZoom(d === 0 ? 100 : stepZoom(app.zoom, d)),
+        themes: THEMES,
+        setTheme: app.setTheme,
+        skins: SKINS,
+        setSkin: app.setSkin,
+        setTimeZone: app.setTimeZone,
+      }),
+    }),
+  )
 
   // the view tabs, set into the header of the main column's top pane (normal width only)
   const titleTabs = active && (
@@ -391,6 +441,7 @@ export default function App() {
 
       <Credit />
       <FindBar f={find} />
+      {session.kind === 'ready' && <Palette p={palette} />}
       {toast && (
         <div className="toast" role="status">
           {toast}

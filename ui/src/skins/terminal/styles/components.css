@@ -318,3 +318,17 @@ button::highlight(find), button::highlight(find-current), button *::highlight(fi
 .env-rule { border-top: 2px solid currentColor; margin: 0 0 8px; }
 button.prod { color: var(--t-error); border-color: var(--t-error); }
 button.primary.prod { color: var(--t-bg); background: var(--t-error); border-color: var(--t-error); }
+
+/* command palette (⌘K) */
+.palette-backdrop { position: fixed; inset: 0; z-index: 40; background: color-mix(in srgb, var(--t-bg) 55%, transparent); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; }
+.palette { width: min(640px, calc(100vw - 32px)); background: var(--t-bg); border: 1px solid var(--t-prompt); display: flex; flex-direction: column; max-height: 66vh; }
+.palette > input { border: 0; border-bottom: 1px solid var(--t-line); padding: 10px 12px; background: transparent; outline: none; }
+.palette-list { list-style: none; margin: 0; padding: 4px 0; overflow-y: auto; }
+.palette-group { color: var(--t-keyword); padding: 6px 12px 2px; }
+.palette-group::before { content: '# '; color: var(--t-comment); }
+.palette-item { display: flex; align-items: baseline; gap: 10px; padding: 2px 12px; cursor: pointer; }
+.palette-item .muted { margin-left: auto; white-space: nowrap; }
+.palette-item[aria-selected="true"] { background: var(--t-soft); color: var(--t-string); }
+.palette-item[aria-selected="true"]::before { content: '>'; color: var(--t-prompt); margin-left: -10px; width: 0; }
+.palette-empty { padding: 8px 12px; }
+.palette-foot { border-top: 1px solid var(--t-line); padding: 4px 12px; }

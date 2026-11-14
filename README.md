@@ -45,6 +45,9 @@ themselves; anything a second skin would also need belongs in `core/`.
   skin colors list dots, badges and matrix columns by it, and shows a red **Production** banner
   over a prod secret (saying whether it is protected or read-only) and a thin colored strip
   over the others.
+- **command palette** (`core/palette.ts`): ⌘K (Ctrl+K; in the mac app also Go → Go To…) jumps
+  to any secret of the open source, or of another source seen this session, switches source, or
+  runs an action (new, refresh, views, compare keys, find, zoom, theme, skin, time zone).
 - **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or a click on a service in
   the matrix, compares that service's keys across its environments: which keys are missing where,
   which values match (a letter per distinct value), empty values, quote-only differences, and a
@@ -158,7 +161,7 @@ finds them when started from Finder. Needs Xcode's command line tools, Go and No
   no route that reads the clipboard back. `mailto:` and `http(s)` links open in your mail app
   or browser; other schemes are refused.
 - **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0, reload ⌘R, full screen); Window.
+  previous ⇧⌘G); Go (Go To… ⌘K, the command palette); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0, reload ⌘R, full screen); Window.
 - **signing:** the build is signed ad hoc, which runs on the mac that built it. Handing it to
   others without Gatekeeper warnings needs a Developer ID signature and notarization.
 - **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives the api,

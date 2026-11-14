@@ -494,6 +494,34 @@
       ]
     })
 
+    await step('command palette: ⌘K and the Go menu open it; jump to a secret, run an action, esc closes', async () => {
+      const key = (el, k, extra = {}) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...extra }))
+      key(document.body, 'k', { metaKey: true })
+      await wait(300)
+      const input = field('go to')
+      const opened = !!input && document.activeElement === input
+      setField(input, 'orders staging')
+      await wait(200)
+      const first = norm(document.querySelector('[role=option][aria-selected=true]')?.textContent)
+      key(input, 'Enter')
+      await wait(800)
+      const jumped = norm(document.querySelector('.secret-pane')?.textContent).includes('orders-staging-env') && !field('go to')
+      window.berglasUI.run('palette') // the desktop app's Go → Go To… (⌘K)
+      await wait(300)
+      const viaMenu = !!field('go to')
+      setField(field('go to'), 'show matrix')
+      await wait(200)
+      key(field('go to'), 'Enter')
+      await wait(500)
+      const action = vis(pane('.matrix-pane'))
+      key(document.body, 'k', { ctrlKey: true })
+      await wait(300)
+      key(field('go to'), 'Escape')
+      await wait(200)
+      const closed = !field('go to')
+      return [opened && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 
