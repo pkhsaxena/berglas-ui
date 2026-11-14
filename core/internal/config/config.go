@@ -39,14 +39,25 @@ type Source struct {
 	Default bool `yaml:"default,omitempty" json:"default,omitempty"`
 }
 
-// Credentials changes which Google identity the core acts as. Both fields
-// are optional; by default it uses Application Default Credentials as is.
+// Credentials changes which Google identity the core acts as. Every field
+// is optional; by default it uses Application Default Credentials as is.
 type Credentials struct {
 	// ImpersonateServiceAccount makes every call as this service account,
 	// using the ADC identity's roles/iam.serviceAccountTokenCreator on it.
 	ImpersonateServiceAccount string `yaml:"impersonateServiceAccount,omitempty" json:"impersonateServiceAccount,omitempty"`
 	// QuotaProject bills api quota to this project.
 	QuotaProject string `yaml:"quotaProject,omitempty" json:"quotaProject,omitempty"`
+	// Choices are identities the ui offers to switch to ("act as"); the
+	// two fields above say which one is in use.
+	Choices []Identity `yaml:"choices,omitempty" json:"choices,omitempty"`
+}
+
+// Identity is one "act as" choice: a service account to impersonate (empty
+// for your own ADC identity) and an optional quota project.
+type Identity struct {
+	Label                     string `yaml:"label,omitempty" json:"label,omitempty"`
+	ImpersonateServiceAccount string `yaml:"impersonateServiceAccount,omitempty" json:"impersonateServiceAccount,omitempty"`
+	QuotaProject              string `yaml:"quotaProject,omitempty" json:"quotaProject,omitempty"`
 }
 
 // Config is the file's shape. Every field is optional.
@@ -89,7 +100,8 @@ type Config struct {
 	// AuditLog is a file that gets one JSON line per write (never values).
 	// Empty turns it off.
 	AuditLog string `yaml:"auditLog,omitempty" json:"auditLog"`
-	// Credentials picks the Google identity; read at startup only.
+	// Credentials picks the Google identity; the ui can switch between its
+	// choices while running (SetIdentity).
 	Credentials Credentials `yaml:"credentials,omitempty" json:"credentials"`
 	// Sources are listed in the ui in this order.
 	Sources []Source `yaml:"sources,omitempty" json:"sources"`
@@ -198,6 +210,11 @@ func Validate(c Config) error {
 	if sa := c.Credentials.ImpersonateServiceAccount; sa != "" && !strings.Contains(sa, "@") {
 		return fmt.Errorf("credentials.impersonateServiceAccount must be a service account email, got %q", sa)
 	}
+	for i, ch := range c.Credentials.Choices {
+		if sa := ch.ImpersonateServiceAccount; sa != "" && !strings.Contains(sa, "@") {
+			return fmt.Errorf("credentials.choices[%d].impersonateServiceAccount must be a service account email, got %q", i, sa)
+		}
+	}
 	seen := map[string]bool{}
 	defaults := 0
 	for i, s := range c.Sources {
@@ -293,6 +310,17 @@ func (f *File) SetZoom(percent int) error {
 		return err
 	}
 	return f.set("zoom", percent, func(c *Config) { c.Zoom = &percent })
+}
+
+// SetIdentity sets the service account to impersonate ("" for your own ADC
+// identity) and the quota project, keeping the choices, and saves the file.
+func (f *File) SetIdentity(serviceAccount, quotaProject string) error {
+	cur := f.Get().Credentials
+	cur.ImpersonateServiceAccount, cur.QuotaProject = serviceAccount, quotaProject
+	if err := Validate(Config{Credentials: cur}); err != nil {
+		return err
+	}
+	return f.set("credentials", cur, func(c *Config) { c.Credentials = cur })
 }
 
 // SetTheme sets the theme name and saves the file.

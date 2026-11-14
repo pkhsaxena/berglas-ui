@@ -229,7 +229,8 @@ func demoConfig(selftest bool, skin string) string {
 	body := "# demo config; deleted when the app quits\n" +
 		"sources:\n" +
 		"  - backend: storage\n    parent: demo-bucket\n    group: \"{service}-{env}-env\"\n" +
-		"  - backend: sm\n    parent: demo-project\n"
+		"  - backend: sm\n    parent: demo-project\n" +
+		"credentials:\n  choices:\n    - label: deployer (demo)\n      impersonateServiceAccount: deployer@demo-project.iam.gserviceaccount.com\n"
 	if selftest {
 		body += "protect: [\"*-prod-env\"]\nclipboardClearSeconds: 3\n"
 	}

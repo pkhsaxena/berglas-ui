@@ -7,6 +7,7 @@ import { usePalette } from '../../core/hooks/usePalette'
 import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
+import { identityOptions } from '../../core/identity'
 import { matrixOf } from '../../core/overview'
 import { paletteActions, paletteItems, type PaletteView } from '../../core/palette'
 import { readOnlyFor } from '../../core/settings'
@@ -73,7 +74,14 @@ export default function App() {
     return () => window.clearTimeout(t)
   }, [toast])
 
-  const list = useSecretList(active, session.kind === 'ready', listRev)
+  const ids = identityOptions(app.identity)
+  // a new identity may see other secrets: reload the list and close the open one
+  useEffect(() => {
+    if (app.identityRev === 0) return
+    setSelected(null)
+    setCreating(false)
+  }, [app.identityRev])
+  const list = useSecretList(active, session.kind === 'ready', listRev + app.identityRev)
   const { pinned, pin, unpin } = usePinned()
   const copyText = async (text: string) => {
     try {
@@ -153,6 +161,8 @@ export default function App() {
         skins: SKINS,
         setSkin: app.setSkin,
         setTimeZone: app.setTimeZone,
+        identities: ids.options.length > 1 ? ids.options.filter((o) => o.key !== ids.current) : [],
+        setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
       }),
     }),
   )
@@ -227,11 +237,30 @@ export default function App() {
           ) : (
             <span className="muted small">
               {session.status.account || 'unknown account'}
-              {session.status.impersonating && ' (impersonated)'}
               {session.status.project && ` · ${session.status.project}`}
               {session.status.quotaProject && ` · quota: ${session.status.quotaProject}`}
             </span>
           ))}
+        {session.kind === 'ready' && ids.options.length > 1 && (
+          <span className="act-as" title="the identity berglas-ui uses for every call; your gcloud login stays the same">
+            <span className="muted small">act as</span>
+            <select
+              aria-label="act as"
+              value={ids.current}
+              disabled={app.switching}
+              onChange={(e) => {
+                const o = ids.options.find((x) => x.key === e.target.value)
+                if (o) void app.setIdentity(o.serviceAccount, o.quotaProject)
+              }}
+            >
+              {ids.options.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </span>
+        )}
         <span className="spacer" />
         {session.kind === 'ready' && (
           <label>

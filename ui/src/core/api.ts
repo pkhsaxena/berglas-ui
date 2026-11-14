@@ -106,6 +106,9 @@ export type SourceConfig = {
   default?: boolean
 }
 
+/** An "act as" choice from credentials.choices: a service account to impersonate (none = your own ADC identity). */
+export type Identity = { label?: string; impersonateServiceAccount?: string; quotaProject?: string }
+
 /** The resolved config the core returns (defaults applied). */
 export type Config = {
   /** the ui skin to load; the ui falls back to its default for unknown names */
@@ -125,7 +128,7 @@ export type Config = {
   /** ui zoom in percent */
   zoom: number
   auditLog: string
-  credentials: { impersonateServiceAccount?: string; quotaProject?: string }
+  credentials: { impersonateServiceAccount?: string; quotaProject?: string; choices?: Identity[] }
   sources: SourceConfig[]
   /** where the core keeps the file, for display */
   path: string
@@ -135,6 +138,9 @@ export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
   setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
+  /** Switches the identity the core acts as and saves it; returns the config. */
+  setIdentity: (impersonateServiceAccount: string, quotaProject: string) =>
+    call<Config>('POST', '/api/credentials', { impersonateServiceAccount, quotaProject }),
   list: (backend: Backend, parent: string, prefix = '') =>
     call<{ secrets: Secret[] }>('GET', `/api/secrets?${qs({ backend, parent, prefix })}`).then((r) => r.secrets),
   versions: (r: Ref) =>

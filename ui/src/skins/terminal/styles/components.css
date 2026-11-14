@@ -339,3 +339,5 @@ button.primary.prod { color: var(--t-bg); background: var(--t-error); border-col
 .drop-dialog { width: min(520px, calc(100vw - 32px)); background: var(--t-bg); border: 1px solid var(--t-prompt); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .drop-dialog h3 { margin: 0; color: var(--t-string); font-weight: 500; overflow-wrap: anywhere; }
 .drop-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+.top .act-as { display: inline-flex; align-items: center; gap: 6px; }
+.top .act-as select { max-width: 28ch; }

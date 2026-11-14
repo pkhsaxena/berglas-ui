@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/berglas/v2/pkg/berglas"
@@ -39,9 +40,50 @@ type Server struct {
 	// and says that nothing reaches Google Cloud.
 	Demo bool
 	// Auth is the identity /api/status checks; it should match the store's.
-	Auth gcpauth.Auth
+	// Set it before serving; afterwards POST /api/credentials changes it.
+	Auth   gcpauth.Auth
+	authMu sync.RWMutex
 
 	audit auditor
+}
+
+func (s *Server) auth() gcpauth.Auth {
+	s.authMu.RLock()
+	defer s.authMu.RUnlock()
+	return s.Auth
+}
+
+// authSwitcher is a store whose identity can change while running (Service).
+type authSwitcher interface{ SetAuth(gcpauth.Auth) }
+
+// handleCredentials switches the identity the core acts as: saves it to the
+// config, then gives the store and /api/status the new one. Only the
+// service account to impersonate and the quota project can change; the ADC
+// login itself is gcloud's.
+func (s *Server) handleCredentials(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		ImpersonateServiceAccount string `json:"impersonateServiceAccount"`
+		QuotaProject              string `json:"quotaProject"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	if err := s.cfg.SetIdentity(in.ImpersonateServiceAccount, in.QuotaProject); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid", err.Error())
+		return
+	}
+	a := gcpauth.Auth{Impersonate: in.ImpersonateServiceAccount, QuotaProject: in.QuotaProject}
+	if sw, ok := s.svc.(authSwitcher); ok {
+		sw.SetAuth(a)
+	}
+	s.authMu.Lock()
+	s.Auth = a
+	s.authMu.Unlock()
+	s.audit.mu.Lock()
+	s.audit.actor = "" // the audit log names the new identity from now on
+	s.audit.mu.Unlock()
+	s.log.Info("identity switched", "impersonate", a.Impersonate, "quotaProject", a.QuotaProject)
+	s.handleGetConfig(w, r)
 }
 
 // New builds a server. token must be a random per-launch secret.
@@ -64,6 +106,7 @@ func (s *Server) apiMux() http.Handler {
 	api.HandleFunc("GET /api/status", s.handleStatus)
 	api.HandleFunc("GET /api/config", s.handleGetConfig)
 	api.HandleFunc("POST /api/config", s.handleSetConfig)
+	api.HandleFunc("POST /api/credentials", s.handleCredentials)
 	api.HandleFunc("GET /api/secrets", s.handleList)
 	api.HandleFunc("GET /api/secrets/versions", s.handleVersions)
 	api.HandleFunc("POST /api/secrets/read", s.handleRead)
@@ -178,18 +221,19 @@ type statusResp struct {
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
-	out := statusResp{Version: s.version, Impersonating: s.Auth.Impersonate, QuotaProject: s.Auth.QuotaProject}
+	auth := s.auth()
+	out := statusResp{Version: s.version, Impersonating: auth.Impersonate, QuotaProject: auth.QuotaProject}
 	if s.Demo {
 		out.Credentials, out.Account, out.Demo = true, "demo mode", true
 		writeJSON(w, http.StatusOK, out)
 		return
 	}
 	hint := "run: gcloud auth application-default login"
-	if s.Auth.Impersonate != "" {
-		hint += " — and check you have roles/iam.serviceAccountTokenCreator on " + s.Auth.Impersonate
+	if auth.Impersonate != "" {
+		hint += " — and check you have roles/iam.serviceAccountTokenCreator on " + auth.Impersonate
 	}
 
-	ts, project, err := s.Auth.TokenSource(ctx)
+	ts, project, err := auth.TokenSource(ctx)
 	if err != nil {
 		out.Error, out.Hint = err.Error(), hint
 		writeJSON(w, http.StatusOK, out)

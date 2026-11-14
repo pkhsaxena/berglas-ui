@@ -576,6 +576,22 @@
       return [warned && ok1 && locked && saved2.name === 'orders-prod-env.env' && saved2.mode === '600', `warned ${warned}, file ${saved.name} mode ${saved.mode} size ${saved.size}/${size}, protected locked ${locked}, then ${saved2.name} mode ${saved2.mode}`]
     })
 
+    await step('act as: switch to a configured service account and back; status follows', async () => {
+      const sel = field('act as')
+      if (!sel) throw new Error('no act as picker')
+      const deployer = [...sel.options].find((o) => o.textContent.includes('deployer'))
+      setField(sel, deployer.value)
+      await wait(800)
+      const st = (await call('GET', '/api/status')).json
+      const cfg = (await call('GET', '/api/config')).json
+      const switched = st?.impersonating === 'deployer@demo-project.iam.gserviceaccount.com' && cfg?.credentials?.impersonateServiceAccount === st?.impersonating
+      const listed = document.querySelectorAll('.rowbtn[aria-label]').length > 0
+      setField(field('act as'), [...field('act as').options][0].value)
+      await wait(800)
+      const back = !(await call('GET', '/api/status')).json?.impersonating
+      return [switched && listed && back, `switched ${switched} (${st?.impersonating}), list reloaded ${listed}, back to you ${back}`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 

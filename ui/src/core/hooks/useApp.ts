@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError, type EnvOrder, type Status } from '../api'
-import { configureCache } from '../cache'
+import { configureCache, metaCache } from '../cache'
 import { onCommand } from '../commands'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
@@ -127,6 +127,32 @@ export function useApp() {
     api.setConfig({ envOrder }).catch((e) => setConfigError(`order applied but not saved — ${errText(e)}`))
   }
 
+  // bumped when the identity changes, so skins reload lists and close the open secret
+  const [identityRev, setIdentityRev] = useState(0)
+  const [switching, setSwitching] = useState(false)
+
+  /**
+   * Acts as another identity (a service account, or "" for your own ADC
+   * login) and saves it. Cached lists are dropped: they were read as the
+   * old identity, which may see different secrets.
+   */
+  const setIdentity = async (serviceAccount: string, quotaProject = '') => {
+    setConfigError('')
+    setSwitching(true)
+    try {
+      const c = await api.setIdentity(serviceAccount, quotaProject)
+      metaCache.clear()
+      setBase((b) => ({ ...b, credentials: c.credentials }))
+      const status = await api.status()
+      setSession(status.credentials ? { kind: 'ready', status } : { kind: 'no-credentials', status })
+      setIdentityRev((n) => n + 1)
+    } catch (e) {
+      setConfigError(`couldn't switch identity — ${errText(e)}`)
+    } finally {
+      setSwitching(false)
+    }
+  }
+
   const setTheme = (name: string) => {
     setThemeState(name)
     setConfigError('')
@@ -148,5 +174,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

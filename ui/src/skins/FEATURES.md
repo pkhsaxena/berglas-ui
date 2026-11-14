@@ -24,6 +24,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 |---|---|---|---|
 | Session states | Loading; "not paired" (open the printed link); core offline with Retry; no Google credentials with the `gcloud auth application-default login` hint and Retry | `useApp` | manual |
 | Account line | Account, impersonation, project and quota project; a demo badge in demo mode | `useApp` (`/api/status`) | app "account line shows demo mode" |
+| Act as | With `credentials.choices` in the config, an **act as** picker on the account line (not among the header controls): your gcloud login, each choice, and the one in use; switching saves it, swaps the core's identity live, drops cached lists, closes the open secret and reloads the list; also in ⌘K ("Act as …") | `useApp.setIdentity`, `identity.ts`; core `POST /api/credentials` | app "act as: switch to a configured service account and back; status follows"; go `TestCredentialsSwitchIdentity`; unit `identity.test.ts` |
 | Header controls | In this order and with these names in every skin: **time, zoom, theme, skin** | skin `App.tsx` | app "header controls: time, zoom, theme, skin" |
 | Time zone | Local or UTC for every timestamp, saved to the config | `useApp.setTimeZone`, `useStamp` | unit `time.test.ts` |
 | Skin picker | Shown with two or more skins; saves `skin:` and reloads | `useApp.setSkin`, `registry.ts` | unit `registry.test.ts`, go `TestSkinRoundTrips` |

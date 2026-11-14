@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"berglas-ui/core/internal/gcpauth"
 	"bytes"
 	"context"
 	"crypto/aes"
@@ -215,5 +216,13 @@ func TestPrefetchIgnoresLatest(t *testing.T) {
 	time.Sleep(5 * time.Millisecond)
 	if n.downloads.Load() != 0 {
 		t.Error("generation 0 (latest) must not be prefetched: it could change before the read")
+	}
+}
+
+func TestSetAuthDropsClients(t *testing.T) {
+	s := &Service{fast: &fastReader{}}
+	s.SetAuth(gcpauth.Auth{Impersonate: "x@p.iam.gserviceaccount.com"})
+	if s.fast != nil || s.client != nil || s.Auth.Impersonate != "x@p.iam.gserviceaccount.com" {
+		t.Fatalf("after SetAuth: %+v", s)
 	}
 }

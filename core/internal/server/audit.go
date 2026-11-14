@@ -40,7 +40,7 @@ func (s *Server) actorFor(ctx context.Context) string {
 	s.audit.mu.Lock()
 	defer s.audit.mu.Unlock()
 	if s.audit.actor == "" {
-		if ts, _, err := s.Auth.TokenSource(ctx); err == nil {
+		if ts, _, err := s.auth().TokenSource(ctx); err == nil {
 			if tok, err := ts.Token(); err == nil {
 				s.audit.actor = tokenEmail(ctx, tok.AccessToken)
 			}

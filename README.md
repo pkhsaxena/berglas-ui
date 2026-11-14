@@ -72,6 +72,24 @@ decides what you can see. Once per machine:
 gcloud auth application-default login
 ```
 
+To work as a service account instead (impersonation; you need
+`roles/iam.serviceAccountTokenCreator` on it), list the identities you switch between in the
+config. An **act as** picker then appears on the account line (and in ⌘K), and the choice is saved:
+
+```yaml
+credentials:
+  choices:
+    - label: deployer
+      impersonateServiceAccount: deployer@my-project.iam.gserviceaccount.com
+    - label: reader, billed to ops
+      impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
+      quotaProject: ops-project
+```
+
+"you (your gcloud login)" is always offered. Switching drops cached lists and closes the open
+secret. It can't switch to another Google user: ADC holds one login, so that takes
+`gcloud auth application-default login` again.
+
 ## run
 
 ```bash

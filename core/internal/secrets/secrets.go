@@ -97,6 +97,16 @@ type Service struct {
 	fast   *fastReader
 }
 
+// SetAuth switches the identity: the clients are dropped and the next call
+// makes new ones (and an empty prefetch cache) as a.
+func (s *Service) SetAuth(a gcpauth.Auth) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Auth = a
+	s.client = nil
+	s.fast = nil
+}
+
 func (s *Service) c(ctx context.Context) (*berglas.Client, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
