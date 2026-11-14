@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { type Ref, refString, versionOf } from '../../../core/api'
+import { envOf, toneOfSecret } from '../../../core/envtone'
 import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
 import { type Pinned, pinnedId } from '../../../core/hooks/usePinned'
@@ -9,12 +10,15 @@ import { ago } from '../../../core/time'
 import { CompareWithPinned } from './CompareWithPinned'
 import { DeleteSecret } from './DeleteSecret'
 import { Editor } from './Editor'
+import { EnvBanner, EnvTag } from './EnvMarks'
 import { PaneTitle } from './PaneTitle'
 import { Value } from './Value'
 import { Versions } from './Versions'
 
 type Props = {
   base: Ref // backend + parent + name, no version
+  /** the source's group pattern, for the environment */
+  group?: string
   onToast: (msg: string) => void
   onDeleted: () => void
   /** the pinned value, if any, shown beside this secret */
@@ -30,7 +34,7 @@ type Props = {
   wideAlt?: ReactNode
 }
 
-export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -52,6 +56,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   const stamp = useStamp()
   const readOnly = readOnlyFor(settings, base)
   const isProtected = protectedFor(settings, base)
+  const tone = toneOfSecret(base.name, group)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,7 +75,7 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   if (editing) {
     return (
       <div className="right single">
-        <Editor base={base} ed={ed} pinned={pinnedOther} titleTabs={titleTabs} />
+        <Editor base={base} ed={ed} pinned={pinnedOther} titleTabs={titleTabs} tone={tone} />
       </div>
     )
   }
@@ -82,10 +87,11 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
   return (
     <div className={`right${mode}`}>
       <div className="card pane secret-pane">
-        <PaneTitle tabs={showVersions ? undefined : titleTabs}>
+        <PaneTitle tabs={showVersions ? undefined : titleTabs} extra={tone && <EnvTag tone={tone} label={envOf(base.name, group)} />}>
           secret <span className="muted">— {base.name}</span>
         </PaneTitle>
         <div className="body">
+          <EnvBanner tone={tone} isProtected={isProtected} readOnly={readOnly} />
           <div className="term-ln">
             <span className="t-prompt">$</span> <span className="t-function">cat</span> <span className="t-string">{refString(s.ref)}</span>
           </div>
@@ -151,12 +157,13 @@ export function SecretDetail({ base, onToast, onDeleted, pinned, onPin, showVers
             {!readOnly && isProtected && <span className="pill warn small">protected — saving asks for the name</span>}
             {shown && !editing && !readOnly && (
               <button
+                className={tone === 'prod' ? 'prod' : undefined}
                 onClick={() => {
                   hide()
                   void ed.start(s.isLatest ? undefined : versionOf(shown))
                 }}
               >
-                {s.isLatest ? 'edit' : 'restore this version…'}
+                {s.isLatest ? (tone === 'prod' ? 'edit production…' : 'edit') : 'restore this version…'}
               </button>
             )}
             {shown && !editing && !readOnly && !del.open && <button onClick={del.start}>delete…</button>}

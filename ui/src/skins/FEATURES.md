@@ -50,7 +50,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 | List secrets | Names, version, time since change; "listing…", empty and error states | `useSecretList` | app "ui rendered", "GET /api/secrets (query string)" |
 | Filter | Filter box; `/` focuses it | `useSecretList.filter` | manual |
 | Grouping | Rows grouped by the source's `group` pattern (`{service}-{env}-env`), others under "other" | `group.ts` | unit `group.test.ts` |
-| Environment colors | dev / staging / prod tone per secret (native: dots, badges, matrix columns) | `envtone.ts` | unit `envtone.test.ts`; ⚠️ terminal shows no tones yet |
+| Environment colors | dev / staging / prod tone per secret in the list, matrix column headers and pane titles (native: dots and badges; terminal: names and `[prod]` tags in the theme's error / string / function colors) | `envtone.ts` | unit `envtone.test.ts`; manual for the colors |
 | Refresh and New | Reload the list; start a new secret (hidden on read-only sources) | `useSecretList.refresh`, `readOnlyFor` | manual |
 | Instant revisits | Lists seen before show at once while a fresh copy loads; `cacheSeconds` / `cacheEntries` | `cache.ts` | unit `cache.test.ts` |
 
@@ -59,7 +59,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 | Feature | What the user sees | Core | Verified by |
 |---|---|---|---|
 | Details | Generation / version (latest or older), updated, KMS key, replication (Secret Manager), location | `useSecret` | manual |
-| Production banner | Native: red Production banner over prod secrets (protected / read-only / plain), colored strip for others | `envtone.ts`, `protectedFor`, `readOnlyFor` | manual; ⚠️ terminal has no banner yet |
+| Production banner | A red banner over prod secrets and their editor, saying protected / read-only / changes reach production; a thin colored strip or rule for staging and dev; prod edit and save buttons in red ("edit production…", "save to production") | `envtone.ts`, `protectedFor`, `readOnlyFor` | manual |
 | Reveal and hide | Reveal decrypts; auto-hides after `revealSeconds`; Esc hides | `useSecret.reveal`, `scheduleHide` | app "copy button found after reveal"; go `TestFastReadMatchesBerglas` (opt-in, real bucket) |
 | Fast reveal | Storage secrets prefetch the encrypted object when versions load, so reveal waits only for KMS | core `fastread.go`; `useSecret.latestId` | go `TestReadUsesThePrefetchedObject` and the other fastread tests |
 | Key table | `.env` values as Keys / Raw; Sorted (sections, keys A→Z) or File order, saved as `envOrder:`; binary values get a notice | `envfile.ts`, `envsort.ts`, `useSettingsActions` | unit `envfile.test.ts`, `envsort.test.ts` |

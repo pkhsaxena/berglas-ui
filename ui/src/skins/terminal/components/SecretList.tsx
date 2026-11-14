@@ -1,5 +1,6 @@
 import type { Ref as ReactRef } from 'react'
 import { versionOf } from '../../../core/api'
+import { toneOfSecret } from '../../../core/envtone'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
 import { readOnlyFor, useSettings, useStamp } from '../../../core/settings'
 import type { Source } from '../../../core/sources'
@@ -78,7 +79,9 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
                     </div>
                   )}
                   <ul className={source.group ? 'clean grouped' : 'clean'}>
-                    {g.items.map(({ item: s, label }) => (
+                    {g.items.map(({ item: s, label }) => {
+                      const tone = toneOfSecret(s.name, source.group)
+                      return (
                       <li key={s.name} style={{ padding: 0 }}>
                         <button
                           className="rowbtn secret"
@@ -87,7 +90,7 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
                           aria-current={s.name === selected ? 'true' : undefined}
                           onClick={() => onSelect(s.name)}
                         >
-                          <span className="nm">{label}</span>
+                          <span className={tone ? `nm tone-${tone}` : 'nm'}>{label}</span>
                           <span className="meta">
                             <span className="ver">#{versionOf(s)} · </span>
                             updated <span className="when">{stamp(s.updatedAt)} · </span>
@@ -95,7 +98,8 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
                           </span>
                         </button>
                       </li>
-                    ))}
+                      )
+                    })}
                   </ul>
                 </div>
               ))}

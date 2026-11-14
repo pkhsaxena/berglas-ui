@@ -1,5 +1,6 @@
 import { type ReactNode, useMemo } from 'react'
 import { type Secret, versionOf } from '../../../core/api'
+import { envTone } from '../../../core/envtone'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
 import { type Matrix, overview, type SortDir, sortMatrixRows, STALE_DAYS } from '../../../core/overview'
 import type { Source } from '../../../core/sources'
@@ -155,7 +156,7 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
                       onClick={() => onSort(nextSort(sort, c))}
                       title={sort?.col !== c ? `sort by ${c}: newest first` : sort.dir === 'asc' ? `sort by ${c}: oldest first` : 'back to the default order'}
                     >
-                      {c}
+                      <span className={envTone(c) ? `tone-${envTone(c)}` : undefined}>{c}</span>
                       <span className="t-prompt">{sort?.col === c ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}</span>
                     </button>
                   </th>

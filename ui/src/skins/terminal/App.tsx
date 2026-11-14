@@ -304,6 +304,7 @@ export default function App() {
                         key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
                         pinned={pinned}
                         other={base}
+                        group={app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)?.group}
                         onUnpin={unpin}
                         onCopy={copyText}
                         onOpen={() => {
@@ -341,6 +342,7 @@ export default function App() {
                       <SecretDetail
                         key={`${base.backend}:${base.parent}/${base.name}`}
                         base={base}
+                        group={active.group}
                         onToast={setToast}
                         onDeleted={() => {
                           setSelected(null)

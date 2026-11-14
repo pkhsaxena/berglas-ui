@@ -5,8 +5,10 @@ import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { type Section, sortEnv } from '../../../core/envsort'
-import { protectedFor, useSettings } from '../../../core/settings'
+import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
+import type { EnvTone } from '../../../core/envtone'
 import { ConfirmName } from './ConfirmName'
+import { EnvBanner, EnvTag } from './EnvMarks'
 import { DiffView } from './DiffView'
 import { EnvRows, OrderToggle } from './EnvRows'
 import { KeyText } from './KeyText'
@@ -22,9 +24,11 @@ type Props = {
   pinned?: Pinned | null
   /** view tabs, shown in the title border */
   titleTabs?: ReactNode
+  /** the secret's environment, for the production banner */
+  tone?: EnvTone | null
 }
 
-export function Editor({ base, ed, pinned, titleTabs }: Props) {
+export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
   const [addErr, setAddErr] = useState('')
@@ -32,6 +36,7 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
   const [section, setSection] = useState('') // '' = end of file
   const { envOrder } = useSettings()
   const isProtected = protectedFor(useSettings(), base)
+  const readOnly = readOnlyFor(useSettings(), base)
 
   if (ed.phase === 'idle') return null
   if (ed.phase === 'loading') {
@@ -92,10 +97,11 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
 
   return (
     <div className="card pane">
-      <PaneTitle tabs={titleTabs}>
+      <PaneTitle tabs={titleTabs} extra={tone && <EnvTag tone={tone} />}>
         edit <span className="muted">— {base.name}</span>
       </PaneTitle>
       <div className="body">
+        <EnvBanner tone={tone} isProtected={isProtected} readOnly={readOnly} />
         <div className="term-ln">
           <span className="t-prompt">$</span> <span className="t-function">edit</span> <span className="t-string">{target}</span>{' '}
           <span className="muted">
@@ -263,11 +269,11 @@ export function Editor({ base, ed, pinned, titleTabs }: Props) {
             )}
             <div className="row">
               <button
-                className="primary"
+                className={tone === 'prod' ? 'primary prod' : 'primary'}
                 onClick={() => ed.save(isProtected ? typed : undefined)}
                 disabled={ed.phase === 'saving' || (isProtected && typed !== base.name)}
               >
-                {ed.phase === 'saving' ? 'saving…' : `save to ${target}`}
+                {ed.phase === 'saving' ? 'saving…' : tone === 'prod' ? `save to production — ${target}` : `save to ${target}`}
               </button>
               <button onClick={ed.backToEdit} disabled={ed.phase === 'saving'}>
                 back to edit

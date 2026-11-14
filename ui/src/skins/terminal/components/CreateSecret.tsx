@@ -1,8 +1,10 @@
 import { type ReactNode, useState } from 'react'
 import { refString, type Secret } from '../../../core/api'
+import { toneOfSecret } from '../../../core/envtone'
 import { useCreate } from '../../../core/hooks/useCreate'
 import type { Source } from '../../../core/sources'
 import { ConfirmName } from './ConfirmName'
+import { EnvTag } from './EnvMarks'
 import { PaneTitle } from './PaneTitle'
 
 type Props = { source: Source; onCreated: (s: Secret) => void; onCancel: () => void; titleTabs?: ReactNode }
@@ -16,6 +18,7 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) 
     <div className="card pane">
       <PaneTitle tabs={titleTabs}>
         new secret <span className="muted">— {source.label || source.parent}</span>
+        <EnvTag tone={c.ref.name ? toneOfSecret(c.ref.name, source.group) : null} />
       </PaneTitle>
       <div className="body">
         <div className="term-ln">

@@ -1,12 +1,16 @@
 import { type Ref, refString, versionOf } from '../../../core/api'
+import { toneOfSecret } from '../../../core/envtone'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { useStamp } from '../../../core/settings'
+import { EnvTag } from './EnvMarks'
 import { Value } from './Value'
 
 type Props = {
   pinned: Pinned
   /** the secret open next to it, if any */
   other: Ref | null
+  /** the source's group pattern, for the environment tag */
+  group?: string
   onOpen: () => void
   onUnpin: () => void
   onCopy: (text: string) => void
@@ -16,7 +20,7 @@ type Props = {
  * A pinned value, kept while other secrets are open. It is the reference: the
  * open secret's pane marks its keys against it and offers the compare.
  */
-export function PinnedPane({ pinned, other, onOpen, onUnpin, onCopy }: Props) {
+export function PinnedPane({ pinned, other, group, onOpen, onUnpin, onCopy }: Props) {
   const stamp = useStamp()
   const sameSecret = other && other.backend === pinned.ref.backend && other.parent === pinned.ref.parent && other.name === pinned.ref.name
 
@@ -24,6 +28,7 @@ export function PinnedPane({ pinned, other, onOpen, onUnpin, onCopy }: Props) {
     <div className="card pane pinned-pane">
       <h2>
         pinned <span className="muted">— {pinned.ref.name}</span>
+        <EnvTag tone={toneOfSecret(pinned.ref.name, group)} />
       </h2>
       <div className="body">
         <div className="term-ln">

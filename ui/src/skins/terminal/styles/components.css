@@ -295,3 +295,14 @@ button[data-find-host] { position: relative; isolation: isolate; }
 [data-find-mark='match'] { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
 [data-find-mark='current'] { background-color: color-mix(in srgb, var(--t-prompt) 45%, transparent); outline: 1px solid var(--t-prompt); }
 button::highlight(find), button::highlight(find-current), button *::highlight(find), button *::highlight(find-current) { background-color: transparent; color: inherit; }
+
+/* environments: core/envtone.ts names a secret's tone; the colors are the
+   theme's own, so every preset keeps them readable. Prod gets a banner over
+   the secret and editor panes, staging and dev a thin rule. */
+.tone-prod { color: var(--t-error); } .tone-staging { color: var(--t-string); } .tone-dev { color: var(--t-function); }
+.env-tag { font-size: 12px; margin-left: 6px; }
+.env-banner { display: flex; flex-wrap: wrap; gap: 0 1ch; background: var(--t-error); color: var(--t-bg); padding: 2px 10px; margin: 0 0 8px; font-weight: 600; }
+.env-banner .why { font-weight: 400; }
+.env-rule { border-top: 2px solid currentColor; margin: 0 0 8px; }
+button.prod { color: var(--t-error); border-color: var(--t-error); }
+button.primary.prod { color: var(--t-bg); background: var(--t-error); border-color: var(--t-error); }
