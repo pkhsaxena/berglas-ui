@@ -13,7 +13,10 @@ export type Skin = {
 
 export const DEFAULT_SKIN = 'terminal'
 
-export const SKINS: Skin[] = [{ name: 'terminal', label: 'terminal', load: () => import('./terminal') }]
+export const SKINS: Skin[] = [
+  { name: 'terminal', label: 'terminal', load: () => import('./terminal') },
+  { name: 'native', label: 'native', load: () => import('./native') },
+]
 
 /** The skin named in the config, or the default one for unset or unknown names. */
 export function skinFor(name: string | undefined, skins: Skin[] = SKINS): Skin {
