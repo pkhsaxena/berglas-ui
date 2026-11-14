@@ -46,6 +46,7 @@ export function useLock(minutes: number) {
   }, [minutes, locked, lock])
 
   const unlock = async () => {
+    if (busy) return // the prompt is already up
     if (!secure) return setLocked(false)
     setBusy(true)
     setError('')

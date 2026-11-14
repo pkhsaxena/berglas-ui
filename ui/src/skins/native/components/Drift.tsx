@@ -3,6 +3,7 @@ import { type DriftCell, groupLabel } from '../../../core/drift'
 import { envTone } from '../../../core/envtone'
 import type { DriftState } from '../../../core/hooks/useDrift'
 import { EnvDot, KeyText, PaneHead } from './bits'
+import { Select } from './Select'
 
 type Props = {
   titleTabs?: ReactNode
@@ -36,6 +37,8 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
   const [only, setOnly] = useState<'all' | 'problems'>('all')
   const { services, service, table, loading, error } = drift
   const rows = table ? (only === 'all' ? table.rows : table.rows.filter((r) => r.kind !== 'same' || r.warnings.length)) : []
+  // the check column only holds prod warnings, so it shows only when a row in view has one
+  const showCheck = rows.some((r) => r.warnings.length > 0)
 
   return (
     <div className="pane drift-pane">
@@ -44,17 +47,7 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
         title={`Drift${service ? ` · ${service}` : ''}`}
         actions={
           <span className="row">
-            <label className="small">
-              Service{' '}
-              <select aria-label="service" value={service ?? ''} onChange={(e) => drift.setService(e.target.value)}>
-                <option value="" disabled>
-                  pick…
-                </option>
-                {services.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </label>
+            <Select ariaLabel="service" placeholder="Pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
             <button className="btn primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
               {loading ? 'Comparing…' : table ? 'Compare again' : 'Compare keys'}
             </button>
@@ -110,7 +103,7 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
                         {c.problem && <div className="small bad-text drift-problem">{c.problem}</div>}
                       </th>
                     ))}
-                    <th>Check</th>
+                    {showCheck && <th>Check</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -124,19 +117,20 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
                           <Cell c={c} />
                         </td>
                       ))}
+                      {showCheck && (
                       <td className="small">
                         {r.warnings.map((w) => (
                           <span key={w} className="badge tone-prod" title="prod should rarely share a value with another environment; check it is meant to">
                             {w}
                           </span>
                         ))}
-                        {!r.warnings.length && r.kind === 'same' && <span className="muted">same</span>}
                       </td>
+                      )}
                     </tr>
                   ))}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={table.columns.length + 2} className="muted">
+                      <td colSpan={table.columns.length + (showCheck ? 2 : 1)} className="muted">
                         No differences.
                       </td>
                     </tr>

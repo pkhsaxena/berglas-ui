@@ -156,7 +156,27 @@
       Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
       el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }))
     }
-    const headerSelect = (name) => [...document.querySelectorAll('header label')].find((l) => norm(l.childNodes[0]?.textContent) === name)?.querySelector('select')
+    const headerSelect = (name) => [...document.querySelectorAll('header label')].find((l) => norm(l.childNodes[0]?.textContent) === name)?.querySelector('[role=combobox]')
+    // the skins' searchable dropdown (Select): a combobox button with a popup listbox
+    const comboOpen = async (btn) => {
+      if (btn.getAttribute('aria-expanded') !== 'true') btn.click()
+      await wait(150)
+      return document.getElementById(btn.getAttribute('aria-controls'))
+    }
+    const optionsOf = async (btn) => {
+      const list = await comboOpen(btn)
+      const out = [...list.querySelectorAll('[role=option]')].map((o) => ({ value: o.dataset.value, label: norm(o.textContent) }))
+      btn.click() // close
+      await wait(100)
+      return out
+    }
+    const choose = async (btn, value) => {
+      const list = await comboOpen(btn)
+      const o = [...list.querySelectorAll('[role=option]')].find((x) => x.dataset.value === value)
+      if (!o) throw new Error(`no option ${value} in ${btn.getAttribute('aria-label')}`)
+      o.click()
+      await wait(150)
+    }
     const readSecret = async (name) => {
       const r = await call('POST', '/api/secrets/read', ref(name))
       return r.json?.secret?.plaintext ? new TextDecoder().decode(Uint8Array.from(atob(r.json.secret.plaintext), (c) => c.charCodeAt(0))) : null
@@ -201,11 +221,11 @@
     })
     await step('theme picker applies and saves the theme', async () => {
       const sel = headerSelect('theme')
-      const orig = sel.value
+      const orig = sel.dataset.value
       const bg0 = getComputedStyle(document.body).backgroundColor
       let picked = null
-      for (const o of [...sel.options].map((x) => x.value).filter((v) => v !== orig)) {
-        setField(sel, o)
+      for (const o of (await optionsOf(sel)).map((x) => x.value).filter((v) => v !== orig)) {
+        await choose(headerSelect('theme'), o)
         await wait(400)
         if (getComputedStyle(document.body).backgroundColor !== bg0) {
           picked = o
@@ -213,7 +233,7 @@
         }
       }
       const saved = (await call('GET', '/api/config')).json?.theme
-      setField(headerSelect('theme'), orig)
+      await choose(headerSelect('theme'), orig)
       await wait(400)
       return [picked !== null && saved === picked, `picked ${picked}, saved ${saved}, back to ${orig}`]
     })
@@ -389,7 +409,8 @@
       setField('new key', 'SELFTEST_FLAG')
       setField('new value', '1')
       const sec = field('section for the new key')
-      if (sec && sec.options.length > 1) setField(sec, sec.options[1].value)
+      const secOpts = sec ? await optionsOf(sec) : []
+      if (secOpts.length > 1) await choose(field('section for the new key'), secOpts[1].value)
       await press(['add key'])
       await press(['review changes'])
       await press(['save*'])
@@ -484,13 +505,22 @@
       tab('differences').click()
       await wait(200)
       const diffRows = d.querySelectorAll('table tbody tr').length
+      const ordersCheck = [...d.querySelectorAll('thead th')].some((th) => norm(th.textContent) === 'check')
       const devHead = [...d.querySelectorAll('th button')].find((b) => norm(b.textContent).endsWith('dev'))
       devHead?.click()
       await wait(800)
       const opened = norm(document.querySelector('.secret-pane')?.textContent).includes('orders-dev-env')
+      // payments has no prod warning, so no check column
+      tab('drift').click()
+      await wait(300)
+      await choose(field('service'), 'payments')
+      await press(['compare keys', 'compare again'])
+      await wait(1000)
+      const p = pane('.drift-pane')
+      const paymentsCheck = [...p.querySelectorAll('thead th')].some((th) => norm(th.textContent) === 'check')
       return [
-        rows.length === 6 && missing && warn && quotes && empty && leaked.length === 0 && diffRows === 6 && opened,
-        `${rows.length} keys (${text.match(/\d+ missing somewhere/)?.[0]}), missing ${missing}, prod = staging ${warn}, quotes ${quotes}, empty ${empty}, leaked [${leaked.join(', ')}], differences ${diffRows}, column opens ${opened}`,
+        rows.length === 6 && missing && warn && quotes && empty && leaked.length === 0 && diffRows === 6 && opened && ordersCheck && !paymentsCheck,
+        `${rows.length} keys (${text.match(/\d+ missing somewhere/)?.[0]}), missing ${missing}, prod = staging ${warn}, quotes ${quotes}, empty ${empty}, leaked [${leaked.join(', ')}], differences ${diffRows}, column opens ${opened}, check column orders ${ordersCheck} / payments ${paymentsCheck}`,
       ]
     })
 
@@ -559,6 +589,10 @@
       await press(['reveal'])
       await press(['save to file…'])
       const warned = norm(document.body.innerText).includes('plain text')
+      // the confirmation sits above the revealed keys, so a long list can't push it out of view
+      const confirmBox = [...document.querySelectorAll('.section')].find((x) => vis(x) && norm(x.textContent).includes('plain text'))
+      const keysTable = [...document.querySelectorAll('.secret-pane table, .secret-pane pre')].find(vis)
+      const above = !!confirmBox && !!keysTable && !!(confirmBox.compareDocumentPosition(keysTable) & Node.DOCUMENT_POSITION_FOLLOWING)
       await press(['choose where to save…'])
       await wait(500)
       const saved = (await call('GET', '/__selftest/saved')).json ?? {}
@@ -573,20 +607,20 @@
       await press(['choose where to save…'])
       await wait(500)
       const saved2 = (await call('GET', '/__selftest/saved')).json ?? {}
-      return [warned && ok1 && locked && saved2.name === 'orders-prod-env.env' && saved2.mode === '600', `warned ${warned}, file ${saved.name} mode ${saved.mode} size ${saved.size}/${size}, protected locked ${locked}, then ${saved2.name} mode ${saved2.mode}`]
+      return [warned && above && ok1 && locked && saved2.name === 'orders-prod-env.env' && saved2.mode === '600', `warned ${warned}, above the keys ${above}, file ${saved.name} mode ${saved.mode} size ${saved.size}/${size}, protected locked ${locked}, then ${saved2.name} mode ${saved2.mode}`]
     })
 
     await step('act as: switch to a configured service account and back; status follows', async () => {
       const sel = field('act as')
       if (!sel) throw new Error('no act as picker')
-      const deployer = [...sel.options].find((o) => o.textContent.includes('deployer'))
-      setField(sel, deployer.value)
+      const deployer = (await optionsOf(sel)).find((o) => o.label.includes('deployer'))
+      await choose(sel, deployer.value)
       await wait(800)
       const st = (await call('GET', '/api/status')).json
       const cfg = (await call('GET', '/api/config')).json
       const switched = st?.impersonating === 'deployer@demo-project.iam.gserviceaccount.com' && cfg?.credentials?.impersonateServiceAccount === st?.impersonating
       const listed = document.querySelectorAll('.rowbtn[aria-label]').length > 0
-      setField(field('act as'), [...field('act as').options][0].value)
+      await choose(field('act as'), (await optionsOf(field('act as')))[0].value)
       await wait(800)
       const back = !(await call('GET', '/api/status')).json?.impersonating
       return [switched && listed && back, `switched ${switched} (${st?.impersonating}), list reloaded ${listed}, back to you ${back}`]
@@ -603,6 +637,47 @@
       const after = Number((await fetch('/__selftest/authed').then((r) => r.text())) || 0)
       const unlocked = !document.querySelector('.lock-screen') && getComputedStyle(document.querySelector('header')).visibility === 'visible'
       return [screen && hidden && after === before + 1 && unlocked, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}`]
+    })
+
+    await step('dropdown: substring search, arrow keys, enter picks, esc closes', async () => {
+      const zoom = headerSelect('zoom')
+      const before = zoom.dataset.value
+      await comboOpen(zoom)
+      const search = document.querySelector('[aria-label="search zoom"]')
+      const focused = document.activeElement === search
+      // the popup is fixed-positioned: it must sit just under its button and inside the window
+      const align = () => {
+        const b = headerSelect('zoom').getBoundingClientRect()
+        const p = document.querySelector('.combo-pop').getBoundingClientRect()
+        return p.top - b.bottom >= 0 && p.top - b.bottom <= 10 && p.right <= innerWidth + 1 && p.left >= -1
+      }
+      const aligned = align()
+      setField(search, '15')
+      await wait(100)
+      const list = document.getElementById(zoom.getAttribute('aria-controls'))
+      const found = [...list.querySelectorAll('[role=option]')].map((o) => o.dataset.value)
+      search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await wait(300)
+      const picked = headerSelect('zoom').dataset.value
+      await comboOpen(headerSelect('zoom'))
+      document.querySelector('[aria-label="search zoom"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wait(150)
+      const closed = !document.querySelector('[aria-label="search zoom"]')
+      window.berglasUI.run('zoomReset')
+      await wait(300)
+      // and under the css zoom, where a fixed box's offsets are scaled
+      window.berglasUI.run('zoomOut')
+      window.berglasUI.run('zoomOut')
+      await wait(400)
+      await comboOpen(headerSelect('zoom'))
+      const alignedZoomed = align()
+      headerSelect('zoom').click()
+      window.berglasUI.run('zoomReset')
+      await wait(300)
+      return [
+        focused && aligned && alignedZoomed && found.join(',') === '150' && picked === '150' && closed && headerSelect('zoom').dataset.value === '100',
+        `search focused ${focused}, under its button ${aligned} (zoomed ${alignedZoomed}), "15" → [${found}], enter picked ${picked} (was ${before}), esc closes ${closed}`,
+      ]
     })
 
     toastWatch.disconnect()

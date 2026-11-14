@@ -347,3 +347,20 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .lock-screen { position: fixed; inset: 0; z-index: 60; background: var(--t-bg); display: flex; align-items: center; justify-content: center; }
 .lock-card { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 1px solid var(--t-line); padding: 20px 28px; }
 .lock-icon { font-size: 22px; }
+.lock-card button { -webkit-appearance: none; appearance: none; }
+
+/* searchable dropdown (Select) */
+.combo { position: relative; display: inline-flex; min-width: 0; }
+.combo-btn { display: inline-flex; align-items: center; gap: 8px; justify-content: space-between; min-width: 9ch; max-width: 32ch; -webkit-appearance: none; appearance: none; }
+.combo-btn > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-btn[aria-expanded="true"] { border-color: var(--t-prompt); }
+.combo-caret { color: var(--t-comment); }
+.combo-pop { position: fixed; z-index: 70; min-width: 220px; max-width: min(420px, calc(100vw - 32px)); background: var(--t-bg); border: 1px solid var(--t-prompt); display: flex; flex-direction: column; text-transform: none; font-weight: normal; }
+.combo-pop > input { border: 0; border-bottom: 1px solid var(--t-line); padding: 4px 8px; outline: none; }
+.combo-pop ul { list-style: none; margin: 0; padding: 2px 0; max-height: 280px; overflow-y: auto; }
+.combo-pop li[role="option"] { display: flex; align-items: baseline; gap: 6px; padding: 1px 8px; cursor: pointer; white-space: nowrap; color: var(--t-fg); }
+.combo-pop li[aria-selected="true"] { background: var(--t-soft); color: var(--t-string); }
+.combo-pop li[aria-disabled="true"] { color: var(--t-comment); cursor: default; }
+.combo-check { width: 1ch; flex: none; color: var(--t-prompt); }
+.combo-hint { margin-left: auto; padding-left: 12px; }
+.combo-empty { padding: 4px 8px; }

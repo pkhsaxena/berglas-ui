@@ -1,12 +1,17 @@
+import { useEffect, useRef } from 'react'
 import { refString, type Ref } from '../../../core/api'
 import type { ExportState } from '../../../core/hooks/useExport'
 import { ConfirmName } from './ConfirmName'
 
 /** The confirmation before saving a value to a file. */
 export function ExportSecret({ target, x, prod }: { target: Ref; x: ExportState; prod: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (x.open) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [x.open])
   if (!x.open) return null
   return (
-    <div className={prod ? 'section danger' : 'section'}>
+    <div ref={ref} className={prod ? 'section danger' : 'section'}>
       <div className="term-ln">
         <span className="t-prompt">$</span> <span className="t-function">save</span> <span className="t-string">{refString(target)}</span> <span className="muted">&gt; file</span>
       </div>

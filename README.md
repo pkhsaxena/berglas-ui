@@ -45,6 +45,8 @@ themselves; anything a second skin would also need belongs in `core/`.
   skin colors list dots, badges and matrix columns by it, and shows a red **Production** banner
   over a prod secret (saying whether it is protected or read-only) and a thin colored strip
   over the others.
+- **dropdowns** are the app's own, not the system's: each opens with a search box that keeps the
+  options containing what you type (any case); ↑↓ and Enter pick, Esc closes.
 - **command palette** (`core/palette.ts`): ⌘K (Ctrl+K; in the mac app also Go → Go To…) jumps
   to any secret of the open source, or of another source seen this session, switches source, or
   runs an action (new, refresh, views, compare keys, find, zoom, theme, skin, time zone).

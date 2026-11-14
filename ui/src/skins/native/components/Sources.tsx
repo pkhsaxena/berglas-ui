@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Backend } from '../../../core/api'
 import { type Source, sourceId } from '../../../core/sources'
 import { ErrorText, PaneHead } from './bits'
+import { Select } from './Select'
 
 type Props = {
   sources: Source[]
@@ -75,10 +76,15 @@ export function Sources({ sources, configPath, saveError, active, onSelect, onAd
         </ul>
         {adding && (
           <form className="row" onSubmit={add} style={{ padding: '0 4px' }}>
-            <select aria-label="backend" value={backend} onChange={(e) => setBackend(e.target.value as Backend)}>
-              <option value="storage">Storage + KMS</option>
-              <option value="sm">Secret Manager</option>
-            </select>
+            <Select
+              ariaLabel="backend"
+              value={backend}
+              options={[
+                { value: 'storage', label: 'Storage + KMS' },
+                { value: 'sm', label: 'Secret Manager' },
+              ]}
+              onChange={(v) => setBackend(v as Backend)}
+            />
             <input aria-label={backend === 'storage' ? 'bucket name' : 'project id'} placeholder={backend === 'storage' ? 'bucket name' : 'project id'} value={parent} onChange={(e) => setParent(e.target.value)} autoComplete="off" spellCheck={false} />
             <button className="btn" type="submit">
               Add

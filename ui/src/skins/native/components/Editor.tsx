@@ -10,6 +10,7 @@ import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { ConfirmName, EnvBadge, EnvBanner, ErrorText, KeyText, PaneHead } from './bits'
 import { DiffView } from './DiffView'
 import { EnvRows, OrderToggle } from './EnvRows'
+import { Select } from './Select'
 
 // a section's id in the picker: its header line, or '-' for the no-section group
 const sectionValue = (x: Section) => x.header[0]?.raw ?? '-'
@@ -201,14 +202,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
                   {sections.length > 0 && (
                     <label className="muted" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                       in
-                      <select aria-label="section for the new key" value={section} onChange={(e) => setSection(e.target.value)}>
-                        <option value="">End of file</option>
-                        {sections.map((x) => (
-                          <option key={x.value} value={x.value}>
-                            {x.label}
-                          </option>
-                        ))}
-                      </select>
+                      <Select ariaLabel="section for the new key" value={section} options={[{ value: '', label: 'End of file' }, ...sections]} onChange={setSection} />
                     </label>
                   )}
                   <button className="btn" type="submit">

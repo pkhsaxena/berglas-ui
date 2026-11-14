@@ -11,9 +11,11 @@ export function LockScreen({ l }: { l: LockState }) {
         </div>
         <strong>berglas-ui is locked</strong>
         <span className="muted small">{l.minutes ? `It locks after ${l.minutes} minutes without input.` : 'Locked by you.'}</span>
-        <button className="btn primary" onClick={l.unlock} disabled={l.busy} autoFocus>
-          {l.busy ? 'Waiting for Touch ID…' : l.secure ? 'Unlock with Touch ID…' : 'Unlock'}
+        {/* never disabled: WebKit draws a disabled button as a native control while the Touch ID sheet has focus */}
+        <button className="btn primary" onClick={l.unlock} aria-busy={l.busy} autoFocus>
+          {l.secure ? 'Unlock with Touch ID…' : 'Unlock'}
         </button>
+        {l.busy && <span className="muted small">Waiting for Touch ID…</span>}
         {!l.secure && <span className="muted small">In a browser this only hides the screen.</span>}
         {l.error && <span className="bad-text small">{l.error}</span>}
       </div>

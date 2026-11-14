@@ -193,10 +193,11 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
             </span>
           </div>
 
-          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} latestId={s.latestId} onShowingChange={setComparing} />}
-          <Value value={revealed} onCopy={copy} against={pinnedOther} />
+          {/* confirmations sit above the value, so a long key list never hides them */}
           {revealed && <ExportSecret target={shownRef} x={x} prod={tone === 'prod'} />}
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
+          {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} latestId={s.latestId} onShowingChange={setComparing} />}
+          <Value value={revealed} onCopy={copy} against={pinnedOther} />
         </div>
       </div>
       <Versions base={base} versions={s.versions} versionsError={s.versionsError} shown={shown} onView={s.selectVersion} titleTabs={showVersions ? titleTabs : undefined} wideTabs={wideTabs} />

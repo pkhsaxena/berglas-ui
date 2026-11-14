@@ -305,3 +305,22 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .lock-screen { position: fixed; inset: 0; z-index: 60; background: var(--n-bg); display: flex; align-items: center; justify-content: center; }
 .lock-card { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--n-surface); border: 1px solid var(--n-line); border-radius: 14px; padding: 28px 36px; box-shadow: var(--n-shadow); }
 .lock-icon { font-size: 28px; }
+.lock-card button { -webkit-appearance: none; appearance: none; }
+
+/* searchable dropdown (Select) */
+.combo { position: relative; display: inline-flex; min-width: 0; }
+.combo-btn { display: inline-flex; align-items: center; gap: 8px; justify-content: space-between; min-width: 9ch; max-width: 32ch; border: 1px solid var(--n-line-strong); background: var(--n-surface); color: var(--n-fg); border-radius: 6px; padding: 3px 8px; cursor: pointer; font: inherit; box-shadow: var(--n-shadow); -webkit-appearance: none; appearance: none; }
+.combo-btn > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-btn:disabled { opacity: .55; cursor: default; }
+.combo-btn[aria-expanded="true"] { border-color: var(--n-accent); }
+.combo-caret { color: var(--n-muted); font-size: 10px; }
+.combo-pop { position: fixed; z-index: 70; min-width: 220px; max-width: min(420px, calc(100vw - 32px)); background: var(--n-surface); border: 1px solid var(--n-line-strong); border-radius: 9px; box-shadow: 0 10px 30px rgba(0, 0, 0, .2); padding: 4px; display: flex; flex-direction: column; }
+.combo-pop > input { margin: 2px 2px 4px; }
+.combo-pop ul { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; }
+.combo-pop li[role="option"] { display: flex; align-items: baseline; gap: 6px; padding: 4px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; }
+.combo-pop li[aria-selected="true"] { background: var(--n-accent); color: var(--n-on-accent); }
+.combo-pop li[aria-selected="true"] .muted { color: color-mix(in srgb, var(--n-on-accent) 80%, transparent); }
+.combo-pop li[aria-disabled="true"] { opacity: .5; cursor: default; }
+.combo-check { width: 1.2em; flex: none; }
+.combo-hint { margin-left: auto; padding-left: 12px; }
+.combo-empty { padding: 6px 8px; }

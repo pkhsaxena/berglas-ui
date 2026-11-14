@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import type { useDelete } from '../../../core/hooks/useDelete'
 import { ConfirmName } from './ConfirmName'
@@ -5,9 +6,13 @@ import { ConfirmName } from './ConfirmName'
 type Props = { base: Ref; versions: number | null; del: ReturnType<typeof useDelete> }
 
 export function DeleteSecret({ base, versions, del }: Props) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (del.open) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [del.open])
   if (!del.open) return null
   return (
-    <div className="section danger">
+    <div ref={ref} className="section danger">
       <div className="term-ln">
         <span className="t-prompt">$</span> <span className="t-function">delete</span> <span className="t-string">{refString(base)}</span>
       </div>

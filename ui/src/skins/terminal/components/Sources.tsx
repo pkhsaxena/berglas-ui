@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Backend } from '../../../core/api'
 import { type Source, sourceId } from '../../../core/sources'
+import { Select } from './Select'
 
 type Props = {
   sources: Source[]
@@ -59,10 +60,15 @@ export function Sources({ sources, configPath, saveError, active, onSelect, onAd
           </ul>
         )}
         <form className="row" onSubmit={add}>
-          <select aria-label="backend" value={backend} onChange={(e) => setBackend(e.target.value as Backend)}>
-            <option value="storage">storage + kms</option>
-            <option value="sm">secret manager</option>
-          </select>
+          <Select
+            ariaLabel="backend"
+            value={backend}
+            options={[
+              { value: 'storage', label: 'storage + kms' },
+              { value: 'sm', label: 'secret manager' },
+            ]}
+            onChange={(v) => setBackend(v as Backend)}
+          />
           <input
             aria-label={backend === 'storage' ? 'bucket name' : 'project id'}
             placeholder={backend === 'storage' ? 'bucket name' : 'project id'}

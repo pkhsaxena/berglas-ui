@@ -33,6 +33,7 @@ import { Palette } from './components/Palette'
 import { LockScreen } from './components/LockScreen'
 import { FileDrop } from './components/FileDrop'
 import { applyTheme, knownTheme, PRESETS } from './theme'
+import { Select } from './components/Select'
 
 // the system zone's name for the time switch, e.g. "ist"
 const LOCAL_ZONE = zoneName(new Date())
@@ -248,61 +249,50 @@ export default function App() {
         {session.kind === 'ready' && ids.options.length > 1 && (
           <span className="act-as" title="the identity berglas-ui uses for every call; your gcloud login stays the same">
             <span className="muted small">act as</span>
-            <select
-              aria-label="act as"
+            <Select
+              ariaLabel="act as"
               value={ids.current}
               disabled={app.switching}
-              onChange={(e) => {
-                const o = ids.options.find((x) => x.key === e.target.value)
+              options={ids.options.map((o) => ({ value: o.key, label: o.label, hint: o.serviceAccount || undefined }))}
+              onChange={(key) => {
+                const o = ids.options.find((x) => x.key === key)
                 if (o) void app.setIdentity(o.serviceAccount, o.quotaProject)
               }}
-            >
-              {ids.options.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            />
           </span>
         )}
         <span className="spacer" />
         {session.kind === 'ready' && (
           <label>
             time
-            <select value={app.settings.timeZone} onChange={(e) => app.setTimeZone(e.target.value as TimeZone)}>
-              <option value="local">local ({LOCAL_ZONE})</option>
-              <option value="utc">utc</option>
-            </select>
+            <Select
+              ariaLabel="time"
+              value={app.settings.timeZone}
+              options={[
+                { value: 'local', label: `local (${LOCAL_ZONE})` },
+                { value: 'utc', label: 'utc' },
+              ]}
+              onChange={(v) => app.setTimeZone(v as TimeZone)}
+            />
           </label>
         )}
         <label title="zoom out to give the layout more room (zoomed out far enough, panes sit side by side)">
           zoom
-          <select value={app.zoom} onChange={(e) => app.setZoom(Number(e.target.value))}>
-            {(ZOOM_STEPS.includes(app.zoom) ? ZOOM_STEPS : [...ZOOM_STEPS, app.zoom].sort((a, b) => a - b)).map((z) => (
-              <option key={z} value={z}>
-                {z}%
-              </option>
-            ))}
-          </select>
+          <Select
+            ariaLabel="zoom"
+            value={String(app.zoom)}
+            options={(ZOOM_STEPS.includes(app.zoom) ? ZOOM_STEPS : [...ZOOM_STEPS, app.zoom].sort((a, b) => a - b)).map((z) => ({ value: String(z), label: `${z}%` }))}
+            onChange={(v) => app.setZoom(Number(v))}
+          />
         </label>
         <label>
           theme
-          <select value={theme} onChange={(e) => app.setTheme(e.target.value)}>
-            {PRESETS.map((p) => (
-              <option key={p.name}>{p.name}</option>
-            ))}
-          </select>
+          <Select ariaLabel="theme" value={theme} options={PRESETS.map((p) => ({ value: p.name, label: p.name }))} onChange={app.setTheme} />
         </label>
         {SKINS.length > 1 && (
           <label>
             skin
-            <select value={skinFor(app.skin).name} onChange={(e) => app.setSkin(e.target.value)}>
-              {SKINS.map((s) => (
-                <option key={s.name} value={s.name}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
+            <Select ariaLabel="skin" value={skinFor(app.skin).name} options={SKINS.map((s) => ({ value: s.name, label: s.label }))} onChange={app.setSkin} />
           </label>
         )}
       </header>

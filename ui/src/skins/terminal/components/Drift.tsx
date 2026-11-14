@@ -4,6 +4,7 @@ import { envTone } from '../../../core/envtone'
 import type { DriftState } from '../../../core/hooks/useDrift'
 import { KeyText } from './KeyText'
 import { PaneTitle } from './PaneTitle'
+import { Select } from './Select'
 
 type Props = {
   titleTabs?: ReactNode
@@ -36,29 +37,25 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
   const [only, setOnly] = useState<'all' | 'problems'>('all')
   const { services, service, table, loading, error } = drift
   const rows = table ? (only === 'all' ? table.rows : table.rows.filter((r) => r.kind !== 'same' || r.warnings.length)) : []
+  // the check column only holds prod warnings, so it shows only when a row in view has one
+  const showCheck = rows.some((r) => r.warnings.length > 0)
 
   return (
     <div className="card pane drift-pane">
-      <PaneTitle tabs={titleTabs}>
+      <PaneTitle
+        tabs={titleTabs}
+        extra={
+          <>
+            <Select ariaLabel="service" placeholder="pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
+            <button className="primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
+              {loading ? 'comparing…' : table ? 'compare again' : 'compare keys'}
+            </button>
+          </>
+        }
+      >
         drift <span className="muted">— {service ?? 'pick a service'}</span>
       </PaneTitle>
       <div className="body">
-        <div className="row">
-          <label className="muted">
-            service{' '}
-            <select aria-label="service" value={service ?? ''} onChange={(e) => drift.setService(e.target.value)}>
-              <option value="" disabled>
-                pick…
-              </option>
-              {services.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </label>
-          <button className="primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
-            {loading ? 'comparing…' : table ? 'compare again' : 'compare keys'}
-          </button>
-        </div>
         <div className="muted small">
           # the core decrypts this service's environments and sends back fingerprints only, so no value is shown: the same letter means the same value, ∅ is empty, ≈ means only the
           quotes differ.
@@ -101,7 +98,7 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
                         {c.problem && <div className="small t-error drift-problem">{c.problem}</div>}
                       </th>
                     ))}
-                    <th>check</th>
+                    {showCheck && <th>check</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -115,19 +112,20 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
                           <Cell c={c} />
                         </td>
                       ))}
+                      {showCheck && (
                       <td className="small">
                         {r.warnings.map((w) => (
                           <span key={w} className="tone-prod drift-warn" title="prod should rarely share a value with another environment; check it is meant to">
                             [{w}]
                           </span>
                         ))}
-                        {!r.warnings.length && r.kind === 'same' && <span className="muted">same</span>}
                       </td>
+                      )}
                     </tr>
                   ))}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={table.columns.length + 2} className="muted">
+                      <td colSpan={table.columns.length + (showCheck ? 2 : 1)} className="muted">
                         # no differences
                       </td>
                     </tr>

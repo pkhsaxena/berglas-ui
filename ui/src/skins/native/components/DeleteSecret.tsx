@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import type { useDelete } from '../../../core/hooks/useDelete'
 import { ConfirmName, ErrorText } from './bits'
@@ -5,9 +6,13 @@ import { ConfirmName, ErrorText } from './bits'
 type Props = { base: Ref; versions: number | null; del: ReturnType<typeof useDelete> }
 
 export function DeleteSecret({ base, versions, del }: Props) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (del.open) ref.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [del.open])
   if (!del.open) return null
   return (
-    <div className="section danger">
+    <div ref={ref} className="section danger">
       <h3 className="bad-text">Delete {refString(base)}?</h3>
       <div>
         This deletes the secret and {versions === null ? 'all its versions' : `${versions} version${versions === 1 ? '' : 's'}`}, including history. It can't be undone.
