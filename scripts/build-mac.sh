@@ -19,6 +19,14 @@ trap 'rm -rf "$WORK"' EXIT
 
 [[ -n ${SKIP_UI:-} ]] || npm --prefix "$ROOT/ui" run build
 
+# The app injects the self-test scripts into the page; one that doesn't parse
+# never runs, and the self-test window just sits there. Catch that here.
+if command -v node >/dev/null; then
+  for f in "$ROOT"/core/cmd/berglas-ui-desktop/selftest*.js; do
+    node --check "$f" || { echo "error: $f does not parse" >&2; exit 1; }
+  done
+fi
+
 build() { # build <goarch> <out>
   (cd "$ROOT/core" &&
     CGO_ENABLED=1 GOOS=darwin GOARCH=$1 CGO_LDFLAGS="-framework UniformTypeIdentifiers" MACOSX_DEPLOYMENT_TARGET=11.0 \

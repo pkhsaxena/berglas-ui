@@ -42,20 +42,18 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
 
   return (
     <div className="card pane drift-pane">
-      <PaneTitle
-        tabs={titleTabs}
-        extra={
-          <>
-            <Select ariaLabel="service" placeholder="pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
-            <button className="primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
-              {loading ? 'comparing…' : table ? 'compare again' : 'compare keys'}
-            </button>
-          </>
-        }
-      >
+      <PaneTitle tabs={titleTabs}>
         drift <span className="muted">— {service ?? 'pick a service'}</span>
       </PaneTitle>
       <div className="body">
+        <div className="row drift-pick">
+          <span className="t-prompt">$</span>
+          <span className="t-function">service</span>
+          <Select ariaLabel="service" placeholder="pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
+          <button className="primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
+            {loading ? 'comparing…' : table ? 'compare again' : 'compare keys'}
+          </button>
+        </div>
         <div className="muted small">
           # the core decrypts this service's environments and sends back fingerprints only, so no value is shown: the same letter means the same value, ∅ is empty, ≈ means only the
           quotes differ.

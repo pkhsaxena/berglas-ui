@@ -364,3 +364,6 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .combo-check { width: 1ch; flex: none; color: var(--t-prompt); }
 .combo-hint { margin-left: auto; padding-left: 12px; }
 .combo-empty { padding: 4px 8px; }
+.drift-pick { gap: 8px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--t-line); }
+.drift-pick .combo-btn { border-color: var(--t-prompt); color: var(--t-string); }
+.matrix td.matrix-drift { text-align: right; }

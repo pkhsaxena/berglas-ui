@@ -45,16 +45,15 @@ export function DriftPane({ titleTabs, drift, onSelect }: Props) {
       <PaneHead
         tabs={titleTabs}
         title={`Drift${service ? ` · ${service}` : ''}`}
-        actions={
-          <span className="row">
-            <Select ariaLabel="service" placeholder="Pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
-            <button className="btn primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
-              {loading ? 'Comparing…' : table ? 'Compare again' : 'Compare keys'}
-            </button>
-          </span>
-        }
       />
       <div className="body">
+        <div className="row drift-pick">
+          <span className="strong">Service</span>
+          <Select ariaLabel="service" placeholder="Pick a service…" value={service ?? ''} options={services.map((s) => ({ value: s, label: s }))} onChange={drift.setService} />
+          <button className="btn primary" disabled={!service || loading} onClick={() => service && drift.run(service)}>
+            {loading ? 'Comparing…' : table ? 'Compare again' : 'Compare keys'}
+          </button>
+        </div>
         <div className="muted small" style={{ marginBottom: 8 }}>
           Compares one service's keys across its environments. The core decrypts them and sends back only fingerprints, so no value is shown here: cells with the same letter hold the same
           value, ∅ is empty, ≈ means only the quotes differ.

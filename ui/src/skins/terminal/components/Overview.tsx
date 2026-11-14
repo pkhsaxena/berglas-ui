@@ -144,7 +144,7 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
       </PaneTitle>
       <div className="body">
         <div className="muted small">
-          # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default. click a service to compare its keys across envs.
+          # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default. compare keys opens drift for that service.
         </div>
         <div className="tablewrap">
           <table className="matrix">
@@ -163,20 +163,13 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
                     </button>
                   </th>
                 ))}
+                {onDrift && <th />}
               </tr>
             </thead>
             <tbody>
               {matrix.rows.map((r) => (
                 <tr key={r.key} className={r.cells.some((c) => c?.name === selected) ? 'active' : undefined}>
-                  <td className="t-keyword">
-                    {onDrift && r.cells.filter(Boolean).length >= 2 ? (
-                      <button className="link t-keyword" onClick={() => onDrift(r.key)} title={`compare the keys of ${r.key} across environments`}>
-                        {r.key}
-                      </button>
-                    ) : (
-                      r.key
-                    )}
-                  </td>
+                  <td className="t-keyword">{r.key}</td>
                   {r.cells.map((c, i) =>
                     c ? (
                       <td key={i}>
@@ -189,6 +182,15 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
                         –
                       </td>
                     ),
+                  )}
+                  {onDrift && (
+                    <td className="matrix-drift">
+                      {r.cells.filter(Boolean).length >= 2 && (
+                        <button className="link small" onClick={() => onDrift(r.key)} title={`open drift: compare the keys of ${r.key} across its environments`}>
+                          compare keys
+                        </button>
+                      )}
+                    </td>
                   )}
                 </tr>
               ))}

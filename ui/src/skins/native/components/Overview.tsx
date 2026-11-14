@@ -122,7 +122,7 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
       <PaneHead tabs={titleTabs} wideTabs={wideTabs} title={`Matrix · ${source.group}`} />
       <div className="body">
         <div className="muted small" style={{ marginBottom: 8 }}>
-          Cells show the time since the last change; – means no such secret. Click an environment to sort: newest first, oldest first, back to default. Click a service to compare its keys across environments.
+          Cells show the time since the last change; – means no such secret. Click an environment to sort: newest first, oldest first, back to default. Compare keys opens Drift for that service.
         </div>
         <div className="tablewrap">
           <table className="matrix">
@@ -142,20 +142,13 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
                     </button>
                   </th>
                 ))}
+                {onDrift && <th />}
               </tr>
             </thead>
             <tbody>
               {matrix.rows.map((r) => (
                 <tr key={r.key} className={r.cells.some((c) => c?.name === selected) ? 'active' : undefined}>
-                  <td className="strong">
-                    {onDrift && r.cells.filter(Boolean).length >= 2 ? (
-                      <button className="link strong" onClick={() => onDrift(r.key)} title={`compare the keys of ${r.key} across environments`}>
-                        {r.key}
-                      </button>
-                    ) : (
-                      r.key
-                    )}
-                  </td>
+                  <td className="strong">{r.key}</td>
                   {r.cells.map((c, i) =>
                     c ? (
                       <td key={i}>
@@ -168,6 +161,15 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
                         –
                       </td>
                     ),
+                  )}
+                  {onDrift && (
+                    <td className="matrix-drift">
+                      {r.cells.filter(Boolean).length >= 2 && (
+                        <button className="link small" onClick={() => onDrift(r.key)} title={`open Drift: compare the keys of ${r.key} across its environments`}>
+                          Compare keys
+                        </button>
+                      )}
+                    </td>
                   )}
                 </tr>
               ))}

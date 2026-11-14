@@ -488,8 +488,11 @@
     await step('drift: a matrix service compares its keys, values never shown', async () => {
       tab('matrix').click()
       await wait(300)
-      const svc = [...document.querySelectorAll('.matrix-pane button')].find((b) => vis(b) && b.title === 'compare the keys of orders across environments')
-      if (!svc) throw new Error('no orders button in the matrix')
+      // service names are plain text; the row's labelled "compare keys" link opens drift
+      const nameIsPlain = ![...document.querySelectorAll('.matrix-pane td:first-child button')].some(vis)
+      const ordersRow = [...document.querySelectorAll('.matrix-pane tbody tr')].find((r) => vis(r) && norm(r.cells[0]?.textContent) === 'orders')
+      const svc = ordersRow && [...ordersRow.querySelectorAll('button')].find((b) => norm(b.textContent) === 'compare keys')
+      if (!svc) throw new Error('no compare keys link on the orders row')
       svc.click()
       await wait(1200)
       const d = pane('.drift-pane')
@@ -519,8 +522,8 @@
       const p = pane('.drift-pane')
       const paymentsCheck = [...p.querySelectorAll('thead th')].some((th) => norm(th.textContent) === 'check')
       return [
-        rows.length === 6 && missing && warn && quotes && empty && leaked.length === 0 && diffRows === 6 && opened && ordersCheck && !paymentsCheck,
-        `${rows.length} keys (${text.match(/\d+ missing somewhere/)?.[0]}), missing ${missing}, prod = staging ${warn}, quotes ${quotes}, empty ${empty}, leaked [${leaked.join(', ')}], differences ${diffRows}, column opens ${opened}, check column orders ${ordersCheck} / payments ${paymentsCheck}`,
+        nameIsPlain && rows.length === 6 && missing && warn && quotes && empty && leaked.length === 0 && diffRows === 6 && opened && ordersCheck && !paymentsCheck,
+        `names plain ${nameIsPlain}, ${rows.length} keys (${text.match(/\d+ missing somewhere/)?.[0]}), missing ${missing}, prod = staging ${warn}, quotes ${quotes}, empty ${empty}, leaked [${leaked.join(', ')}], differences ${diffRows}, column opens ${opened}, check column orders ${ordersCheck} / payments ${paymentsCheck}`,
       ]
     })
 
@@ -530,6 +533,8 @@
       await wait(300)
       const input = field('go to')
       const opened = !!input && document.activeElement === input
+      // no spell check, autocorrect or word suggestions in the field (macOS shows a popup otherwise)
+      const noAssist = input.getAttribute('spellcheck') === 'false' && input.getAttribute('autocorrect') === 'off' && input.getAttribute('writingsuggestions') === 'false' && input.spellcheck === false
       setField(input, 'orders staging')
       await wait(200)
       const first = norm(document.querySelector('[role=option][aria-selected=true]')?.textContent)
@@ -549,7 +554,7 @@
       key(field('go to'), 'Escape')
       await wait(200)
       const closed = !field('go to')
-      return [opened && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
+      return [opened && noAssist && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, no spell check ${noAssist}, top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
     })
 
     const dropFile = async (parts, name) => {

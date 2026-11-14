@@ -57,8 +57,8 @@ themselves; anything a second skin would also need belongs in `core/`.
   confirmation (and the typed name for protected secrets). In the mac app the core asks where with
   a Save dialog, writes the file with mode 600 and logs an `export` line (path, no value) to the
   audit log; in a browser it is a download.
-- **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or a click on a service in
-  the matrix, compares that service's keys across its environments: which keys are missing where,
+- **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or **compare keys** on a
+  matrix row, compares that service's keys across its environments: which keys are missing where,
   which values match (a letter per distinct value), empty values, quote-only differences, and a
   check when prod has the same value as a non-prod environment while the others differ. The core
   decrypts the secrets and returns only fingerprints (an HMAC under a key made fresh each run), so
