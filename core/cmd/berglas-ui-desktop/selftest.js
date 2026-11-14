@@ -464,6 +464,36 @@
       return [versionsOnly && overview && matrix && tone && asc === 'ascending' && desc === 'descending' && opened, `versions only ${versionsOnly}, overview ${overview}, matrix ${matrix}, prod color ${tone}, sort ${asc} → ${desc}, cell opens ${opened}`]
     })
 
+    await step('drift: a matrix service compares its keys, values never shown', async () => {
+      tab('matrix').click()
+      await wait(300)
+      const svc = [...document.querySelectorAll('.matrix-pane button')].find((b) => vis(b) && b.title === 'compare the keys of orders across environments')
+      if (!svc) throw new Error('no orders button in the matrix')
+      svc.click()
+      await wait(1200)
+      const d = pane('.drift-pane')
+      const text = norm(d?.textContent)
+      const rows = [...(d?.querySelectorAll('table tbody tr') ?? [])].map((r) => norm(r.textContent))
+      const row = (k) => rows.find((r) => r.startsWith(k.toLowerCase())) ?? ''
+      const missing = row('FEATURE_SPLIT').endsWith('missing')
+      const warn = row('QUEUE_URL').includes('prod = staging')
+      const quotes = row('TIMEOUT_MS').includes('≈')
+      const empty = row('SENTRY_DSN').includes('∅')
+      // the demo values for orders; none may reach the page
+      const leaked = ['orders.dev.internal', 'sqs://', 'dbg_demo_1', 'sentry.example'].filter((v) => document.body.innerText.includes(v))
+      tab('differences').click()
+      await wait(200)
+      const diffRows = d.querySelectorAll('table tbody tr').length
+      const devHead = [...d.querySelectorAll('th button')].find((b) => norm(b.textContent).endsWith('dev'))
+      devHead?.click()
+      await wait(800)
+      const opened = norm(document.querySelector('.secret-pane')?.textContent).includes('orders-dev-env')
+      return [
+        rows.length === 6 && missing && warn && quotes && empty && leaked.length === 0 && diffRows === 6 && opened,
+        `${rows.length} keys (${text.match(/\d+ missing somewhere/)?.[0]}), missing ${missing}, prod = staging ${warn}, quotes ${quotes}, empty ${empty}, leaked [${leaked.join(', ')}], differences ${diffRows}, column opens ${opened}`,
+      ]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 

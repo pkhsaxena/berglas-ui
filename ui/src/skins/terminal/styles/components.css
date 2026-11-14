@@ -194,6 +194,17 @@ td.env-key > .k { display: inline-block; width: max-content; max-width: min(28ch
 /* a sortable column header: looks like the header, acts like a button */
 button.th-sort { border: 0; padding: 0; color: inherit; font: inherit; text-transform: inherit; }
 button.th-sort:hover { background: none; color: var(--t-fg); }
+/* drift: one theme color per value group; same letter = same value */
+.drift-summary { gap: 14px; }
+.drift-summary .tabs { margin-left: auto; }
+.drift-chip { display: inline-block; min-width: 2ch; text-align: center; font-weight: 600; padding: 0 4px; }
+.drift-chip.g0 { color: var(--t-prompt); } .drift-chip.g1 { color: var(--t-number); } .drift-chip.g2 { color: var(--t-function); }
+.drift-chip.g3 { color: var(--t-string); } .drift-chip.g4 { color: var(--t-keyword); } .drift-chip.g5 { color: var(--t-fg); }
+.drift-chip { background: var(--t-soft); }
+.drift-chip.empty { color: var(--t-comment); background: transparent; outline: 1px dashed var(--t-line); }
+.matrix.drift tr.drift-same td.env-key { color: var(--t-comment); }
+.drift-warn { margin-right: 6px; white-space: nowrap; }
+.drift-problem { white-space: normal; max-width: 22ch; text-transform: none; }
 .tablewrap { overflow-x: auto; container-type: inline-size; } /* cqi in key widths is relative to this */
 
 /* secret list rows are buttons for keyboard access */

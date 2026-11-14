@@ -45,6 +45,13 @@ themselves; anything a second skin would also need belongs in `core/`.
   skin colors list dots, badges and matrix columns by it, and shows a red **Production** banner
   over a prod secret (saying whether it is protected or read-only) and a thin colored strip
   over the others.
+- **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or a click on a service in
+  the matrix, compares that service's keys across its environments: which keys are missing where,
+  which values match (a letter per distinct value), empty values, quote-only differences, and a
+  check when prod has the same value as a non-prod environment while the others differ. The core
+  decrypts the secrets and returns only fingerprints (an HMAC under a key made fresh each run), so
+  no value reaches the ui. It decrypts every environment of the service, so it runs only when
+  you ask (**compare keys**).
 
 ## credentials
 
@@ -204,7 +211,7 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
     before writing. The race window is small but not zero.
 - **restore this version…** (on an old version) opens the editor with that version's value as a
   draft against the latest, and saves it as a new version.
-- **view tabs** (normal width): `<secret> · versions · overview · matrix` sit in the title border of
+- **view tabs** (normal width): `<secret> · versions · overview · matrix · drift` sit in the title border of
   the right column's top pane. **versions** (whenever a secret is open) shows just the versions pane. On
   **reveal** the value fills the right column and versions step aside until you pick that tab.
   Zoomed out, secret and versions stay side by side.

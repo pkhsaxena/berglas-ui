@@ -67,6 +67,7 @@ func (s *Server) apiMux() http.Handler {
 	api.HandleFunc("GET /api/secrets", s.handleList)
 	api.HandleFunc("GET /api/secrets/versions", s.handleVersions)
 	api.HandleFunc("POST /api/secrets/read", s.handleRead)
+	api.HandleFunc("POST /api/secrets/drift", s.handleDrift)
 	api.HandleFunc("POST /api/secrets/create", s.handleCreate)
 	api.HandleFunc("POST /api/secrets/update", s.handleUpdate)
 	api.HandleFunc("POST /api/secrets/delete", s.handleDelete)

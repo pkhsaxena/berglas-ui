@@ -107,7 +107,8 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 | Overview | Count, changed in 7 / 30 days, latest change, stale (180 d+), KMS keys, recently changed, untouched longest; each name opens its secret | `overview.ts` | unit `overview.test.ts` |
 | Matrix | Group-pattern grid (service × env), time since change per cell, `–` for missing; a cell opens its secret | `overview.ts` `matrixOf` | app "view tabs, matrix colors, sort and open from a cell"; unit `overview.test.ts` |
 | Matrix sort | Click an environment: newest first, oldest first, default | `sortMatrixRows` | app "view tabs, matrix colors, sort and open from a cell"; unit `overview.test.ts` |
-| View tabs | Normal width: Secret · Versions · Overview · Matrix in the top pane's header; wide: overview and matrix get their own column | skin `App.tsx` | app "view tabs, matrix colors, sort and open from a cell" |
+| Key drift | A **Drift** tab (and a click on a matrix service) compares one service's keys across its environments: keys × envs, a letter per distinct value (same letter = same value), **missing**, ∅ empty, ≈ quotes only; counts; All keys / Differences; a prod check when prod has the same value as a non-prod environment while the others differ, or is empty; a column header opens that secret. The core sends fingerprints (an HMAC under a per-run key), never values | `drift.ts`, `useDrift`; core `drift.go` (`POST /api/secrets/drift`) | app "drift: a matrix service compares its keys, values never shown"; unit `drift.test.ts`; go `TestDriftComparesKeysWithoutValues` |
+| View tabs | Normal width: Secret · Versions · Overview · Matrix · Drift in the top pane's header; wide: overview and matrix get their own column | skin `App.tsx` | app "view tabs, matrix colors, sort and open from a cell" |
 
 ## Mac app only
 

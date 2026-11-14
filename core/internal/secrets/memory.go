@@ -278,6 +278,18 @@ func NewDemo() *Memory {
 	put(Storage, "demo-bucket", "payments-prod-env",
 		"DATABASE_URL=postgres://payments:prod-pass@db.prod.internal:5432/payments\nSTRIPE_KEY=sk_live_demo_999\nLOG_LEVEL=warn\n",
 	)
+	// orders drifts on purpose, for the key drift view: a key missing in
+	// prod, one only in dev, a quote-only difference, an empty value, and a
+	// prod value that is the same as staging's
+	put(Storage, "demo-bucket", "orders-dev-env",
+		"API_URL=https://orders.dev.internal\nQUEUE_URL=sqs://orders-dev\nTIMEOUT_MS=5000\nFEATURE_SPLIT=true\nDEBUG_TOKEN=dbg_demo_1\nSENTRY_DSN=\n",
+	)
+	put(Storage, "demo-bucket", "orders-staging-env",
+		"API_URL=https://orders.staging.internal\nQUEUE_URL=sqs://orders-shared\nTIMEOUT_MS=\"5000\"\nFEATURE_SPLIT=true\nSENTRY_DSN=https://demo@sentry.example/2\n",
+	)
+	put(Storage, "demo-bucket", "orders-prod-env",
+		"API_URL=https://orders.internal\nQUEUE_URL=sqs://orders-shared\nTIMEOUT_MS=3000\nSENTRY_DSN=https://demo@sentry.example/3\n",
+	)
 	put(Storage, "demo-bucket", "search-api-key", "demo-search-key-7f3a9c")
 	put(Storage, "demo-bucket", "tls-cert",
 		"-----BEGIN CERTIFICATE-----\nMIIBdemoONLYnotArealCERTIFICATE0123456789abcdef\n-----END CERTIFICATE-----\n",

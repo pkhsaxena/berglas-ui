@@ -125,6 +125,8 @@ type MatrixProps = {
   /** rows ordered by one column, or null for the default service order */
   sort: MatrixSort
   onSort: (s: MatrixSort) => void
+  /** compare a service's keys across its environments (rows with 2+ environments) */
+  onDrift?: (service: string) => void
   className?: string
 }
 
@@ -133,7 +135,7 @@ const nextSort = (cur: MatrixSort, col: string): MatrixSort =>
   cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null
 
 /** The {first} × {second} placeholder grid, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, className = '', titleTabs, wideTabs }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, onDrift, className = '', titleTabs, wideTabs }: MatrixProps) {
   const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className={`card pane matrix-pane ${className}`}>
@@ -142,7 +144,7 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
       </PaneTitle>
       <div className="body">
         <div className="muted small">
-          # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default.
+          # cells show time since the last change; – means no such secret. click an env to sort: newest first, oldest first, back to default. click a service to compare its keys across envs.
         </div>
         <div className="tablewrap">
           <table className="matrix">
@@ -166,7 +168,15 @@ export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort,
             <tbody>
               {matrix.rows.map((r) => (
                 <tr key={r.key} className={r.cells.some((c) => c?.name === selected) ? 'active' : undefined}>
-                  <td className="t-keyword">{r.key}</td>
+                  <td className="t-keyword">
+                    {onDrift && r.cells.filter(Boolean).length >= 2 ? (
+                      <button className="link t-keyword" onClick={() => onDrift(r.key)} title={`compare the keys of ${r.key} across environments`}>
+                        {r.key}
+                      </button>
+                    ) : (
+                      r.key
+                    )}
+                  </td>
                   {r.cells.map((c, i) =>
                     c ? (
                       <td key={i}>

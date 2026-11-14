@@ -141,12 +141,30 @@ export const api = {
     call<{ versions: Secret[] }>('GET', `/api/secrets/versions?${qs({ backend: r.backend, parent: r.parent, name: r.name })}`).then(
       (x) => x.versions,
     ),
+  /** Per-key fingerprints of several .env secrets (latest versions); never values. See ./drift. */
+  drift: (backend: Backend, parent: string, names: string[]) =>
+    call<{ secrets: DriftSecret[] }>('POST', '/api/secrets/drift', { backend, parent, names }).then((x) => x.secrets),
   read: (r: Ref) => call<{ secret: Secret }>('POST', '/api/secrets/read', r).then((x) => x.secret),
   /** `confirm` is the typed secret name, needed when the name is protected. */
   update: (u: UpdateInput, confirm?: string) => call<{ secret: Secret }>('POST', '/api/secrets/update', u, confirm).then((x) => x.secret),
   /** kmsKey may be left out for storage when the source has one in the config. */
   create: (c: CreateInput, confirm?: string) => call<{ secret: Secret }>('POST', '/api/secrets/create', c, confirm).then((x) => x.secret),
   remove: (r: Omit<Ref, 'version'>, confirm?: string) => call<{ ok: boolean }>('POST', '/api/secrets/delete', r, confirm),
+}
+
+/**
+ * One secret as the drift route sees it. fp fingerprints a value without
+ * surrounding quotes, exact as written; both are HMACs under a key that only
+ * the running core has, so equal values match but nothing can be read back.
+ */
+export type DriftSecret = {
+  name: string
+  version?: string
+  /** false when the value isn't a .env file; `value` then fingerprints all of it */
+  env: boolean
+  keys?: { key: string; fp: string; exact: string; empty?: boolean }[]
+  value?: string
+  error?: string
 }
 
 export type CreateInput = {

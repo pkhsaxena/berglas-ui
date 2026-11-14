@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { onAuditError, type Ref } from '../../core/api'
 import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
+import { useDrift } from '../../core/hooks/useDrift'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
@@ -15,6 +16,7 @@ import { SKINS, skinFor } from '../registry'
 import { PaneHead } from './components/bits'
 import { CreateSecret } from './components/CreateSecret'
 import { Credit } from './components/Credit'
+import { DriftPane } from './components/Drift'
 import { FindBar } from './components/FindBar'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
@@ -76,7 +78,7 @@ export default function App() {
   }
   // which view the main column shows at normal width; zoomed out, the
   // overview and matrix have their own column and this stays on 'secret'
-  const [view, setView] = useState<'secret' | 'versions' | 'overview' | 'matrix'>('secret')
+  const [view, setView] = useState<'secret' | 'versions' | 'overview' | 'matrix' | 'drift'>('secret')
   const [matrixSort, setMatrixSort] = useState<MatrixSort>(null)
   const shownView = view === 'versions' && !selected ? 'secret' : view
   const select = (name: string) => {
@@ -86,6 +88,13 @@ export default function App() {
   }
 
   const matrix = useMemo(() => (active && list.secrets ? matrixOf(list.secrets, active.group) : null), [active, list.secrets])
+  const drift = useDrift(active, matrix)
+  // a matrix row's name opens the drift view for that service and compares it
+  const openDrift = (service: string) => {
+    setCreating(false)
+    setView('drift')
+    void drift.run(service)
+  }
 
   // the view tabs, set into the header of the main column's top pane (normal width only)
   const titleTabs = active && (
@@ -104,6 +113,11 @@ export default function App() {
       {matrix && (
         <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
           Matrix
+        </button>
+      )}
+      {drift.services.length > 0 && (
+        <button role="tab" aria-selected={shownView === 'drift'} onClick={() => setView('drift')}>
+          Drift
         </button>
       )}
     </span>
@@ -135,7 +149,7 @@ export default function App() {
     comparingPin && active && wideView === 'overview' ? (
       <OverviewPane source={active} list={list} onSelect={select} wideTabs={wideTabs} />
     ) : comparingPin && active && wideView === 'matrix' && matrix ? (
-      <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} wideTabs={wideTabs} />
+      <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} onDrift={openDrift} wideTabs={wideTabs} />
     ) : null
 
   return (
@@ -282,7 +296,7 @@ export default function App() {
                 {/* zoomed out only: the matrix over the overview, always in view */}
                 {active && (
                   <div className="side-col">
-                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />}
+                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} onDrift={openDrift} />}
                     <OverviewPane source={active} list={list} onSelect={select} />
                   </div>
                 )}
@@ -311,7 +325,11 @@ export default function App() {
                       </div>
                     ) : shownView === 'matrix' && matrix ? (
                       <div className="right single">
-                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} titleTabs={titleTabs} />
+                        <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} onDrift={openDrift} titleTabs={titleTabs} />
+                      </div>
+                    ) : shownView === 'drift' ? (
+                      <div className="right single">
+                        <DriftPane drift={drift} onSelect={select} titleTabs={titleTabs} />
                       </div>
                     ) : creating ? (
                       <div className="right single">
@@ -353,7 +371,7 @@ export default function App() {
                         {/* nothing open: overview and matrix here at normal width; zoomed out they are in the side column */}
                         <div className={matrix ? 'right overview normal-only' : 'right overview single normal-only'}>
                           <OverviewPane source={active} list={list} onSelect={select} titleTabs={titleTabs} />
-                          {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} />}
+                          {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} onDrift={openDrift} />}
                         </div>
                         <div className="right single wide-only">
                           <div className="pane">
