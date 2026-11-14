@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   readOnly: false,
   protect: [],
   revealSeconds: 60,
+  lockAfterMinutes: 0,
   clipboardClearSeconds: 30,
   cacheSeconds: 600,
   cacheEntries: 500,

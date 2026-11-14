@@ -592,6 +592,19 @@
       return [switched && listed && back, `switched ${switched} (${st?.impersonating}), list reloaded ${listed}, back to you ${back}`]
     })
 
+    await step('lock: hides the window, unlock asks for touch id', async () => {
+      const before = Number((await fetch('/__selftest/authed').then((r) => r.text())) || 0)
+      window.berglasUI.run('lock') // Go → Lock (⇧⌘L)
+      await wait(300)
+      const screen = vis(document.querySelector('.lock-screen'))
+      const hidden = getComputedStyle(document.querySelector('header')).visibility === 'hidden'
+      await press(['unlock with touch id…'])
+      await wait(400)
+      const after = Number((await fetch('/__selftest/authed').then((r) => r.text())) || 0)
+      const unlocked = !document.querySelector('.lock-screen') && getComputedStyle(document.querySelector('header')).visibility === 'visible'
+      return [screen && hidden && after === before + 1 && unlocked, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 
@@ -631,11 +644,14 @@
 
     // a mailto link leaves the app instead of replacing it
     const before = location.href
-    const mail = document.querySelector('a[href^="mailto:"]')
+    // the terminal skin types its credit line out and rotates it, so the link
+    // may be missing for a moment: wait for it (a rotation is 20 s)
+    let mail = null
+    for (let i = 0; i < 120 && !(mail = document.querySelector('a[href^="mailto:"]')); i++) await wait(250)
     mail?.click()
     await wait(400)
     const opened = await (await fetch('/__selftest/opened')).text()
-    check('mailto link handed to the system, app stays', !!mail && opened.startsWith('mailto:') && location.href === before, `opened ${JSON.stringify(opened)}, page ${location.href}`)
+    check('mailto link handed to the system, app stays', !!mail && opened.startsWith('mailto:') && location.href === before, `link ${!!mail}, opened ${JSON.stringify(opened)}, page ${location.href}`)
     await wait(3000) // time for a port check from outside
   } catch (e) {
     check('exception', false, String(e))

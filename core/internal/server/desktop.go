@@ -22,6 +22,11 @@ type Desktop interface {
 	// SaveFile asks where to save a file (a native Save dialog) and returns
 	// the chosen path, or "" if the user cancelled.
 	SaveFile(defaultName string) (string, error)
+	// CanAuthenticate says whether Authenticate can ask the user (Touch ID
+	// or the login password); Authenticate asks and reports whether they
+	// passed. reason is shown in the system prompt.
+	CanAuthenticate() bool
+	Authenticate(reason string) (bool, error)
 }
 
 // exportName is a file name for a secret: its last path part, with
@@ -71,7 +76,7 @@ func writePrivate(path string, data []byte) error {
 func (s *Server) DesktopHandler(d Desktop) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/desktop", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]bool{"desktop": true})
+		writeJSON(w, http.StatusOK, map[string]bool{"desktop": true, "auth": d.CanAuthenticate()})
 	})
 	mux.HandleFunc("POST /api/desktop/clipboard", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
@@ -127,6 +132,24 @@ func (s *Server) DesktopHandler(d Desktop) http.Handler {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+	})
+	// authenticate asks for Touch ID or the login password (unlocking the ui).
+	mux.HandleFunc("POST /api/desktop/authenticate", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Reason string `json:"reason"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		if in.Reason == "" {
+			in.Reason = "unlock berglas-ui"
+		}
+		ok, err := d.Authenticate(in.Reason)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"ok": ok})
 	})
 	// save writes one version's value to a file the user picks, as plain
 	// text with mode 0600. The core reads the value itself, so the request

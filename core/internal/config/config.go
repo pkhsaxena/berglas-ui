@@ -84,6 +84,10 @@ type Config struct {
 	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
 	// whose writes and deletes need the secret's name typed to confirm.
 	Protect []string `yaml:"protect,omitempty" json:"protect"`
+	// LockAfterMinutes locks the ui after this long without input; 0 (the
+	// default) never locks by itself. In the mac app, unlocking asks for
+	// Touch ID or the login password.
+	LockAfterMinutes int `yaml:"lockAfterMinutes,omitempty" json:"-"`
 	// RevealSeconds hides a revealed value after this long; 0 never hides.
 	// Unset means 60.
 	RevealSeconds *int `yaml:"revealSeconds,omitempty" json:"-"`
@@ -100,6 +104,10 @@ type Config struct {
 	// AuditLog is a file that gets one JSON line per write (never values).
 	// Empty turns it off.
 	AuditLog string `yaml:"auditLog,omitempty" json:"auditLog"`
+	// AllowScreenCapture lets screenshots, screen recording and screen sharing
+	// see the mac app's window. Off by default: the window shows secrets.
+	// Read at startup.
+	AllowScreenCapture bool `yaml:"allowScreenCapture,omitempty" json:"allowScreenCapture"`
 	// Credentials picks the Google identity; the ui can switch between its
 	// choices while running (SetIdentity).
 	Credentials Credentials `yaml:"credentials,omitempty" json:"credentials"`
@@ -191,6 +199,9 @@ func Validate(c Config) error {
 	}
 	if c.TimeZone != "" && c.TimeZone != "local" && c.TimeZone != "utc" {
 		return fmt.Errorf("timeZone must be local or utc, got %q", c.TimeZone)
+	}
+	if c.LockAfterMinutes < 0 {
+		return fmt.Errorf("lockAfterMinutes must be 0 or more")
 	}
 	if c.RevealSeconds != nil && *c.RevealSeconds < 0 {
 		return fmt.Errorf("revealSeconds must be 0 or more")

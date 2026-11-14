@@ -121,6 +121,7 @@ export function paletteActions(o: {
   skins: readonly { name: string; label: string }[]
   setSkin: (name: string) => void
   setTimeZone: (z: 'local' | 'utc') => void
+  lock?: () => void
   /** other identities to act as */
   identities?: { key: string; label: string; serviceAccount: string; quotaProject: string }[]
   setIdentity?: (o: { serviceAccount: string; quotaProject: string }) => void
@@ -136,6 +137,7 @@ export function paletteActions(o: {
   for (const t of o.themes) a.push({ label: `Theme: ${t}`, hint: 'theme', run: () => o.setTheme(t) })
   if (o.skins.length > 1) for (const s of o.skins) a.push({ label: `Skin: ${s.label}`, hint: 'skin (reloads)', run: () => o.setSkin(s.name) })
   a.push({ label: 'Time: local', hint: 'time zone', run: () => o.setTimeZone('local') }, { label: 'Time: UTC', hint: 'time zone', run: () => o.setTimeZone('utc') })
+  if (o.lock) a.push({ label: 'Lock now', hint: '⇧⌘L · Touch ID to unlock', run: o.lock })
   for (const id of o.identities ?? []) a.push({ label: `Act as ${id.label}`, hint: id.serviceAccount || 'your gcloud login', run: () => o.setIdentity?.(id) })
   return a
 }

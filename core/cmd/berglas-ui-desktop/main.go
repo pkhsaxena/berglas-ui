@@ -65,6 +65,8 @@ type shell struct {
 	// saveDir, during a self-test, takes saved files instead of a Save dialog
 	saveDir string
 	saved   string
+	// authed counts self-test unlocks
+	authed int
 }
 
 func (s *shell) SetClipboard(text string) error {
@@ -80,6 +82,18 @@ func (s *shell) OpenURL(u string) error {
 	}
 	wruntime.BrowserOpenURL(s.ctx, u)
 	return nil
+}
+
+func (s *shell) CanAuthenticate() bool { return s.saveDir != "" || canAuthenticate() }
+
+// Authenticate asks for Touch ID or the login password. During a self-test
+// nobody is there to answer, so it passes and is recorded instead.
+func (s *shell) Authenticate(reason string) (bool, error) {
+	if s.saveDir != "" {
+		s.authed++
+		return true, nil
+	}
+	return authenticate(reason)
 }
 
 func (s *shell) SaveFile(name string) (string, error) {
@@ -192,6 +206,9 @@ func run() error {
 		Menu:             appMenu(sh),
 		AssetServer:      &assetserver.Options{Handler: handler},
 		Mac: &mac.Options{
+			// keep the window out of screenshots, recordings and screen shares
+			// (NSWindowSharingNone) unless the config allows it
+			ContentProtection: !cfg.Get().AllowScreenCapture,
 			About: &mac.AboutInfo{
 				Title:   "berglas-ui " + version,
 				Message: "A desktop ui for berglas secrets.\nUses your gcloud application-default credentials.",
@@ -260,6 +277,8 @@ func appMenu(sh *shell) *menu.Menu {
 	// ⌘K opens the command palette (core/palette.ts): secrets, sources, actions
 	goMenu := m.AddSubmenu("Go")
 	goMenu.AddText("Go To…", keys.CmdOrCtrl("k"), run("palette"))
+	goMenu.AddSeparator()
+	goMenu.AddText("Lock", keys.Combo("l", keys.CmdOrCtrlKey, keys.ShiftKey), run("lock"))
 	view := m.AddSubmenu("View")
 	view.AddText("Zoom In", keys.CmdOrCtrl("="), run("zoomIn"))
 	view.AddText("Zoom Out", keys.CmdOrCtrl("-"), run("zoomOut"))
@@ -289,6 +308,9 @@ func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool
 			return
 		case "/__selftest/opened":
 			_, _ = fmt.Fprint(w, strings.Join(*sh.opened, "\n"))
+			return
+		case "/__selftest/authed":
+			_, _ = fmt.Fprint(w, sh.authed)
 			return
 		case "/__selftest/saved":
 			// the last saved file's name, mode and size; never its content

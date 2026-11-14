@@ -299,3 +299,9 @@ button::highlight(find), button::highlight(find-current), button *::highlight(fi
 .drop-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
 .act-as { display: inline-flex; align-items: center; gap: 6px; }
 .act-as select { max-width: 28ch; }
+
+/* locked: only the lock screen shows; the page keeps its state underneath */
+html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
+.lock-screen { position: fixed; inset: 0; z-index: 60; background: var(--n-bg); display: flex; align-items: center; justify-content: center; }
+.lock-card { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--n-surface); border: 1px solid var(--n-line); border-radius: 14px; padding: 28px 36px; box-shadow: var(--n-shadow); }
+.lock-icon { font-size: 28px; }

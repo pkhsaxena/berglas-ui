@@ -25,6 +25,11 @@ type fakeDesktop struct {
 func (f *fakeDesktop) SetClipboard(t string) error    { f.board = t; return nil }
 func (f *fakeDesktop) ClipboardText() (string, error) { return f.board, nil }
 func (f *fakeDesktop) OpenURL(u string) error         { f.opened = append(f.opened, u); return nil }
+func (f *fakeDesktop) CanAuthenticate() bool          { return true }
+func (f *fakeDesktop) Authenticate(reason string) (bool, error) {
+	f.asked = reason
+	return f.saveTo != "no", nil
+}
 func (f *fakeDesktop) SaveFile(name string) (string, error) {
 	f.asked = name
 	return f.saveTo, nil
@@ -170,5 +175,19 @@ func TestExportName(t *testing.T) {
 		if got := exportName(in); got != want {
 			t.Errorf("exportName(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestDesktopAuthenticate(t *testing.T) {
+	h, d := desktopServer(t, "")
+	if rec := desk(h, http.MethodGet, "/api/desktop", ""); !strings.Contains(rec.Body.String(), `"auth":true`) {
+		t.Fatalf("GET /api/desktop: %s", rec.Body)
+	}
+	if rec := desk(h, http.MethodPost, "/api/desktop/authenticate", `{}`); !strings.Contains(rec.Body.String(), `"ok":true`) || d.asked != "unlock berglas-ui" {
+		t.Fatalf("authenticate: %s (asked %q)", rec.Body, d.asked)
+	}
+	d.saveTo = "no"
+	if rec := desk(h, http.MethodPost, "/api/desktop/authenticate", `{"reason":"x"}`); !strings.Contains(rec.Body.String(), `"ok":false`) {
+		t.Fatalf("refused: %s", rec.Body)
 	}
 }

@@ -4,6 +4,7 @@ import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
+import { useLock } from '../../core/hooks/useLock'
 import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
@@ -25,6 +26,7 @@ import { Credit } from './components/Credit'
 import { DriftPane } from './components/Drift'
 import { FindBar } from './components/FindBar'
 import { Palette } from './components/Palette'
+import { LockScreen } from './components/LockScreen'
 import { FileDrop } from './components/FileDrop'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
@@ -75,6 +77,7 @@ export default function App() {
   }, [toast])
 
   const ids = identityOptions(app.identity)
+  const lockState = useLock(session.kind === 'ready' ? app.settings.lockAfterMinutes : 0)
   // a new identity may see other secrets: reload the list and close the open one
   useEffect(() => {
     if (app.identityRev === 0) return
@@ -161,6 +164,7 @@ export default function App() {
         setTimeZone: app.setTimeZone,
         identities: ids.options.length > 1 ? ids.options.filter((o) => o.key !== ids.current) : [],
         setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
+        lock: lockState.lock,
       }),
     }),
   )
@@ -488,6 +492,7 @@ export default function App() {
       <Credit />
       <FindBar f={find} />
       {session.kind === 'ready' && <Palette p={palette} />}
+      <LockScreen l={lockState} />
       {session.kind === 'ready' && active && (
         <FileDrop
           drop={drop}

@@ -186,7 +186,12 @@ finds them when started from Finder. Needs Xcode's command line tools, Go and No
   no route that reads the clipboard back. `mailto:` and `http(s)` links open in your mail app
   or browser; other schemes are refused.
 - **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); Go (Go To… ⌘K, the command palette); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0, reload ⌘R, full screen); Window.
+  previous ⇧⌘G); Go (Go To… ⌘K, the command palette; Lock ⇧⌘L); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0, reload ⌘R, full screen); Window.
+- **lock:** Go → Lock (⇧⌘L), **Lock now** in ⌘K, or `lockAfterMinutes: 15` in the config to lock
+  after 15 minutes without input. Unlocking asks for Touch ID (or the login password). An open
+  editor keeps its draft under the lock.
+- **hidden from screen capture:** the window is left out of screenshots, screen recording and
+  screen sharing. Set `allowScreenCapture: true` in the config to allow them (read at startup).
 - **signing:** the build is signed ad hoc, which runs on the mac that built it. Handing it to
   others without Gatekeeper warnings needs a Developer ID signature and notarization.
 - **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives the api,

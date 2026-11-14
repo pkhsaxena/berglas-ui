@@ -3,7 +3,7 @@
 // Whoever owns the state registers the handler; a command with no handler
 // does nothing.
 
-export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette'
+export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette' | 'lock'
 
 const handlers = new Map<Command, () => void>()
 

@@ -27,6 +27,7 @@ type Settings struct {
 	ReadOnly              bool        `json:"readOnly"`
 	Protect               []string    `json:"protect"`
 	RevealSeconds         int         `json:"revealSeconds"`
+	LockAfterMinutes      int         `json:"lockAfterMinutes"`
 	ClipboardClearSeconds int         `json:"clipboardClearSeconds"`
 	CacheSeconds          int         `json:"cacheSeconds"`
 	CacheEntries          int         `json:"cacheEntries"`
@@ -43,6 +44,7 @@ func (c Config) Settings() Settings {
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
+		LockAfterMinutes: c.LockAfterMinutes,
 	}
 	if c.RevealSeconds != nil {
 		s.RevealSeconds = *c.RevealSeconds

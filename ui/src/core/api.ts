@@ -120,6 +120,8 @@ export type Config = {
   readOnly: boolean
   protect: string[]
   revealSeconds: number
+  /** lock the ui after this many minutes without input; 0 = never */
+  lockAfterMinutes: number
   clipboardClearSeconds: number
   /** how long cached secret and version lists are kept; 0 = no cache */
   cacheSeconds: number
