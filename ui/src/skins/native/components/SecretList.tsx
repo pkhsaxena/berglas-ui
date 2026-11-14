@@ -63,7 +63,12 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
         <div className="scroll" role="status" aria-label={`${shown.length} of ${secrets.length} secrets`}>
           {groups.map((g) => (
             <div key={g.key ?? '\u0000other'}>
-              {source.group && <div className="group-key">{g.key === null ? <span className="muted">Other</span> : g.key}</div>}
+              {source.group && (
+                <div className="group-key">
+                  {g.key === null ? <span className="muted">Other</span> : g.key}
+                  <span className="count">{g.items.length}</span>
+                </div>
+              )}
               <ul className={source.group ? 'clean grouped' : 'clean'}>
                 {g.items.map(({ item: s, label }) => (
                   <li key={s.name}>
