@@ -62,6 +62,18 @@
     // find bar, opened the way the Find menu does it
     window.berglasUI.run('find')
     await wait(200)
+    const fb = document.querySelector('.find-bar input')
+    if (fb) {
+      setInput(fb, 'LOG_LEVEL') // the key is drawn as "LOG_" <wbr> "LEVEL"
+      await wait(300)
+      const inKeys = [...(CSS.highlights?.get('find') ?? [])].filter((r) => r.startContainer.parentElement?.closest('td.env-key')).length
+      check('find matches a key split at "_"', inKeys >= 1, `${inKeys} in key cells`)
+      fb.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wait(100)
+    }
+
+    window.berglasUI.run('find')
+    await wait(200)
     const bar = document.querySelector('.find-bar')
     check('find bar opens and takes focus', !!bar && document.activeElement === bar.querySelector('input'), bar ? 'open' : 'missing')
     if (bar) {
@@ -83,9 +95,11 @@
       await wait(1500)
       mo.disconnect()
       check('find stays still while idle', idle === 0, `${idle} attribute changes in 1.5 s`)
-      // WebKit does not paint highlights inside buttons, so matched buttons are marked
-      const buttonHits = [...(CSS.highlights?.get('find') ?? [])].filter((r) => r.startContainer.parentElement?.closest('button')).length
-      check('buttons holding a match are marked', buttonHits === 0 || document.querySelectorAll('button[data-find]').length > 0, `${buttonHits} matches in buttons, ${document.querySelectorAll('button[data-find]').length} marked`)
+      // WebKit does not paint highlights inside buttons: matched letters there get their own boxes
+      const inButtons = [...(CSS.highlights?.get('find') ?? [])].filter((r) => r.startContainer.parentElement?.closest('button'))
+      const marks = [...document.querySelectorAll('[data-find-mark]')]
+      const widest = Math.max(0, ...marks.map((m) => m.getBoundingClientRect().width))
+      check('matches in buttons get letter-sized marks', inButtons.length === 0 || (marks.length >= inButtons.length && widest < 200), `${inButtons.length} in buttons, ${marks.length} marks, widest ${Math.round(widest)}px`)
       check('a longer query repaints only its own matches', wide > painted.length && painted.length > 0 && painted.every((t) => t === 'pay'), `p: ${wide}, pay: ${painted.length}`)
       bar.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
       await wait(100)

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { onCommand } from '../commands'
-import { clearPaint, findRanges, paint, reveal } from '../find'
+import { clearPaint, findRanges, isMark, paint, reveal } from '../find'
 
 /**
  * Find in page (see ../find.ts). Opened by the desktop app's Edit → Find
@@ -44,15 +44,27 @@ export function useFind() {
     if (!root) return
     let t: number | undefined
     const mo = new MutationObserver((records) => {
-      if (records.every((r) => (r.target as Element).closest?.('[data-find-ignore]'))) return
+      // skip changes find makes itself: the bar, and the marks it lays over buttons
+      const own = (r: MutationRecord) =>
+        !!(r.target as Element).closest?.('[data-find-ignore]') ||
+        (r.type === 'childList' && [...r.addedNodes, ...r.removedNodes].every(isMark)) ||
+        (r.type === 'attributes' && r.attributeName === 'data-find-host')
+      if (records.every(own)) return
       window.clearTimeout(t)
       t = window.setTimeout(() => search(true), 150)
     })
     // not 'style': find's own repaint nudge (find.ts) changes inline styles, and
     // watching them made find re-search and re-paint itself about 20 times a second
     mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'hidden'] })
+    // a resize or zoom moves the text: lay the marks again
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(t)
+      t = window.setTimeout(() => search(true), 150)
+    })
+    ro.observe(root)
     return () => {
       mo.disconnect()
+      ro.disconnect()
       window.clearTimeout(t)
     }
   }, [open, query, search])

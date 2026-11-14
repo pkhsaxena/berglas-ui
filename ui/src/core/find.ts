@@ -2,11 +2,14 @@
 // browser, ⌘F stays the browser's own). Pure helpers; hooks/useFind.ts holds
 // the state.
 //
-// Matches are DOM Ranges over visible text, case-insensitive. A match must
-// sit inside one text node, so text split across elements is not found as
-// one. Masked values are not text in the page, so they are never found.
+// Matches are DOM Ranges over visible text, case-insensitive. Text that sits
+// together on one line is searched as one string even when it is split into
+// several text nodes: a .env key is drawn as "APP_" <wbr> "ENV" (KeyText), and
+// "APP_ENV" must still match it. Text in different blocks (table cells, list
+// rows, paragraphs) is never joined. Masked values are not text in the page,
+// so they are never found.
 
-/** Text node offsets where `query` occurs in `text`, any case. */
+/** Text offsets where `query` occurs in `text`, any case. */
 export function findOffsets(text: string, query: string): number[] {
   const q = query.toLowerCase()
   if (!q) return []
@@ -16,6 +19,27 @@ export function findOffsets(text: string, query: string): number[] {
   return out
 }
 
+/** A match as [piece, offset] at each end, over pieces of text read as one string. */
+export type Span = { start: [number, number]; end: [number, number] }
+
+/** Matches of query across pieces of text joined with nothing between them. */
+export function spanMatches(pieces: string[], query: string): Span[] {
+  const joined = pieces.join('')
+  const starts: number[] = []
+  let at = 0
+  for (const p of pieces) {
+    starts.push(at)
+    at += p.length
+  }
+  // the piece holding character i (for an end, the piece holding i - 1)
+  const locate = (i: number, isEnd: boolean): [number, number] => {
+    let k = pieces.length - 1
+    while (k > 0 && (isEnd ? starts[k] >= i : starts[k] > i)) k--
+    return [k, i - starts[k]]
+  }
+  return findOffsets(joined, query).map((o) => ({ start: locate(o, false), end: locate(o + query.length, true) }))
+}
+
 const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION'])
 
 function visible(el: Element): boolean {
@@ -23,6 +47,16 @@ function visible(el: Element): boolean {
   if (el.getClientRects().length === 0) return false // display: none, or inside it
   const s = getComputedStyle(el)
   return s.visibility !== 'hidden'
+}
+
+/** The nearest ancestor that is not display: inline; text under one is read together. */
+function blockOf(el: Element, cache: Map<Element, Element>): Element {
+  const hit = cache.get(el)
+  if (hit) return hit
+  let b: Element = el
+  while (b.parentElement && getComputedStyle(b).display === 'inline') b = b.parentElement
+  cache.set(el, b)
+  return b
 }
 
 /** Ranges for every visible occurrence of query under root, in document order. */
@@ -37,18 +71,35 @@ export function findRanges(root: Node, query: string): Range[] {
     },
   })
   const seen = new Map<Element, boolean>()
+  const blocks = new Map<Element, Element>()
+  let run: Text[] = []
+  let runBlock: Element | null = null
+  const flush = () => {
+    if (run.length) {
+      for (const m of spanMatches(run.map((t) => t.nodeValue!), query)) {
+        const r = document.createRange()
+        r.setStart(run[m.start[0]], m.start[1])
+        r.setEnd(run[m.end[0]], m.end[1])
+        ranges.push(r)
+      }
+    }
+    run = []
+    runBlock = null
+  }
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     const p = n.parentElement!
     let ok = seen.get(p)
     if (ok === undefined) seen.set(p, (ok = visible(p)))
-    if (!ok) continue
-    for (const at of findOffsets(n.nodeValue!, query)) {
-      const r = document.createRange()
-      r.setStart(n, at)
-      r.setEnd(n, at + query.length)
-      ranges.push(r)
+    if (!ok) {
+      flush() // never join text across something hidden
+      continue
     }
+    const b = blockOf(p, blocks)
+    if (b !== runBlock) flush()
+    runBlock = b
+    run.push(n as Text)
   }
+  flush()
   return ranges
 }
 
@@ -58,10 +109,11 @@ export function findRanges(root: Node, query: string): Range[] {
 // painted after the query changed; emptying the same highlight does repaint.
 // As a backstop, every element that held a match is nudged to repaint too.
 //
-// WebKit also leaves the text inside a <button> unpainted, so a button
-// holding a match is marked itself: data-find="match" or "current", for the
-// skin to style (and to turn ::highlight off inside buttons, so every engine
-// looks the same).
+// WebKit also leaves the text inside a <button> unpainted. There each match
+// gets its own boxes: <span data-find-mark="match|current"> laid over the
+// matched letters inside the button (which gets data-find-host), for the
+// skin to style. The skin turns ::highlight off inside buttons, so every
+// engine looks the same.
 type HighlightLike = { add(r: Range): void; clear(): void; size: number; [Symbol.iterator](): IterableIterator<Range> }
 type Registry = { set(name: string, h: HighlightLike): void; get(name: string): HighlightLike | undefined; delete(name: string): void }
 
@@ -95,18 +147,40 @@ function nudge(ranges: Iterable<Range>) {
   })
 }
 
-let marked: HTMLElement[] = []
+let marks: HTMLElement[] = []
+let hosts: HTMLElement[] = []
 
-/** Marks the buttons that hold matches; clears the previous marks. */
+/** True for nodes find adds itself (the marks), so watching the page can skip them. */
+export const isMark = (n: Node) => n instanceof Element && n.hasAttribute('data-find-mark')
+
+/** Lays boxes over the matched letters inside buttons; removes the previous ones. */
 function markButtons(ranges: Range[], at: number) {
-  for (const b of marked) b.removeAttribute('data-find')
-  marked = []
+  for (const m of marks) m.remove()
+  for (const h of hosts) h.removeAttribute('data-find-host')
+  marks = []
+  hosts = []
   ranges.forEach((r, i) => {
     const b = r.startContainer.parentElement?.closest('button')
     if (!b) return
-    if (i === at) b.setAttribute('data-find', 'current')
-    else if (!b.hasAttribute('data-find')) b.setAttribute('data-find', 'match')
-    marked.push(b)
+    if (!b.hasAttribute('data-find-host')) {
+      b.setAttribute('data-find-host', '')
+      hosts.push(b)
+    }
+    const br = b.getBoundingClientRect()
+    // client rects are in screen px; the boxes are placed in the button's own
+    // css px, which differ under the ui zoom
+    const scale = b.offsetWidth ? br.width / b.offsetWidth : 1
+    for (const rect of r.getClientRects()) {
+      const m = document.createElement('span')
+      m.setAttribute('data-find-mark', i === at ? 'current' : 'match')
+      m.setAttribute('aria-hidden', 'true')
+      m.style.left = `${(rect.left - br.left) / scale - b.clientLeft}px`
+      m.style.top = `${(rect.top - br.top) / scale - b.clientTop}px`
+      m.style.width = `${rect.width / scale}px`
+      m.style.height = `${rect.height / scale}px`
+      b.appendChild(m)
+      marks.push(m)
+    }
   })
 }
 

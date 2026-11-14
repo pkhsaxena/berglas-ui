@@ -284,8 +284,11 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 .find-bar .find-count { min-width: 9ch; text-align: right; }
 ::highlight(find) { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
 ::highlight(find-current) { background-color: var(--t-prompt); color: var(--t-bg); }
-/* WebKit leaves text inside buttons unpainted, so core/find.ts marks the
-   button itself; the text highlight is turned off there to match */
-button[data-find='match'] { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
-button[data-find='current'] { background-color: var(--t-prompt); color: var(--t-bg); }
+/* WebKit leaves text inside buttons unpainted, so core/find.ts lays boxes
+   over the matched letters there (behind the text, inside the button); the
+   text highlight is turned off in buttons so every engine looks the same */
+button[data-find-host] { position: relative; isolation: isolate; }
+[data-find-mark] { position: absolute; z-index: -1; pointer-events: none; }
+[data-find-mark='match'] { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
+[data-find-mark='current'] { background-color: color-mix(in srgb, var(--t-prompt) 45%, transparent); outline: 1px solid var(--t-prompt); }
 button::highlight(find), button::highlight(find-current), button *::highlight(find), button *::highlight(find-current) { background-color: transparent; color: inherit; }
