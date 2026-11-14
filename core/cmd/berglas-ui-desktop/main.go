@@ -160,13 +160,15 @@ func run() error {
 	}
 
 	err = wails.Run(&options.App{
-		Title:       "berglas-ui",
-		Width:       1440,
-		Height:      900,
-		MinWidth:    900,
-		MinHeight:   600,
-		Menu:        appMenu(sh),
-		AssetServer: &assetserver.Options{Handler: handler},
+		Title:     "berglas-ui",
+		Width:     1440,
+		Height:    900,
+		MinWidth:  900,
+		MinHeight: 600,
+		// open filling the screen; Width and Height are the size it restores to
+		WindowStartState: options.Maximised,
+		Menu:             appMenu(sh),
+		AssetServer:      &assetserver.Options{Handler: handler},
 		Mac: &mac.Options{
 			About: &mac.AboutInfo{
 				Title:   "berglas-ui " + version,
