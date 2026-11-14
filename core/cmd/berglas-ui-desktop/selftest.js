@@ -551,10 +551,16 @@
       const action = vis(pane('.matrix-pane'))
       key(document.body, 'k', { ctrlKey: true })
       await wait(300)
+      // the current time zone is not offered (picking it would change nothing)
+      setField(field('go to'), 'time:')
+      await wait(200)
+      const tzOffered = [...document.querySelectorAll('[role=option]')].map((o) => norm(o.textContent))
+      const tz = (await call('GET', '/api/config')).json?.timeZone
+      const tzOk = tzOffered.length === 1 && !tzOffered[0].includes(tz === 'utc' ? 'utc' : 'local')
       key(field('go to'), 'Escape')
       await wait(200)
       const closed = !field('go to')
-      return [opened && noAssist && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, no spell check ${noAssist}, top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
+      return [opened && noAssist && tzOk && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, no spell check ${noAssist}, time zone (${tz}) offers [${tzOffered}], top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
     })
 
     const dropFile = async (parts, name) => {

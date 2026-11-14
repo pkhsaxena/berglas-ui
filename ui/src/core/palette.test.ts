@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { metaCache, listKey } from './cache'
-import { fuzzyScore, type PaletteItem, paletteItems, rankItems } from './palette'
+import { fuzzyScore, type PaletteItem, paletteActions, paletteItems, rankItems } from './palette'
 
 const item = (label: string, group: PaletteItem['group'] = 'Secrets', hint?: string): PaletteItem => ({ id: label, group, label, hint, run: () => {} })
 
@@ -47,5 +47,31 @@ describe('paletteItems', () => {
     expect(items.map((i) => `${i.group}:${i.label}`)).toEqual(['Secrets:in-a', 'Secrets:in-b', 'Sources:Open source a', 'Sources:Open source b', 'Sources:Open source c', 'Actions:Refresh'])
     items[1].run()
     expect(open).toHaveBeenCalledWith(b, 'in-b')
+  })
+})
+
+describe('paletteActions', () => {
+  const base = {
+    views: [],
+    showView: () => {},
+    driftServices: [],
+    openDrift: () => {},
+    zoom: () => {},
+    themes: ['System', 'Light', 'Dark'],
+    setTheme: () => {},
+    skins: [
+      { name: 'terminal', label: 'Terminal' },
+      { name: 'native', label: 'Native' },
+    ],
+    setSkin: () => {},
+    setTimeZone: () => {},
+  }
+  it('leaves out the current time zone, theme and skin', () => {
+    const labels = paletteActions({ ...base, timeZone: 'local', theme: 'Light', skin: 'native' }).map((a) => a.label)
+    expect(labels).toContain('Time: UTC')
+    expect(labels).not.toContain('Time: local')
+    expect(labels.filter((l) => l.startsWith('Theme:'))).toEqual(['Theme: System', 'Theme: Dark'])
+    expect(labels.filter((l) => l.startsWith('Skin:'))).toEqual(['Skin: Terminal'])
+    expect(paletteActions({ ...base, timeZone: 'utc' }).map((a) => a.label)).toContain('Time: local')
   })
 })
