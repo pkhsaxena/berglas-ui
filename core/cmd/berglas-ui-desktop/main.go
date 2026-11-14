@@ -186,7 +186,22 @@ func appMenu(sh *shell) *menu.Menu {
 	m := menu.NewMenu()
 	m.Append(menu.AppMenu())
 	m.Append(menu.EditMenu())
+	// zoom and find run in the page (core/commands.ts), which owns their state
+	run := func(cmd string) func(*menu.CallbackData) {
+		return func(*menu.CallbackData) {
+			wruntime.WindowExecJS(sh.ctx, "window.berglasUI && window.berglasUI.run('"+cmd+"')")
+		}
+	}
+	// Wails' Edit menu is a fixed system menu, so find gets its own
+	find := m.AddSubmenu("Find")
+	find.AddText("Find…", keys.CmdOrCtrl("f"), run("find"))
+	find.AddText("Find Next", keys.CmdOrCtrl("g"), run("findNext"))
+	find.AddText("Find Previous", keys.Combo("g", keys.CmdOrCtrlKey, keys.ShiftKey), run("findPrev"))
 	view := m.AddSubmenu("View")
+	view.AddText("Zoom In", keys.CmdOrCtrl("="), run("zoomIn"))
+	view.AddText("Zoom Out", keys.CmdOrCtrl("-"), run("zoomOut"))
+	view.AddText("Actual Size", keys.CmdOrCtrl("0"), run("zoomReset"))
+	view.AddSeparator()
 	view.AddText("Reload", keys.CmdOrCtrl("r"), func(*menu.CallbackData) { wruntime.WindowReloadApp(sh.ctx) })
 	view.AddText("Toggle Full Screen", keys.Combo("f", keys.CmdOrCtrlKey, keys.ControlKey), func(*menu.CallbackData) {
 		if wruntime.WindowIsFullscreen(sh.ctx) {

@@ -44,6 +44,46 @@
     const after = await (await fetch('/__selftest/clipboard')).text()
     check('clipboard auto-clears after clipboardClearSeconds', after === '', after === '' ? 'empty' : 'not empty (not shown)')
 
+    // the revealed value's filter box (payments-prod-env is still revealed)
+    const filter = document.querySelector('input.env-filter')
+    const setInput = (el, v) => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    if (filter) {
+      setInput(filter, 'log')
+      await wait(200)
+      const keys = [...filter.closest('.card').querySelectorAll('tbody td.env-key')].map((td) => td.innerText.trim())
+      check('filter shows only matching keys', keys.length === 1 && keys[0] === 'LOG_LEVEL', keys.join(','))
+      setInput(filter, '')
+      await wait(100)
+    } else check('filter box shown with a revealed value', false, 'no filter box')
+
+    // find bar, opened the way the Find menu does it
+    window.berglasUI.run('find')
+    await wait(200)
+    const bar = document.querySelector('.find-bar')
+    check('find bar opens and takes focus', !!bar && document.activeElement === bar.querySelector('input'), bar ? 'open' : 'missing')
+    if (bar) {
+      setInput(bar.querySelector('input'), 'payments')
+      await wait(300)
+      const count = bar.querySelector('.find-count').innerText
+      check('find counts and paints matches', /^1\/[1-9]/.test(count) && (CSS.highlights?.get('find')?.size ?? 0) > 0, count)
+      bar.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wait(100)
+      check('esc closes find and clears paint', !document.querySelector('.find-bar') && !CSS.highlights?.get('find'), 'closed')
+    }
+
+    // zoom, the way the View menu does it: zoomed out far enough, the wide layout
+    for (let i = 0; i < 5; i++) window.berglasUI.run('zoomOut') // 100 → 90 → 80 → 75 → 67 → 60
+    await wait(400)
+    const z = document.documentElement.style.zoom
+    const side = getComputedStyle(document.querySelector('.layout > .side-col')).display
+    check('zoom out reaches 60% and switches to the wide layout', z === '0.6' && side !== 'none' && document.getElementById('root').dataset.width === 'wide' && document.scrollingElement.scrollHeight <= innerHeight + 1, `zoom ${z}, side column ${side}`)
+    window.berglasUI.run('zoomReset')
+    await wait(300)
+    check('actual size resets zoom', document.documentElement.style.zoom === '', document.documentElement.style.zoom || '100%')
+
     const st = await call('GET', '/api/status')
     check('GET /api/status', st.status === 200, `${st.status} demo=${st.json?.demo}`)
     check('security headers', !!st.csp, st.csp ? 'csp present' : 'no csp')
