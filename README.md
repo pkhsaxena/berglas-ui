@@ -16,7 +16,9 @@ The ui is split so the look can be replaced without touching behaviour:
 ui/src/core/            no markup, no css: api client, .env parsing, diffing, time formatting
 ui/src/core/hooks/      everything a screen needs: useApp (session, config, sources),
                         useSecretList, useSecret (versions, reveal, copy), and the edit/diff hooks
-ui/src/skins/terminal/  the current look: components, css and theme presets
+ui/src/skins/terminal/  the terminal-pane look: components, css and theme presets
+ui/src/skins/native/    a Mac-style window: sidebar, segmented controls, light/dark/system
+                        appearance, environments color-coded with a banner over production
 ui/src/skins/registry.ts  the skins this build has; main.tsx loads the one the config names
 ```
 
@@ -30,7 +32,17 @@ themselves; anything a second skin would also need belongs in `core/`.
 - each skin is its own chunk, so only the chosen skin's code and css load. Every build carries
   every registered skin, the web ui and the desktop app alike.
 - `theme:` is an opaque name, so each skin decides which names it understands; switching skin
-  may fall back to that skin's default theme.
+  may fall back to that skin's default theme. terminal: Dracula, GitHub light, … ; native:
+  System (follows the OS), Light, Dark.
+- **skins available:** `terminal` (the default) and `native`. Both have every feature: sources,
+  grouped list, reveal with filter, copy, pin and compare, edit with review and protect, create,
+  delete, versions and diffs, overview and matrix, zoom and find.
+- **environment colors** (`core/envtone.ts`): a secret's environment comes from the `{env}`
+  placeholder of the source's `group` pattern, or else a word in its name (`prod`, `production`
+  → prod; `nonprod`, `staging`, `uat`, `qa` → staging; `dev`, `local`, `sandbox` → dev). The native
+  skin colors list dots, badges and matrix columns by it, and shows a red **Production** banner
+  over a prod secret (saying whether it is protected or read-only) and a thin colored strip
+  over the others.
 
 ## credentials
 
