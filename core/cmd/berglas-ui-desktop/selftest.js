@@ -522,6 +522,60 @@
       return [opened && first.startsWith('orders-staging-env') && jumped && viaMenu && action && closed, `opens ${opened}, top hit "${first}", jumped ${jumped}, menu ${viaMenu}, action ${action}, esc ${closed}`]
     })
 
+    const dropFile = async (parts, name) => {
+      const dt = new DataTransfer()
+      dt.items.add(new File(parts, name))
+      document.body.dispatchEvent(new DragEvent('dragenter', { dataTransfer: dt, bubbles: true }))
+      await wait(100)
+      const hint = !!document.querySelector('.drop-overlay')
+      document.body.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }))
+      await wait(400)
+      return hint
+    }
+    await step('drop a file: replace the open value, or start a new secret; binary refused; nothing saved', async () => {
+      await openSecret('orders-dev-env')
+      const before = await readSecret('orders-dev-env')
+      const hint = await dropFile(['API_URL=https://dropped.example\nNEW_KEY=1\n'], 'orders-dev.env')
+      const dialog = norm(document.querySelector('.drop-dialog')?.textContent)
+      await press(['replace the value of orders-dev-env…'])
+      await wait(400)
+      const editorNote = norm(document.body.innerText).includes('dropped file orders-dev.env')
+      const draft = [...document.querySelectorAll('input')].some((i) => i.value === 'https://dropped.example')
+      await press(['cancel'])
+      await dropFile(['TOKEN=abc\n'], 'billing-staging.env')
+      await press(['new secret in*'])
+      await wait(300)
+      const prefilled = field('secret name')?.value === 'billing-staging' && field('secret value')?.value === 'TOKEN=abc\n'
+      await press(['cancel'])
+      await dropFile([new Uint8Array([0xff, 0x00, 0xfe])], 'blob.bin')
+      const refused = norm(document.querySelector('.drop-dialog')?.textContent).includes('not text')
+      await press(['ok'])
+      const unchanged = (await readSecret('orders-dev-env')) === before
+      return [hint && dialog.includes('2 keys') && editorNote && draft && prefilled && refused && unchanged, `drop hint ${hint}, dialog "${dialog.slice(0, 40)}…", editor note ${editorNote}, draft ${draft}, new prefilled ${prefilled}, binary refused ${refused}, value unchanged ${unchanged}`]
+    })
+
+    await step('save to file: confirmation first, mode 600, protected needs the name typed', async () => {
+      await openSecret('orders-dev-env')
+      await press(['reveal'])
+      await press(['save to file…'])
+      const warned = norm(document.body.innerText).includes('plain text')
+      await press(['choose where to save…'])
+      await wait(500)
+      const saved = (await call('GET', '/__selftest/saved')).json ?? {}
+      const size = new TextEncoder().encode(await readSecret('orders-dev-env')).length
+      const ok1 = saved.name === 'orders-dev-env.env' && saved.mode === '600' && saved.size === size
+      await openSecret('orders-prod-env')
+      await press(['reveal'])
+      await press(['save to file…'])
+      const locked = findButton(['choose where to save…'])?.disabled === true
+      setField('type orders-prod-env to confirm', 'orders-prod-env')
+      await wait(100)
+      await press(['choose where to save…'])
+      await wait(500)
+      const saved2 = (await call('GET', '/__selftest/saved')).json ?? {}
+      return [warned && ok1 && locked && saved2.name === 'orders-prod-env.env' && saved2.mode === '600', `warned ${warned}, file ${saved.name} mode ${saved.mode} size ${saved.size}/${size}, protected locked ${locked}, then ${saved2.name} mode ${saved2.mode}`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 

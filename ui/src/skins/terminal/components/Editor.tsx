@@ -105,7 +105,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
         <div className="term-ln">
           <span className="t-prompt">$</span> <span className="t-function">edit</span> <span className="t-string">{target}</span>{' '}
           <span className="muted">
-            {ed.restoredFrom ? `# restoring #${ed.restoredFrom} over latest #${ed.loadedVersion}` : `# from #${ed.loadedVersion}`}
+            {ed.fromFile ? `# replacing #${ed.loadedVersion} with dropped file ${ed.fromFile}; review before saving` : ed.restoredFrom ? `# restoring #${ed.restoredFrom} over latest #${ed.loadedVersion}` : `# from #${ed.loadedVersion}`}
           </span>
         </div>
 

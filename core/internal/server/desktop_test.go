@@ -17,11 +17,18 @@ import (
 type fakeDesktop struct {
 	board  string
 	opened []string
+	// saveTo is what SaveFile returns ("" = the user cancelled)
+	saveTo string
+	asked  string
 }
 
 func (f *fakeDesktop) SetClipboard(t string) error    { f.board = t; return nil }
 func (f *fakeDesktop) ClipboardText() (string, error) { return f.board, nil }
 func (f *fakeDesktop) OpenURL(u string) error         { f.opened = append(f.opened, u); return nil }
+func (f *fakeDesktop) SaveFile(name string) (string, error) {
+	f.asked = name
+	return f.saveTo, nil
+}
 
 func desktopServer(t *testing.T, cfgBody string) (http.Handler, *fakeDesktop) {
 	t.Helper()
@@ -107,5 +114,61 @@ func TestBrowserHandlerHasNoDesktopRoutes(t *testing.T) {
 	h.ServeHTTP(rec, r)
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("browser GET /api/desktop: %d, want 404", rec.Code)
+	}
+}
+
+func TestDesktopSaveWritesPrivateFileAndAudits(t *testing.T) {
+	dir := t.TempDir()
+	audit := filepath.Join(dir, "audit.log")
+	h, d := desktopServer(t, "auditLog: "+audit+"\nprotect: [\"*-prod-env\"]\n")
+	out := filepath.Join(dir, "out.env")
+	// a stale wider file must end up 0600
+	if err := os.WriteFile(out, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d.saveTo = out
+	rec := desk(h, http.MethodPost, "/api/desktop/save", `{"backend":"storage","parent":"demo-bucket","name":"orders-dev-env"}`)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), out) {
+		t.Fatalf("save: %d %s", rec.Code, rec.Body)
+	}
+	if d.asked != "orders-dev-env.env" {
+		t.Fatalf("default name %q", d.asked)
+	}
+	st, err := os.Stat(out)
+	if err != nil || st.Mode().Perm() != 0o600 {
+		t.Fatalf("mode %v err %v", st.Mode(), err)
+	}
+	b, _ := os.ReadFile(out)
+	if !strings.HasPrefix(string(b), "API_URL=") {
+		t.Fatal("file does not hold the secret's value")
+	}
+	if strings.Contains(rec.Body.String(), "API_URL") {
+		t.Fatal("the response must not carry the value")
+	}
+	log, _ := os.ReadFile(audit)
+	if !strings.Contains(string(log), `"action":"export"`) || !strings.Contains(string(log), out) || strings.Contains(string(log), "API_URL") {
+		t.Fatalf("audit line: %s", log)
+	}
+
+	// protected: refused without the typed name, allowed with it
+	if rec := desk(h, http.MethodPost, "/api/desktop/save", `{"backend":"storage","parent":"demo-bucket","name":"orders-prod-env"}`); rec.Code != http.StatusPreconditionRequired {
+		t.Fatalf("protected without confirm: %d", rec.Code)
+	}
+	if rec := desk(h, http.MethodPost, "/api/desktop/save", `{"backend":"storage","parent":"demo-bucket","name":"orders-prod-env"}`, ConfirmHeader, "orders-prod-env"); rec.Code != http.StatusOK {
+		t.Fatalf("protected with confirm: %d %s", rec.Code, rec.Body)
+	}
+
+	// cancelled: nothing written
+	d.saveTo = ""
+	if rec := desk(h, http.MethodPost, "/api/desktop/save", `{"backend":"storage","parent":"demo-bucket","name":"tls-cert"}`); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "cancelled") {
+		t.Fatalf("cancel: %d %s", rec.Code, rec.Body)
+	}
+}
+
+func TestExportName(t *testing.T) {
+	for in, want := range map[string]string{"payments-dev-env": "payments-dev-env.env", "a/b/tls-cert": "tls-cert", "x:y": "x_y", "db_env": "db_env.env"} {
+		if got := exportName(in); got != want {
+			t.Errorf("exportName(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

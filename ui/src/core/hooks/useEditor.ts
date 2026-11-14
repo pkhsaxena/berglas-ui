@@ -29,11 +29,16 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const [error, setError] = useState('')
   const [overlaps, setOverlaps] = useState<string[]>([])
   const [restoredFrom, setRestoredFrom] = useState('')
+  /** the dropped file's name, when the draft came from one */
+  const [fromFile, setFromFile] = useState('')
 
   const fail = (e: unknown) => setError(errText(e))
 
-  /** Loads the latest value. With `restore`, the draft starts as that older version's value. */
-  const start = async (restore?: string) => {
+  /**
+   * Loads the latest value. With `restore`, the draft starts as that older
+   * version's value; with `file`, as a dropped file's text.
+   */
+  const start = async (restore?: string, file?: { name: string; text: string }) => {
     setPhase('loading')
     setError('')
     setOverlaps([])
@@ -46,9 +51,11 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
         if (old.value.text === null) throw new Error('that version is binary — it cannot be restored here')
         text = old.value.text
       }
+      if (file) text = file.text
       setLoaded({ secret: latest.secret, text: latest.value.text })
       setDraft(text)
       setRestoredFrom(restore ?? '')
+      setFromFile(file?.name ?? '')
       setMode(looksLikeEnv(text) ? 'env' : 'raw')
       setPhase('editing')
     } catch (e) {
@@ -161,6 +168,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     phase,
     loadedVersion: loaded ? versionOf(loaded.secret) : '',
     restoredFrom,
+    fromFile,
     draft,
     mode,
     setMode,

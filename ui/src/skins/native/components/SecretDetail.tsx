@@ -3,6 +3,8 @@ import { type Ref, refString, versionOf } from '../../../core/api'
 import { envOf, toneOfSecret } from '../../../core/envtone'
 import { useDelete } from '../../../core/hooks/useDelete'
 import { useEditor } from '../../../core/hooks/useEditor'
+import { useExport } from '../../../core/hooks/useExport'
+import type { DroppedFile } from '../../../core/hooks/useFileDrop'
 import { type Pinned, pinnedId } from '../../../core/hooks/usePinned'
 import { useSecret } from '../../../core/hooks/useSecret'
 import { protectedFor, readOnlyFor, useSettings, useStamp } from '../../../core/settings'
@@ -10,6 +12,7 @@ import { ago } from '../../../core/time'
 import { EnvBadge, EnvBanner, ErrorText, LockIcon, PaneHead } from './bits'
 import { CompareWithPinned } from './CompareWithPinned'
 import { DeleteSecret } from './DeleteSecret'
+import { ExportSecret } from './ExportSecret'
 import { Editor } from './Editor'
 import { Value } from './Value'
 import { Versions } from './Versions'
@@ -31,9 +34,12 @@ type Props = {
   wideTabs?: ReactNode
   /** zoomed out while comparing: the overview or matrix shown in place of versions */
   wideAlt?: ReactNode
+  /** a dropped file to open in the editor as the new value (once) */
+  dropped?: DroppedFile | null
+  onDroppedUsed?: () => void
 }
 
-export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(
@@ -46,6 +52,16 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
     s.latestId,
   )
   const editing = ed.phase !== 'idle'
+  // the exact version on screen, so the file holds what was revealed
+  const shownRef: Ref = { ...base, version: shown ? versionOf(shown) : undefined }
+  const x = useExport(shownRef, onToast)
+  // a dropped file opens the editor with its text as the draft; the review is the confirmation
+  useEffect(() => {
+    if (!dropped) return
+    onDroppedUsed?.()
+    void ed.start(undefined, dropped)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dropped])
   const [comparing, setComparing] = useState(false)
   const pinnedOther =
     pinned && !(pinned.ref.backend === base.backend && pinned.ref.parent === base.parent && pinned.ref.name === base.name) ? pinned : null
@@ -160,6 +176,11 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
                 {isPinned ? 'Pinned' : 'Pin'}
               </button>
             )}
+            {revealed && shown && !x.open && (
+              <button className="btn" onClick={x.start} title="save this version's value to a file, as plain text">
+                Save to file…
+              </button>
+            )}
             <span className="spacer" />
             {readOnly && <span className="muted small">Read-only by config</span>}
             {shown && !readOnly && (
@@ -183,6 +204,7 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
 
           {pinnedOther && <CompareWithPinned key={pinnedId(pinnedOther)} pinned={pinnedOther} base={base} latestId={s.latestId} onShowingChange={setComparing} />}
           <Value value={revealed} onCopy={copy} against={pinnedOther} />
+          {revealed && <ExportSecret target={shownRef} x={x} prod={tone === 'prod'} />}
           <DeleteSecret base={base} versions={s.versions?.length ?? null} del={del} />
         </div>
       </div>

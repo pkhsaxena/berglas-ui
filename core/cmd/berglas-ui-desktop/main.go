@@ -62,6 +62,9 @@ type shell struct {
 	ctx context.Context
 	// opened records links instead of opening them, during a self-test
 	opened *[]string
+	// saveDir, during a self-test, takes saved files instead of a Save dialog
+	saveDir string
+	saved   string
 }
 
 func (s *shell) SetClipboard(text string) error {
@@ -77,6 +80,19 @@ func (s *shell) OpenURL(u string) error {
 	}
 	wruntime.BrowserOpenURL(s.ctx, u)
 	return nil
+}
+
+func (s *shell) SaveFile(name string) (string, error) {
+	if s.saveDir != "" {
+		s.saved = filepath.Join(s.saveDir, name)
+		return s.saved, nil
+	}
+	return wruntime.SaveFileDialog(s.ctx, wruntime.SaveDialogOptions{
+		Title:                "Save the secret's value as plain text",
+		DefaultFilename:      name,
+		CanCreateDirectories: true,
+		ShowHiddenFiles:      true,
+	})
 }
 
 func run() error {
@@ -144,6 +160,12 @@ func run() error {
 	sh := &shell{}
 	if testJS != "" {
 		sh.opened = &[]string{}
+		dir, err := os.MkdirTemp("", "berglas-ui-selftest-save-")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(dir)
+		sh.saveDir = dir
 	}
 	handler := api.DesktopHandler(sh)
 
@@ -266,6 +288,15 @@ func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool
 			return
 		case "/__selftest/opened":
 			_, _ = fmt.Fprint(w, strings.Join(*sh.opened, "\n"))
+			return
+		case "/__selftest/saved":
+			// the last saved file's name, mode and size; never its content
+			st, err := os.Stat(sh.saved)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, `{"error":%q}`, err.Error())
+				return
+			}
+			_, _ = fmt.Fprintf(w, `{"name":%q,"mode":"%o","size":%d}`, filepath.Base(sh.saved), st.Mode().Perm(), st.Size())
 			return
 		case "/__selftest":
 		default:

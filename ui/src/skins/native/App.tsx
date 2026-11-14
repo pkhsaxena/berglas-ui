@@ -4,6 +4,7 @@ import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
+import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
@@ -23,6 +24,7 @@ import { Credit } from './components/Credit'
 import { DriftPane } from './components/Drift'
 import { FindBar } from './components/FindBar'
 import { Palette } from './components/Palette'
+import { FileDrop } from './components/FileDrop'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
@@ -101,6 +103,12 @@ export default function App() {
     void drift.run(service)
   }
 
+  // a file dropped onto the window becomes a draft: the open secret's new value, or a new secret
+  const drop = useFileDrop(session.kind === 'ready' && !!active)
+  const [dropEdit, setDropEdit] = useState<DroppedFile | null>(null)
+  const [createInitial, setCreateInitial] = useState<{ id: number; name: string; text: string; from: string } | null>(null)
+  const writable = !!active && !readOnlyFor(app.settings, active)
+
   // ⌘K: the open source's secrets (and cached ones of other sources), sources and actions
   const openSource = (s: (typeof app.sources)[number]) => {
     if (!active || sourceId(active) !== sourceId(s)) app.setActive(s)
@@ -123,6 +131,7 @@ export default function App() {
           active && !readOnlyFor(app.settings, active)
             ? () => {
                 setSelected(null)
+                setCreateInitial(null)
                 setCreating(true)
                 setView('secret')
               }
@@ -336,6 +345,7 @@ export default function App() {
                       onSelect={select}
                       onCreate={() => {
                         setSelected(null)
+                        setCreateInitial(null)
                         setCreating(true)
                         setView('secret')
                       }}
@@ -385,10 +395,15 @@ export default function App() {
                       <div className="right single">
                         <CreateSecret
                           titleTabs={titleTabs}
-                          key={sourceId(active)}
+                          key={`${sourceId(active)}|${createInitial?.id ?? ''}`}
                           source={active}
-                          onCancel={() => setCreating(false)}
+                          initial={createInitial ?? undefined}
+                          onCancel={() => {
+                            setCreating(false)
+                            setCreateInitial(null)
+                          }}
                           onCreated={(s) => {
+                            setCreateInitial(null)
                             setToast('Created')
                             setCreating(false)
                             setListRev((n) => n + 1)
@@ -400,6 +415,8 @@ export default function App() {
                       <SecretDetail
                         key={`${base.backend}:${base.parent}/${base.name}`}
                         base={base}
+                        dropped={dropEdit}
+                        onDroppedUsed={() => setDropEdit(null)}
                         group={active.group}
                         onToast={setToast}
                         onDeleted={() => {
@@ -442,6 +459,26 @@ export default function App() {
       <Credit />
       <FindBar f={find} />
       {session.kind === 'ready' && <Palette p={palette} />}
+      {session.kind === 'ready' && active && (
+        <FileDrop
+          drop={drop}
+          replaceTarget={selected && writable && !creating ? selected : null}
+          createIn={writable ? active.label || active.parent : null}
+          onReplace={() => {
+            setDropEdit(drop.dropped)
+            setView('secret')
+            drop.clear()
+          }}
+          onCreate={() => {
+            const f = drop.dropped
+            if (f) setCreateInitial({ id: f.id, name: suggestName(f.name), text: f.text, from: f.name })
+            setSelected(null)
+            setCreating(true)
+            setView('secret')
+            drop.clear()
+          }}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           {toast}

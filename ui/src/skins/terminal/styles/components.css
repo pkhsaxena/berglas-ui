@@ -332,3 +332,10 @@ button.primary.prod { color: var(--t-bg); background: var(--t-error); border-col
 .palette-item[aria-selected="true"]::before { content: '>'; color: var(--t-prompt); margin-left: -10px; width: 0; }
 .palette-empty { padding: 8px 12px; }
 .palette-foot { border-top: 1px solid var(--t-line); padding: 4px 12px; }
+
+/* dropping a file onto the window */
+.drop-overlay { position: fixed; inset: 8px; z-index: 45; border: 1px dashed var(--t-prompt); background: color-mix(in srgb, var(--t-bg) 70%, transparent); display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.drop-hint { background: var(--t-bg); border: 1px solid var(--t-line); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; }
+.drop-dialog { width: min(520px, calc(100vw - 32px)); background: var(--t-bg); border: 1px solid var(--t-prompt); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.drop-dialog h3 { margin: 0; color: var(--t-string); font-weight: 500; overflow-wrap: anywhere; }
+.drop-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }

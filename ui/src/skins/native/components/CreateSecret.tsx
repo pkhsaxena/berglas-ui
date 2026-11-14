@@ -5,10 +5,17 @@ import { useCreate } from '../../../core/hooks/useCreate'
 import type { Source } from '../../../core/sources'
 import { ConfirmName, EnvBadge, ErrorText, PaneHead } from './bits'
 
-type Props = { source: Source; onCreated: (s: Secret) => void; onCancel: () => void; titleTabs?: ReactNode }
+type Props = {
+  source: Source
+  onCreated: (s: Secret) => void
+  onCancel: () => void
+  titleTabs?: ReactNode
+  /** prefill from a dropped file */
+  initial?: { name: string; text: string; from: string }
+}
 
-export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) {
-  const c = useCreate(source, onCreated)
+export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }: Props) {
+  const c = useCreate(source, onCreated, initial)
   const [typed, setTyped] = useState('')
   const target = c.ref.name ? refString(c.ref) : refString({ ...c.ref, name: '<name>' })
   const tone = c.ref.name ? toneOfSecret(c.ref.name, source.group) : null
@@ -19,6 +26,7 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) 
       <div className="body">
         {c.phase === 'editing' ? (
           <>
+            {initial && <div className="muted small">From the dropped file {initial.from}. Nothing is saved until you review and create it.</div>}
             <label className="row">
               <span className="muted" style={{ width: '9ch' }}>
                 Name

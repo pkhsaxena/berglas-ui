@@ -36,8 +36,14 @@ function openExternalLinks(e: MouseEvent) {
   void post('/api/desktop/open', { url: a.href }).catch(() => {})
 }
 
+let desktopMode = false
+
+/** True once enableDesktop ran: the ui is inside the desktop app. */
+export const inDesktop = () => desktopMode
+
 /** Routes the clipboard and outside links through the core. */
 export function enableDesktop() {
+  desktopMode = true
   setClipboardBackend({
     write: async (text) => void (await post('/api/desktop/clipboard', { text })),
     clearIf: async (text) => (await post<{ cleared: boolean }>('/api/desktop/clipboard/clear', { ifEquals: text })).cleared,

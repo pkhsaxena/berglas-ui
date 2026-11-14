@@ -7,10 +7,17 @@ import { ConfirmName } from './ConfirmName'
 import { EnvTag } from './EnvMarks'
 import { PaneTitle } from './PaneTitle'
 
-type Props = { source: Source; onCreated: (s: Secret) => void; onCancel: () => void; titleTabs?: ReactNode }
+type Props = {
+  source: Source
+  onCreated: (s: Secret) => void
+  onCancel: () => void
+  titleTabs?: ReactNode
+  /** prefill from a dropped file */
+  initial?: { name: string; text: string; from: string }
+}
 
-export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) {
-  const c = useCreate(source, onCreated)
+export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }: Props) {
+  const c = useCreate(source, onCreated, initial)
   const [typed, setTyped] = useState('')
   const target = c.ref.name ? refString(c.ref) : refString({ ...c.ref, name: '<name>' })
 
@@ -27,6 +34,7 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs }: Props) 
 
         {c.phase === 'editing' ? (
           <>
+            {initial && <div className="muted small"># from dropped file {initial.from}; nothing is saved until you review and create it</div>}
             <label className="row">
               <span className="muted" style={{ width: '9ch' }}>
                 name

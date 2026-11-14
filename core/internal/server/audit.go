@@ -22,6 +22,7 @@ type auditEntry struct {
 	Name    string    `json:"name,omitempty"`
 	Version string    `json:"version,omitempty"` // the version a write created
 	Members []string  `json:"members,omitempty"` // grant / revoke
+	Path    string    `json:"path,omitempty"`    // export: the file written
 	Result  string    `json:"result"`            // ok | error
 	Error   string    `json:"error,omitempty"`
 }

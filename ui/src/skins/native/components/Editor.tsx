@@ -105,7 +105,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
       {head}
       <div className="body">
         <div className="muted small">
-          {ed.restoredFrom ? `Restoring #${ed.restoredFrom} over the latest, #${ed.loadedVersion}.` : `Editing #${ed.loadedVersion} of ${target}.`}
+          {ed.fromFile ? `Replacing #${ed.loadedVersion} with the dropped file ${ed.fromFile}. Review the changes before saving.` : ed.restoredFrom ? `Restoring #${ed.restoredFrom} over the latest, #${ed.loadedVersion}.` : `Editing #${ed.loadedVersion} of ${target}.`}
         </div>
 
         {ed.phase === 'editing' && (
