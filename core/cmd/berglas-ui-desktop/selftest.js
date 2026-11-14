@@ -23,18 +23,18 @@
   try {
     check('page origin', true, location.href)
     await new Promise((r) => setTimeout(r, 1500))
-    check('ui rendered', document.querySelectorAll('.card').length > 0, `${document.querySelectorAll('.card').length} panes, ${document.querySelectorAll('.rowbtn').length} rows`)
+    check('ui rendered', document.querySelectorAll('.card, .pane').length > 0, `${document.querySelectorAll('.card, .pane').length} panes, ${document.querySelectorAll('.rowbtn').length} rows`)
 
     // copy through the real ui, before the api checks below change the demo data:
     // reveal payments-prod-env and press copy on a key. This overwrites the
     // mac clipboard, and the auto-clear then empties it.
-    const button = (text) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === text && b.getBoundingClientRect().width)
+    const button = (text) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim().toLowerCase() === text && b.getBoundingClientRect().width)
     document.querySelector('.rowbtn[aria-label="payments-prod-env"]')?.click()
     await wait(600)
     button('reveal')?.click()
     await wait(600)
     const copyBtn = document.querySelector('button[aria-label="copy LOG_LEVEL"]')
-    check('copy button found after reveal', !!copyBtn, copyBtn ? 'yes' : document.querySelector('.card')?.innerText.slice(0, 120))
+    check('copy button found after reveal', !!copyBtn, copyBtn ? 'yes' : document.querySelector('.card, .pane')?.innerText.slice(0, 120))
     copyBtn?.click()
     await wait(500)
     const copied = await (await fetch('/__selftest/clipboard')).text()
@@ -53,7 +53,7 @@
     if (filter) {
       setInput(filter, 'log')
       await wait(200)
-      const keys = [...filter.closest('.card').querySelectorAll('tbody td.env-key')].map((td) => td.innerText.trim())
+      const keys = [...filter.closest('.card, .pane').querySelectorAll('tbody td.env-key')].map((td) => td.innerText.trim())
       check('filter shows only matching keys', keys.length === 1 && keys[0] === 'LOG_LEVEL', keys.join(','))
       setInput(filter, '')
       await wait(100)
@@ -80,7 +80,7 @@
       setInput(bar.querySelector('input'), 'payments')
       await wait(300)
       const count = bar.querySelector('.find-count').innerText
-      check('find counts and paints matches', /^1\/[1-9]/.test(count) && (CSS.highlights?.get('find')?.size ?? 0) > 0, count)
+      check('find counts and paints matches', /^1(\/| of )[1-9]/.test(count) && (CSS.highlights?.get('find')?.size ?? 0) > 0, count)
       // typing on narrows the matches: only the new query stays painted
       setInput(bar.querySelector('input'), 'p')
       await wait(300)

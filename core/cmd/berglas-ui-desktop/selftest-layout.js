@@ -19,7 +19,7 @@
     ]
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms))
-  const button = (t) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim() === t && b.getBoundingClientRect().width)
+  const button = (t) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim().toLowerCase() === t && b.getBoundingClientRect().width)
   const checks = [{ name: 'viewport', ok: true, detail: `${innerWidth}x${innerHeight}` }, ...measure('start')]
   document.querySelector('.rowbtn[aria-label="payments-dev-env"]')?.click()
   await wait(600)
