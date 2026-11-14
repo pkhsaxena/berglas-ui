@@ -17,8 +17,8 @@ ui/src/core/            no markup, no css: api client, .env parsing, diffing, ti
 ui/src/core/hooks/      everything a screen needs: useApp (session, config, sources),
                         useSecretList, useSecret (versions, reveal, copy), and the edit/diff hooks
 ui/src/skins/terminal/  the terminal-pane look: components, css and theme presets
-ui/src/skins/native/    a Mac-style window: sidebar, segmented controls, light/dark/system
-                        appearance, environments color-coded with a banner over production
+ui/src/skins/native/    a Mac-style window: sidebar, segmented controls, System / Light / Dark
+                        themes, environments color-coded with a banner over production
 ui/src/skins/registry.ts  the skins this build has; main.tsx loads the one the config names
 ui/src/skins/FEATURES.md  every ui feature a skin must offer, where it lives in core, how it is verified
 ```

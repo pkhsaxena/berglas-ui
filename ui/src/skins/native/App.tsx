@@ -163,6 +163,24 @@ export default function App() {
             </select>
           </label>
         )}
+        <label title="zoom out to give the layout more room (zoomed out far enough, panes sit side by side)">
+          Zoom
+          <select value={app.zoom} onChange={(e) => app.setZoom(Number(e.target.value))}>
+            {(ZOOM_STEPS.includes(app.zoom) ? ZOOM_STEPS : [...ZOOM_STEPS, app.zoom].sort((a, b) => a - b)).map((z) => (
+              <option key={z} value={z}>
+                {z}%
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Theme
+          <select value={theme} onChange={(e) => app.setTheme(e.target.value)}>
+            {THEMES.map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+        </label>
         {SKINS.length > 1 && (
           <label>
             Skin
@@ -175,24 +193,6 @@ export default function App() {
             </select>
           </label>
         )}
-        <label title="zoom out to give the layout more room (zoomed out far enough, panes sit side by side)">
-          Zoom
-          <select value={app.zoom} onChange={(e) => app.setZoom(Number(e.target.value))}>
-            {(ZOOM_STEPS.includes(app.zoom) ? ZOOM_STEPS : [...ZOOM_STEPS, app.zoom].sort((a, b) => a - b)).map((z) => (
-              <option key={z} value={z}>
-                {z}%
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Appearance
-          <select value={theme} onChange={(e) => app.setTheme(e.target.value)}>
-            {THEMES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
       </header>
 
       <SettingsContext.Provider value={app.settings}>

@@ -169,18 +169,6 @@ export default function App() {
             </select>
           </label>
         )}
-        {SKINS.length > 1 && (
-          <label>
-            skin
-            <select value={skinFor(app.skin).name} onChange={(e) => app.setSkin(e.target.value)}>
-              {SKINS.map((s) => (
-                <option key={s.name} value={s.name}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
         <label title="zoom out to give the layout more room (zoomed out far enough, panes sit side by side)">
           zoom
           <select value={app.zoom} onChange={(e) => app.setZoom(Number(e.target.value))}>
@@ -199,6 +187,18 @@ export default function App() {
             ))}
           </select>
         </label>
+        {SKINS.length > 1 && (
+          <label>
+            skin
+            <select value={skinFor(app.skin).name} onChange={(e) => app.setSkin(e.target.value)}>
+              {SKINS.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </header>
 
       <SettingsContext.Provider value={app.settings}>
