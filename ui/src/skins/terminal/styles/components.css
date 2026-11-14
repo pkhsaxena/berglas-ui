@@ -284,3 +284,8 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 .find-bar .find-count { min-width: 9ch; text-align: right; }
 ::highlight(find) { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
 ::highlight(find-current) { background-color: var(--t-prompt); color: var(--t-bg); }
+/* WebKit leaves text inside buttons unpainted, so core/find.ts marks the
+   button itself; the text highlight is turned off there to match */
+button[data-find='match'] { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
+button[data-find='current'] { background-color: var(--t-prompt); color: var(--t-bg); }
+button::highlight(find), button::highlight(find-current), button *::highlight(find), button *::highlight(find-current) { background-color: transparent; color: inherit; }

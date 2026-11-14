@@ -48,7 +48,9 @@ export function useFind() {
       window.clearTimeout(t)
       t = window.setTimeout(() => search(true), 150)
     })
-    mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] })
+    // not 'style': find's own repaint nudge (find.ts) changes inline styles, and
+    // watching them made find re-search and re-paint itself about 20 times a second
+    mo.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'hidden'] })
     return () => {
       mo.disconnect()
       window.clearTimeout(t)

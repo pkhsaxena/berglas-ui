@@ -57,6 +57,11 @@ export function findRanges(root: Node, query: string): Range[] {
 // matches when a registered highlight is replaced or deleted, so they stayed
 // painted after the query changed; emptying the same highlight does repaint.
 // As a backstop, every element that held a match is nudged to repaint too.
+//
+// WebKit also leaves the text inside a <button> unpainted, so a button
+// holding a match is marked itself: data-find="match" or "current", for the
+// skin to style (and to turn ::highlight off inside buttons, so every engine
+// looks the same).
 type HighlightLike = { add(r: Range): void; clear(): void; size: number; [Symbol.iterator](): IterableIterator<Range> }
 type Registry = { set(name: string, h: HighlightLike): void; get(name: string): HighlightLike | undefined; delete(name: string): void }
 
@@ -90,6 +95,21 @@ function nudge(ranges: Iterable<Range>) {
   })
 }
 
+let marked: HTMLElement[] = []
+
+/** Marks the buttons that hold matches; clears the previous marks. */
+function markButtons(ranges: Range[], at: number) {
+  for (const b of marked) b.removeAttribute('data-find')
+  marked = []
+  ranges.forEach((r, i) => {
+    const b = r.startContainer.parentElement?.closest('button')
+    if (!b) return
+    if (i === at) b.setAttribute('data-find', 'current')
+    else if (!b.hasAttribute('data-find')) b.setAttribute('data-find', 'match')
+    marked.push(b)
+  })
+}
+
 /**
  * Paints all matches and the current one (css ::highlight(find) and
  * ::highlight(find-current)), replacing whatever was painted before. Where
@@ -103,6 +123,7 @@ export function paint(ranges: Range[], at: number) {
     h.current.clear()
     for (const r of ranges) h.all.add(r)
     if (ranges[at]) h.current.add(ranges[at])
+    markButtons(ranges, at)
     nudge(old)
     return
   }
@@ -117,6 +138,7 @@ export function clearPaint() {
     const old = [...h.all]
     h.all.clear()
     h.current.clear()
+    markButtons([], -1)
     nudge(old)
     return
   }

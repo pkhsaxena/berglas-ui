@@ -76,6 +76,16 @@
       setInput(bar.querySelector('input'), 'pay')
       await wait(300)
       const painted = [...(CSS.highlights?.get('find') ?? [])].map((r) => r.toString().toLowerCase())
+      // find must not keep repainting itself while idle
+      let idle = 0
+      const mo = new MutationObserver((rs) => (idle += rs.length))
+      mo.observe(document.getElementById('root'), { subtree: true, attributes: true, attributeFilter: ['style', 'data-find'] })
+      await wait(1500)
+      mo.disconnect()
+      check('find stays still while idle', idle === 0, `${idle} attribute changes in 1.5 s`)
+      // WebKit does not paint highlights inside buttons, so matched buttons are marked
+      const buttonHits = [...(CSS.highlights?.get('find') ?? [])].filter((r) => r.startContainer.parentElement?.closest('button')).length
+      check('buttons holding a match are marked', buttonHits === 0 || document.querySelectorAll('button[data-find]').length > 0, `${buttonHits} matches in buttons, ${document.querySelectorAll('button[data-find]').length} marked`)
       check('a longer query repaints only its own matches', wide > painted.length && painted.length > 0 && painted.every((t) => t === 'pay'), `p: ${wide}, pay: ${painted.length}`)
       bar.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
       await wait(100)
