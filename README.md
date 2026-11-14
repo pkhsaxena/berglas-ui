@@ -78,6 +78,7 @@ listen: 127.0.0.1:0          # -listen / BERGLAS_UI_LISTEN win; port 0 = a free 
 openBrowser: true            # open the ui on startup (same as -open)
 skin: terminal
 theme: Dracula
+zoom: 100                    # scale the whole ui, 50-200 percent (also the header's zoom menu)
 timeZone: local             # times in the system zone, or utc (also a switch in the header)
 envOrder: sorted            # .env views sorted by section and key, or file (also a switch by env/raw)
 readOnly: false              # refuse every write, everywhere
@@ -109,6 +110,7 @@ sources:
 | `protect` (global + per source) | `path.Match` globs; a matching name can only be written or deleted with its name in the `X-Berglas-Confirm` header (`428 confirm_required` otherwise). The ui asks you to type it | core |
 | `kmsKey` (per storage source) | default key for new secrets; the ui prefills it and the core fills it in when a create omits it | core |
 | `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; clipboard clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
+| `zoom` | scales the whole ui. Zooming out gives the layout more room, the way browser zoom does: at 67% a 1440px window gets the wide layout (panes side by side). The header's **zoom** menu and the mac app's View menu set it | ui |
 | `cacheSeconds`, `cacheEntries` | lists of secrets and versions (names and times, never values) seen before show at once on a revisit while a fresh copy loads. Each expires `cacheSeconds` after it was fetched and is freed by a sweep even if never used again; at most `cacheEntries` are kept. Either at 0 turns the cache off | ui |
 | `auditLog` | appends `{time, actor, action, backend, parent, name, version, result, error}` per write attempt (never values), file mode 0600. If a line cannot be written, the write has still happened and the ui shows an error | core |
 | `credentials.impersonateServiceAccount` | every call is made as that service account; your ADC identity needs `roles/iam.serviceAccountTokenCreator` on it | core |
@@ -134,8 +136,8 @@ finds them when started from Finder. Needs Xcode's command line tools, Go and No
   copies and the clipboard auto-clear go through the core (`/api/desktop/clipboard`); there is
   no route that reads the clipboard back. `mailto:` and `http(s)` links open in your mail app
   or browser; other schemes are refused.
-- **menus:** the standard app, Edit (⌘C ⌘V ⌘X ⌘A, undo), View (reload ⌘R, full screen) and
-  Window menus.
+- **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
+  previous ⇧⌘G); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0, reload ⌘R, full screen); Window.
 - **signing:** the build is signed ad hoc, which runs on the mac that built it. Handing it to
   others without Gatekeeper warnings needs a Developer ID signature and notarization.
 - **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives the api,
@@ -188,6 +190,15 @@ Open the printed link with the port changed to vite's (5173) so the cookie is se
   the right column's top pane. **versions** (whenever a secret is open) shows just the versions pane. On
   **reveal** the value fills the right column and versions step aside until you pick that tab.
   Zoomed out, secret and versions stay side by side.
+- **zoom:** the header's **zoom** menu (or ⌘= ⌘- ⌘0 in the mac app) scales the whole ui and saves
+  it as `zoom:`. Zoomed out far enough, the layout switches to panes side by side. The layout
+  bands follow the ui's own width (`#root[data-width]`, set by `useLayoutWidth`), because css zoom
+  never moves media queries and WebKit reads container queries at the unzoomed width.
+- **filter a revealed value:** the box above a revealed or pinned `.env` value shows only keys or
+  values containing what you type, under their section headings, with a count. Esc clears it.
+- **find in page** (mac app, ⌘F): highlights every visible match, ⌘G / enter and ⇧⌘G / ⇧enter step
+  through them, and it follows the page as it changes. Masked values are not text, so they are
+  never found. A match has to sit inside one piece of text. In a browser, ⌘F stays the browser's.
 - **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
 - **pin:** after **reveal**, **pin** keeps that value in its own pane while you open other secrets.
   It stays until **unpin** (it does not hide on the reveal timer). With a pin:
