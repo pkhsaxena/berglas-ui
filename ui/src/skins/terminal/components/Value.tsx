@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
+import { matchesQuery } from '../../../core/envfilter'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import type { Revealed } from '../../../core/hooks/useSecret'
 import { useSettings } from '../../../core/settings'
@@ -40,6 +41,7 @@ type Props = {
 /** A secret value: masked, binary notice, env table or raw text. */
 export function Value({ value, onCopy, persistent = false, against = null }: Props) {
   const [view, setView] = useState<'env' | 'raw'>('env')
+  const [query, setQuery] = useState('')
   const { revealSeconds, envOrder } = useSettings()
 
   if (!value) {
@@ -61,6 +63,10 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
   // line this value up against the pinned one, key by key, when both are .env files
   const vs = env && against?.value.env && against.value.text !== null ? matchAgainst(value.text, against.value.text) : null
   const pinName = against?.ref.name
+  const pairs = env ? env.filter((l): l is Extract<typeof l, { kind: 'pair' }> => l.kind === 'pair') : []
+  const pairCount = pairs.length
+  const filtering = query.trim() !== ''
+  const shownCount = filtering ? pairs.filter((p) => matchesQuery(p.key, p.value, query)).length : pairCount
 
   return (
     <>
@@ -75,6 +81,22 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
             </button>
           </div>
           {mode === 'env' && <OrderToggle />}
+          {mode === 'env' && (
+            <input
+              className="env-filter"
+              type="search"
+              placeholder="filter keys and values"
+              aria-label="filter keys and values"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Escape' && query && (e.stopPropagation(), setQuery(''))}
+            />
+          )}
+          {mode === 'env' && query.trim() && (
+            <span className="muted small">
+              {shownCount} of {pairCount} key{pairCount === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
       )}
       {mode === 'env' && env && vs && (
@@ -101,6 +123,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               text={value.text}
               order={envOrder}
               cols={vs ? 4 : 3}
+              match={filtering ? (l) => matchesQuery(l.key, l.value, query) : undefined}
               renderPair={(l, i) => (
                 <tr key={i}>
                   <td className="t-keyword env-key">
@@ -119,15 +142,16 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               )}
             />
           </table>
+          {filtering && shownCount === 0 && <div className="muted"># no key or value contains “{query.trim()}”.</div>}
         </div>
       ) : (
         <pre className="value">{value.text}</pre>
       )}
-      {mode === 'env' && vs && vs.missing.length > 0 && (
+      {mode === 'env' && vs && vs.missing.some((m) => matchesQuery(m.key, m.value, query)) && (
         <div className="section">
           <div className="t-keyword">only in pinned {pinName}</div>
           <ul className="clean">
-            {vs.missing.map((m) => (
+            {vs.missing.filter((m) => matchesQuery(m.key, m.value, query)).map((m) => (
               <li key={m.key} className="kv">
                 <span className="t-keyword">{m.key}</span>
                 <span className="t-string">{m.value}</span>

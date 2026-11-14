@@ -270,3 +270,5 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
   .cursor, .toast { animation: none; }
 }
 
+/* filter box above a revealed .env value */
+.row input.env-filter { flex: 1 1 18ch; max-width: 36ch; }

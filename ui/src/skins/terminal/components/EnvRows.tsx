@@ -13,6 +13,8 @@ type Props = {
   cols: number
   /** one row for a KEY=value line; `index` is its line in the file */
   renderPair: (line: Pair, index: number) => ReactNode
+  /** when set, only matching pairs show, and comments and sections without a match are left out */
+  match?: (line: Pair) => boolean
 }
 
 const note = (raw: string, cols: number, key: string, cls = 'muted') => (
@@ -24,15 +26,33 @@ const note = (raw: string, cols: number, key: string, cls = 'muted') => (
 )
 
 /** The rows of a .env table, sorted by section and key or in file order. */
-export function EnvRows({ text, order, cols, renderPair }: Props) {
+export function EnvRows({ text, order, cols, renderPair, match }: Props) {
   if (order === 'file') {
     return (
       <tbody>
-        {parseEnv(text).map((l, i) => (l.kind === 'pair' ? renderPair(l, i) : l.raw.trim() === '' ? null : note(l.raw, cols, `n${i}`)))}
+        {parseEnv(text).map((l, i) =>
+          l.kind === 'pair' ? (!match || match(l) ? renderPair(l, i) : null) : match || l.raw.trim() === '' ? null : note(l.raw, cols, `n${i}`),
+        )}
       </tbody>
     )
   }
   const s = sortEnv(text)
+  if (match) {
+    // filtering: matching pairs under their section heading, nothing else
+    const named = s.sections.some((x) => x.title !== '')
+    return (
+      <tbody>
+        {s.sections.map((sec, si) => {
+          const hits = sec.items.filter((it) => match(it.line))
+          if (hits.length === 0) return null
+          return [
+            named && note(sec.title === '' ? '# no section' : sec.header[0].raw, cols, `fh${si}`, sec.title === '' ? 'muted section-head' : 't-function section-head'),
+            ...hits.map((it) => renderPair(it.line, it.index)),
+          ]
+        })}
+      </tbody>
+    )
+  }
   const named = s.sections.some((x) => x.title !== '')
   return (
     <tbody>
