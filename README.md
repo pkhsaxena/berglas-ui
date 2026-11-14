@@ -159,6 +159,10 @@ finds them when started from Finder. Needs Xcode's command line tools, Go and No
   `SELFTEST [...]` and quits. It writes secrets, so it only runs with the demo store, and it
   overwrites the clipboard. `BERGLAS_UI_SELFTEST=status` only checks that credentials are found;
   `layout` reports whether the page itself can scroll in the window.
+- **demo mode never touches your config:** with `BERGLAS_UI_DEMO=1` and no `BERGLAS_UI_CONFIG`,
+  the app uses a throwaway config (the demo sources, grouped by `{service}-{env}-env`), deleted
+  when it quits; the full self-test's copy also protects `*-prod-env` and clears the clipboard
+  after 3 s. `BERGLAS_UI_SKIN=native` (or `terminal`) picks the skin for that run.
 
 ### ui development
 

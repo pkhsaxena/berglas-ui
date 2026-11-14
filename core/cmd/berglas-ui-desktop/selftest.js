@@ -23,7 +23,7 @@
   try {
     check('page origin', true, location.href)
     await new Promise((r) => setTimeout(r, 1500))
-    check('ui rendered', document.querySelectorAll('.card, .pane').length > 0, `${document.querySelectorAll('.card, .pane').length} panes, ${document.querySelectorAll('.rowbtn').length} rows`)
+    check('ui rendered', document.querySelectorAll('.card, .pane').length > 0, `${document.querySelectorAll('.card, .pane').length} panes, ${document.querySelectorAll('.rowbtn').length} rows, css ${[...document.styleSheets].map((x) => (x.href || '').split('/').pop().split('-')[0]).filter(Boolean).join(',')}`)
 
     // copy through the real ui, before the api checks below change the demo data:
     // reveal payments-prod-env and press copy on a key. This overwrites the

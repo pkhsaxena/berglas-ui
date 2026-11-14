@@ -12,6 +12,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -98,7 +100,21 @@ func run() error {
 	}
 
 	configPath := os.Getenv("BERGLAS_UI_CONFIG")
-	if configPath == "" {
+	switch {
+	case configPath != "":
+	case demo:
+		// Demo mode never reads or writes your real config: zoom, theme and
+		// source changes (the self-test makes them) go to a throwaway file.
+		dir, err := os.MkdirTemp("", "berglas-ui-demo-")
+		if err != nil {
+			return fmt.Errorf("make a demo config: %w", err)
+		}
+		defer os.RemoveAll(dir)
+		configPath = filepath.Join(dir, "config.yaml")
+		if err := os.WriteFile(configPath, []byte(demoConfig(testJS == selftestJS, os.Getenv("BERGLAS_UI_SKIN"))), 0o600); err != nil {
+			return fmt.Errorf("write the demo config: %w", err)
+		}
+	default:
 		p, err := config.DefaultPath()
 		if err != nil {
 			return fmt.Errorf("find config dir: %w", err)
@@ -175,9 +191,28 @@ func run() error {
 		return err
 	}
 	if exit != 0 {
-		os.Exit(exit)
+		// returned, not os.Exit, so the deferred cleanup (the demo config) runs
+		return fmt.Errorf("self-test failed")
 	}
 	return nil
+}
+
+// demoConfig is the throwaway config demo mode uses: the demo sources, with
+// the bucket grouped by service and environment. The full self-test also
+// needs prod names protected (its 428 check) and a 3 s clipboard clear (its
+// auto-clear check). skin, when set (BERGLAS_UI_SKIN), picks the skin.
+func demoConfig(selftest bool, skin string) string {
+	body := "# demo config; deleted when the app quits\n" +
+		"sources:\n" +
+		"  - backend: storage\n    parent: demo-bucket\n    group: \"{service}-{env}-env\"\n" +
+		"  - backend: sm\n    parent: demo-project\n"
+	if selftest {
+		body += "protect: [\"*-prod-env\"]\nclipboardClearSeconds: 3\n"
+	}
+	if skin != "" {
+		body += "skin: " + strconv.Quote(skin) + "\n"
+	}
+	return body
 }
 
 // appMenu is the standard mac menu bar. The Edit menu matters: without it,
