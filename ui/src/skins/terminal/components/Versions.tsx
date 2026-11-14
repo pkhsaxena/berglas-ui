@@ -35,11 +35,29 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
 
   return (
     <div className="card pane versions-pane">
-      <PaneTitle tabs={titleTabs} wideTabs={wideTabs}>
-        versions <span className="muted">— newest first</span>
+      <PaneTitle
+        tabs={titleTabs}
+        wideTabs={wideTabs}
+        extra={
+          d.result && (
+            <button onClick={d.clear} title="back to the versions (esc)">
+              hide diff
+            </button>
+          )
+        }
+      >
+        {d.result ? (
+          <>
+            diff <span className="muted">— #{versionOf(d.result.from)} → #{versionOf(d.result.to)}</span>
+          </>
+        ) : (
+          <>
+            versions <span className="muted">— newest first</span>
+          </>
+        )}
       </PaneTitle>
       <div className="body">
-        {versionsError ? (
+        {d.result ? null : versionsError ? (
           <div className="muted"># unavailable — see the error above.</div>
         ) : versions === null ? (
           <div className="muted"># loading…</div>
@@ -90,13 +108,9 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
             </div>
             {d.canDiff ? (
               <div className="row">
-                {d.result ? (
-                  <button onClick={d.clear}>hide diff</button>
-                ) : (
-                  <button onClick={d.run} disabled={d.busy}>
-                    {d.busy ? 'decrypting…' : 'diff a → b'}
-                  </button>
-                )}
+                <button onClick={d.run} disabled={d.busy}>
+                  {d.busy ? 'decrypting…' : 'diff a → b'}
+                </button>
                 <span role="alert" className="t-error">
                   {d.error && `error: ${d.error}`}
                 </span>
@@ -110,7 +124,7 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
         )}
 
         {d.result && (
-          <div className="section">
+          <div>
             <div className="term-ln">
               <span className="t-prompt">$</span> <span className="t-function">diff</span>{' '}
               <span className="t-keyword">

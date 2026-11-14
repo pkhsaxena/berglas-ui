@@ -36,9 +36,24 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
 
   return (
     <div className="pane versions-pane">
-      <PaneHead title="Versions" tabs={titleTabs} wideTabs={wideTabs} actions={versions && <span className="muted small">newest first</span>} />
+      <PaneHead
+        title={d.result ? `Diff #${versionOf(d.result.from)} → #${versionOf(d.result.to)}` : 'Versions'}
+        tabs={titleTabs}
+        wideTabs={wideTabs}
+        actions={
+          d.result ? (
+            <span className="seg">
+              <button onClick={d.clear} title="Back to the versions (Esc)">
+                Hide diff
+              </button>
+            </span>
+          ) : (
+            versions && <span className="muted small">newest first</span>
+          )
+        }
+      />
       <div className="body">
-        {versionsError ? (
+        {d.result ? null : versionsError ? (
           <div className="muted">Unavailable — see the error above.</div>
         ) : versions === null ? (
           <div className="muted">Loading…</div>
@@ -93,15 +108,9 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
             </div>
             {d.canDiff ? (
               <div className="row">
-                {d.result ? (
-                  <button className="btn" onClick={d.clear}>
-                    Hide diff
-                  </button>
-                ) : (
-                  <button className="btn" onClick={d.run} disabled={d.busy}>
-                    {d.busy ? 'Decrypting…' : 'Diff a → b'}
-                  </button>
-                )}
+                <button className="btn" onClick={d.run} disabled={d.busy}>
+                  {d.busy ? 'Decrypting…' : 'Diff a → b'}
+                </button>
                 <ErrorText>{d.error && `Couldn't diff — ${d.error}`}</ErrorText>
               </div>
             ) : (
@@ -114,10 +123,7 @@ export function Versions({ base, versions, versionsError, shown, onView, titleTa
           </>
         )}
         {d.result && (
-          <div className="section">
-            <h3>
-              #{versionOf(d.result.from)} → #{versionOf(d.result.to)}
-            </h3>
+          <div>
             <div className="muted small">
               a: {stamp(d.result.from.updatedAt)} → b: {stamp(d.result.to.updatedAt)} · {revealSeconds > 0 ? `hides again after ${revealSeconds}s or Esc.` : 'Esc hides it.'}
             </div>

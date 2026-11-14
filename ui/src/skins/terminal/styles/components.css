@@ -71,6 +71,9 @@ main {
    both columns start on the same line; zoomed out the plain title shows */
 .card > h2.has-tabs .title-plain { display: none; }
 .card > h2 .title-wide-tabs { display: none; }
+/* a button in the title at every width, after the tabs (e.g. "hide diff") */
+.card > h2 .title-extra { margin-left: 10px; }
+.card > h2 .title-extra button { color: var(--t-keyword); }
 .card > h2 .pane-tabs { display: inline-flex; gap: 0; vertical-align: bottom; }
 .card > h2 .pane-tabs button { padding: 0 6px; font-size: 13px; line-height: 1.6; }
 .card > h2 .pane-tabs button:first-child { padding-left: 0; }

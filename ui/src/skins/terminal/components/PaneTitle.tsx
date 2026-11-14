@@ -5,6 +5,8 @@ type Props = {
   tabs?: ReactNode
   /** view tabs shown only when zoomed out (e.g. the versions column while comparing) */
   wideTabs?: ReactNode
+  /** buttons shown in the title at every width, after the tabs or title (e.g. "hide diff") */
+  extra?: ReactNode
   children: ReactNode
 }
 
@@ -13,14 +15,22 @@ type Props = {
  * `tabs` at normal width, `wideTabs` when zoomed out; elsewhere the css shows
  * the plain title.
  */
-export function PaneTitle({ tabs, wideTabs, children }: Props) {
-  if (!tabs && !wideTabs) return <h2>{children}</h2>
+export function PaneTitle({ tabs, wideTabs, extra, children }: Props) {
+  const more = extra && <span className="tabs pane-tabs title-extra">{extra}</span>
+  if (!tabs && !wideTabs)
+    return (
+      <h2>
+        {children}
+        {more}
+      </h2>
+    )
   const cls = [tabs && 'has-tabs', wideTabs && 'has-wide-tabs'].filter(Boolean).join(' ')
   return (
     <h2 className={cls}>
       {tabs && <span className="title-tabs">{tabs}</span>}
       {wideTabs && <span className="title-wide-tabs">{wideTabs}</span>}
       <span className="title-plain">{children}</span>
+      {more}
     </h2>
   )
 }
