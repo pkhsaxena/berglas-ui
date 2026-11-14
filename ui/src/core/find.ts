@@ -52,32 +52,75 @@ export function findRanges(root: Node, query: string): Range[] {
   return ranges
 }
 
-type Highlights = { set(name: string, h: unknown): void; delete(name: string): void }
-const highlights = (): Highlights | undefined => (globalThis as { CSS?: { highlights?: Highlights } }).CSS?.highlights
-const HighlightCtor = (): (new (...r: Range[]) => unknown) | undefined => (globalThis as { Highlight?: new (...r: Range[]) => unknown }).Highlight
+// The two highlights are made once and registered once, then emptied and
+// refilled in place. WebKit (the mac app, Safari) does not repaint the old
+// matches when a registered highlight is replaced or deleted, so they stayed
+// painted after the query changed; emptying the same highlight does repaint.
+// As a backstop, every element that held a match is nudged to repaint too.
+type HighlightLike = { add(r: Range): void; clear(): void; size: number; [Symbol.iterator](): IterableIterator<Range> }
+type Registry = { set(name: string, h: HighlightLike): void; get(name: string): HighlightLike | undefined; delete(name: string): void }
+
+const registry = (): Registry | undefined => (globalThis as { CSS?: { highlights?: Registry } }).CSS?.highlights
+const HighlightCtor = (): (new () => HighlightLike) | undefined => (globalThis as { Highlight?: new () => HighlightLike }).Highlight
+
+let all: HighlightLike | undefined
+let current: HighlightLike | undefined
+
+/** The registered highlights, made and registered on first use. */
+function highlights(): { all: HighlightLike; current: HighlightLike } | undefined {
+  const reg = registry()
+  const H = HighlightCtor()
+  if (!reg || !H) return undefined
+  if (!all || reg.get('find') !== all) reg.set('find', (all = new H()))
+  if (!current || reg.get('find-current') !== current) reg.set('find-current', (current = new H()))
+  return { all, current }
+}
+
+/** Makes WebKit repaint these elements: an invisible outline for one frame. */
+function nudge(ranges: Iterable<Range>) {
+  const els = new Set<HTMLElement>()
+  for (const r of ranges) {
+    const el = r.startContainer.parentElement
+    if (el) els.add(el)
+  }
+  if (els.size === 0) return
+  for (const el of els) el.style.outline = '1px solid transparent'
+  requestAnimationFrame(() => {
+    for (const el of els) el.style.outline = ''
+  })
+}
 
 /**
  * Paints all matches and the current one (css ::highlight(find) and
- * ::highlight(find-current)). Where the highlight api is missing, the
- * current match is selected instead.
+ * ::highlight(find-current)), replacing whatever was painted before. Where
+ * the highlight api is missing, the current match is selected instead.
  */
-export function paint(ranges: Range[], current: number) {
-  const hl = highlights()
-  const H = HighlightCtor()
-  if (hl && H) {
-    hl.set('find', new H(...ranges))
-    if (ranges[current]) hl.set('find-current', new H(ranges[current]))
-    else hl.delete('find-current')
+export function paint(ranges: Range[], at: number) {
+  const h = highlights()
+  if (h) {
+    const old = [...h.all]
+    h.all.clear()
+    h.current.clear()
+    for (const r of ranges) h.all.add(r)
+    if (ranges[at]) h.current.add(ranges[at])
+    nudge(old)
     return
   }
   const sel = window.getSelection()
   sel?.removeAllRanges()
-  if (ranges[current]) sel?.addRange(ranges[current])
+  if (ranges[at]) sel?.addRange(ranges[at])
 }
 
 export function clearPaint() {
-  highlights()?.delete('find')
-  highlights()?.delete('find-current')
+  const h = highlights()
+  if (h) {
+    const old = [...h.all]
+    h.all.clear()
+    h.current.clear()
+    nudge(old)
+    return
+  }
+  window.getSelection()?.removeAllRanges()
 }
 
 /** Scrolls the current match into view inside whichever pane holds it. */

@@ -69,9 +69,17 @@
       await wait(300)
       const count = bar.querySelector('.find-count').innerText
       check('find counts and paints matches', /^1\/[1-9]/.test(count) && (CSS.highlights?.get('find')?.size ?? 0) > 0, count)
+      // typing on narrows the matches: only the new query stays painted
+      setInput(bar.querySelector('input'), 'p')
+      await wait(300)
+      const wide = CSS.highlights?.get('find')?.size ?? 0
+      setInput(bar.querySelector('input'), 'pay')
+      await wait(300)
+      const painted = [...(CSS.highlights?.get('find') ?? [])].map((r) => r.toString().toLowerCase())
+      check('a longer query repaints only its own matches', wide > painted.length && painted.length > 0 && painted.every((t) => t === 'pay'), `p: ${wide}, pay: ${painted.length}`)
       bar.querySelector('input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
       await wait(100)
-      check('esc closes find and clears paint', !document.querySelector('.find-bar') && !CSS.highlights?.get('find'), 'closed')
+      check('esc closes find and clears paint', !document.querySelector('.find-bar') && (CSS.highlights?.get('find')?.size ?? 0) === 0, 'closed')
     }
 
     // zoom, the way the View menu does it: zoomed out far enough, the wide layout
