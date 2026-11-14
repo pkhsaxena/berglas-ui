@@ -20,10 +20,12 @@ ui/src/skins/terminal/  the terminal-pane look: components, css and theme preset
 ui/src/skins/native/    a Mac-style window: sidebar, segmented controls, light/dark/system
                         appearance, environments color-coded with a banner over production
 ui/src/skins/registry.ts  the skins this build has; main.tsx loads the one the config names
+ui/src/skins/FEATURES.md  every ui feature a skin must offer, where it lives in core, how it is verified
 ```
 
 To build a new look, add `ui/src/skins/<name>/` whose `index` exports an `App` built on the
-hooks, and add it to `SKINS` in `registry.ts`. Skins must not call `fetch` or parse values
+hooks, and add it to `SKINS` in `registry.ts`. Work through
+[`ui/src/skins/FEATURES.md`](ui/src/skins/FEATURES.md): a skin is done when it has every row. Skins must not call `fetch` or parse values
 themselves; anything a second skin would also need belongs in `core/`.
 
 - `skin:` in the config picks the look; unset or unknown names load `terminal`. With more than
