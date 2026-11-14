@@ -272,3 +272,15 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 
 /* filter box above a revealed .env value */
 .row input.env-filter { flex: 1 1 18ch; max-width: 36ch; }
+
+/* find in page (desktop app): a bar over the top right, matches painted
+   with the css highlight api, so the page itself is never changed */
+.find-bar {
+  position: fixed; top: 8px; right: 18px; z-index: 30;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--t-bg); border: 1px solid var(--t-prompt); padding: 4px 8px;
+}
+.find-bar input { width: 26ch; }
+.find-bar .find-count { min-width: 9ch; text-align: right; }
+::highlight(find) { background-color: color-mix(in srgb, var(--t-string) 35%, transparent); }
+::highlight(find-current) { background-color: var(--t-prompt); color: var(--t-bg); }

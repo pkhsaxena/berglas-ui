@@ -1,9 +1,9 @@
 // Commands the ui can be told to run from outside the page: the desktop app's
-// menu items (View → Zoom) call window.berglasUI.run(name).
+// menu items (View → Zoom, Edit → Find) call window.berglasUI.run(name).
 // Whoever owns the state registers the handler; a command with no handler
 // does nothing.
 
-export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset'
+export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev'
 
 const handlers = new Map<Command, () => void>()
 

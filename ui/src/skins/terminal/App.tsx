@@ -16,8 +16,10 @@ import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
 import { ZOOM_STEPS } from '../../core/zoom'
+import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { SKINS, skinFor } from '../registry'
+import { FindBar } from './components/FindBar'
 import { applyTheme, knownTheme, PRESETS } from './theme'
 
 // the system zone's name for the time switch, e.g. "ist"
@@ -25,6 +27,7 @@ const LOCAL_ZONE = zoneName(new Date())
 
 export default function App() {
   const app = useApp()
+  const find = useFind()
   useLayoutWidth({ narrow: 820, wide: 2000 }, app.zoom)
   const { session, active } = app
   const [selected, setSelected] = useState<string | null>(null)
@@ -379,6 +382,7 @@ export default function App() {
       </SettingsContext.Provider>
 
       <Credit />
+      <FindBar f={find} />
 
       {toast && (
         <div className="toast" role="status">
