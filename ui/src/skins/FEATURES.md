@@ -22,6 +22,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 |---|---|---|---|
 | Session states | Loading; "not paired" (open the printed link); core offline with Retry; no Google credentials with the `gcloud auth application-default login` hint and Retry | `useApp` | manual |
 | Account line | Account, impersonation, project and quota project; a demo badge in demo mode | `useApp` (`/api/status`) | manual |
+| Header controls | In this order in every skin: **time, skin, zoom, theme** (each skin may name theme its own way, e.g. native's "Appearance") | skin `App.tsx` | manual |
 | Time zone | Local or UTC for every timestamp, saved to the config | `useApp.setTimeZone`, `useStamp` | unit `time.test.ts` |
 | Skin picker | Shown with two or more skins; saves `skin:` and reloads | `useApp.setSkin`, `registry.ts` | unit `registry.test.ts`, go `TestSkinRoundTrips` |
 | Theme | Each skin's own names (terminal presets; native System / Light / Dark), saved as `theme:` | `useApp.setTheme` + the skin's `theme.ts` | manual |
