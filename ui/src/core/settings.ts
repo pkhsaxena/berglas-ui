@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   clipboardClearSeconds: 30,
   cacheSeconds: 600,
   cacheEntries: 500,
+  zoom: 100,
   auditLog: '',
   credentials: {},
   sources: [],

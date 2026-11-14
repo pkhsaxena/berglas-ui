@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError, type EnvOrder, type Status } from '../api'
 import { configureCache } from '../cache'
+import { onCommand } from '../commands'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
 import type { TimeZone } from '../time'
+import { applyZoom, stepZoom } from '../zoom'
 
 export type Session =
   | { kind: 'loading' }
@@ -53,6 +55,32 @@ export function useApp() {
   }, [load])
 
   useEffect(() => configureCache(base.cacheSeconds, base.cacheEntries), [base.cacheSeconds, base.cacheEntries])
+
+  useEffect(() => applyZoom(base.zoom), [base.zoom])
+
+  // the latest zoom, so menu steps pressed in quick succession build on each other
+  const zoomRef = useRef(base.zoom)
+  useEffect(() => {
+    zoomRef.current = base.zoom
+  }, [base.zoom])
+
+  /** Zooms the whole ui (percent) and saves it to the config. */
+  const setZoom = useCallback((zoom: number) => {
+    zoomRef.current = zoom
+    setBase((b) => ({ ...b, zoom }))
+    setConfigError('')
+    api.setConfig({ zoom }).catch((e) => setConfigError(`zoom applied but not saved — ${errText(e)}`))
+  }, [])
+
+  // the desktop app's View menu
+  useEffect(() => {
+    const offs = [
+      onCommand('zoomIn', () => setZoom(stepZoom(zoomRef.current, 1))),
+      onCommand('zoomOut', () => setZoom(stepZoom(zoomRef.current, -1))),
+      onCommand('zoomReset', () => setZoom(100)),
+    ]
+    return () => offs.forEach((off) => off())
+  }, [setZoom])
 
   const retry = () => {
     setSession({ kind: 'loading' })
@@ -120,5 +148,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

@@ -58,6 +58,9 @@ type Config struct {
 	// Skin is the ui design to load ("terminal" when unset or unknown). Each
 	// skin has its own themes, so theme names may only mean something to one.
 	Skin string `yaml:"skin,omitempty" json:"skin"`
+	// Zoom scales the whole ui, in percent (50 to 200; unset means 100).
+	// Zooming out gives the layout more room, like browser zoom.
+	Zoom *int `yaml:"zoom,omitempty" json:"-"`
 	// Theme is the ui theme preset name.
 	Theme string `yaml:"theme,omitempty" json:"theme"`
 	// TimeZone shows times in the system's zone ("local", the default) or "utc".
@@ -97,6 +100,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # openBrowser: true            # open the ui when the core starts
 # skin: terminal               # the ui design; the ui lists the skins it has
 # theme: Dracula
+# zoom: 100                    # scale the whole ui, 50-200 percent
 # timeZone: local              # show times in the system zone, or utc
 # envOrder: sorted             # .env views sorted by section and key, or file
 # readOnly: false              # refuse every write
@@ -181,6 +185,9 @@ func Validate(c Config) error {
 	}
 	if c.ClipboardClearSeconds != nil && *c.ClipboardClearSeconds < 0 {
 		return fmt.Errorf("clipboardClearSeconds must be 0 or more")
+	}
+	if c.Zoom != nil && (*c.Zoom < MinZoom || *c.Zoom > MaxZoom) {
+		return fmt.Errorf("zoom must be %d to %d (percent), got %d", MinZoom, MaxZoom, *c.Zoom)
 	}
 	if c.CacheSeconds != nil && *c.CacheSeconds < 0 {
 		return fmt.Errorf("cacheSeconds must be 0 or more")
@@ -278,6 +285,14 @@ func (f *File) SetTimeZone(tz string) error {
 // business: an unknown one loads the default skin.
 func (f *File) SetSkin(name string) error {
 	return f.set("skin", name, func(c *Config) { c.Skin = name })
+}
+
+// SetZoom sets the ui zoom in percent and saves the file.
+func (f *File) SetZoom(percent int) error {
+	if err := Validate(Config{Zoom: &percent}); err != nil {
+		return err
+	}
+	return f.set("zoom", percent, func(c *Config) { c.Zoom = &percent })
 }
 
 // SetTheme sets the theme name and saves the file.

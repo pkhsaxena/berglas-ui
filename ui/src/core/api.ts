@@ -122,6 +122,8 @@ export type Config = {
   cacheSeconds: number
   /** at most this many cached lists */
   cacheEntries: number
+  /** ui zoom in percent */
+  zoom: number
   auditLog: string
   credentials: { impersonateServiceAccount?: string; quotaProject?: string }
   sources: SourceConfig[]
@@ -132,7 +134,7 @@ export type Config = {
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
-  setConfig: (c: Partial<Pick<Config, 'skin' | 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
+  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
   list: (backend: Backend, parent: string, prefix = '') =>
     call<{ secrets: Secret[] }>('GET', `/api/secrets?${qs({ backend, parent, prefix })}`).then((r) => r.secrets),
   versions: (r: Ref) =>

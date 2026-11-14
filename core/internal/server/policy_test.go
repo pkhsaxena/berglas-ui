@@ -165,3 +165,15 @@ func TestSkinRoundTrips(t *testing.T) {
 		t.Fatalf("get config lacks skin or theme: %s", rec.Body)
 	}
 }
+
+func TestZoomIsSavedAndBounded(t *testing.T) {
+	h := demoServer(t, "")
+	if rec := post(h, "/api/config", `{"zoom":67}`); rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"zoom":67`) {
+		t.Fatalf("set zoom: %d %s", rec.Code, rec.Body)
+	}
+	for _, bad := range []string{`{"zoom":20}`, `{"zoom":500}`} {
+		if rec := post(h, "/api/config", bad); rec.Code != http.StatusBadRequest {
+			t.Fatalf("%s: %d, want 400", bad, rec.Code)
+		}
+	}
+}

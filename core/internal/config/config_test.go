@@ -81,6 +81,7 @@ func TestInvalidConfigIsRejected(t *testing.T) {
 		"not yaml":     "sources: [",
 		"negative ttl": "cacheSeconds: -1\n",
 		"neg entries":  "cacheEntries: -5\n",
+		"zoom too low": "zoom: 10\n",
 		"typo key":     "readonly: true\n",
 		"bad protect":  "protect: ['[']\n",
 		"two defaults": "sources:\n  - {backend: sm, parent: a, default: true}\n  - {backend: sm, parent: b, default: true}\n",

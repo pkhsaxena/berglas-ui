@@ -15,6 +15,8 @@ import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Sources } from './components/Sources'
+import { ZOOM_STEPS } from '../../core/zoom'
+import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { SKINS, skinFor } from '../registry'
 import { applyTheme, knownTheme, PRESETS } from './theme'
 
@@ -23,6 +25,7 @@ const LOCAL_ZONE = zoneName(new Date())
 
 export default function App() {
   const app = useApp()
+  useLayoutWidth({ narrow: 820, wide: 2000 }, app.zoom)
   const { session, active } = app
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -175,6 +178,16 @@ export default function App() {
             </select>
           </label>
         )}
+        <label title="zoom out to give the layout more room (zoomed out far enough, panes sit side by side)">
+          zoom
+          <select value={app.zoom} onChange={(e) => app.setZoom(Number(e.target.value))}>
+            {(ZOOM_STEPS.includes(app.zoom) ? ZOOM_STEPS : [...ZOOM_STEPS, app.zoom].sort((a, b) => a - b)).map((z) => (
+              <option key={z} value={z}>
+                {z}%
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           theme
           <select value={theme} onChange={(e) => app.setTheme(e.target.value)}>

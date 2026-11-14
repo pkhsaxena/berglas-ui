@@ -263,6 +263,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.B
 func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Skin     *string          `json:"skin"`
+		Zoom     *int             `json:"zoom"`
 		Theme    *string          `json:"theme"`
 		TimeZone *string          `json:"timeZone"`
 		EnvOrder *string          `json:"envOrder"`
@@ -285,6 +286,12 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.TimeZone != nil {
 		if err := s.cfg.SetTimeZone(*in.TimeZone); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	if in.Zoom != nil {
+		if err := s.cfg.SetZoom(*in.Zoom); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
 			return
 		}

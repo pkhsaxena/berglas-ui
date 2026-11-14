@@ -13,6 +13,8 @@ const (
 	DefaultClipboardClearSeconds = 30
 	DefaultCacheSeconds          = 600
 	DefaultCacheEntries          = 500
+	DefaultZoom                  = 100
+	MinZoom, MaxZoom             = 50, 200
 )
 
 // Settings is the resolved config the ui needs: defaults applied, paths
@@ -28,6 +30,7 @@ type Settings struct {
 	ClipboardClearSeconds int         `json:"clipboardClearSeconds"`
 	CacheSeconds          int         `json:"cacheSeconds"`
 	CacheEntries          int         `json:"cacheEntries"`
+	Zoom                  int         `json:"zoom"`
 	AuditLog              string      `json:"auditLog"`
 	Credentials           Credentials `json:"credentials"`
 	Sources               []Source    `json:"sources"`
@@ -38,7 +41,7 @@ func (c Config) Settings() Settings {
 	s := Settings{
 		Skin: c.Skin, Theme: c.Theme, TimeZone: c.TimeZone, EnvOrder: c.EnvOrder, ReadOnly: c.ReadOnly, Protect: c.Protect,
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
-		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries,
+		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 	}
 	if c.RevealSeconds != nil {
@@ -52,6 +55,9 @@ func (c Config) Settings() Settings {
 	}
 	if c.CacheEntries != nil {
 		s.CacheEntries = *c.CacheEntries
+	}
+	if c.Zoom != nil {
+		s.Zoom = *c.Zoom
 	}
 	if s.EnvOrder == "" {
 		s.EnvOrder = "sorted"

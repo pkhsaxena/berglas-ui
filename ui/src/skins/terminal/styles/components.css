@@ -35,6 +35,12 @@ strong { color: var(--t-string); font-weight: 500; }
      the secret and versions panes sit side by side. No tab row.
    - under 820px: one column and the page scrolls, as a fallback. */
 html, body, #root { height: 100%; }
+/* the layout's width breakpoints key off #root[data-width], which
+   core/hooks/useLayoutWidth.ts sets from #root's own width (narrow under
+   820px, wide from 2000px). Media and container queries can't be used: the
+   ui zoom (css zoom on <html>) never moves media queries, and WebKit still
+   reads container queries at the unzoomed width. So zoomed out to 67%, a
+   1440px window lays out like a 2150px one, in the mac app too. */
 /* the panes scroll, never the page: no page scrolling at all, and no elastic
    bounce of the whole page on macOS (the desktop app's web view and Safari),
    which made it feel scrollable. The narrow fallback scrolls .layout instead. */
@@ -93,7 +99,7 @@ main {
 .section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--t-line); }
 .section.danger { border: 1px solid var(--t-error); padding: 8px 10px; }
 
-@media (min-width: 2000px) {
+#root[data-width='wide'] {
   .layout { grid-template-columns: minmax(300px, 1fr) minmax(0, 3fr); }
   .layout.has-side { grid-template-columns: minmax(300px, 1fr) minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "left side main"; }
   .layout > .side-col { display: grid; }
@@ -118,7 +124,7 @@ main {
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 }
 
-@media (max-width: 819px) {
+#root[data-width='narrow'] {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left > .list-pane { height: min(60vh, 560px); }
@@ -263,3 +269,4 @@ button.flag[aria-pressed="true"] { color: var(--t-bg); background: var(--t-promp
 @media (prefers-reduced-motion: reduce) {
   .cursor, .toast { animation: none; }
 }
+
