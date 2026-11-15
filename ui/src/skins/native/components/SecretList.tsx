@@ -1,4 +1,4 @@
-import type { Ref as ReactRef } from 'react'
+import type { ReactNode, Ref as ReactRef } from 'react'
 import { versionOf } from '../../../core/api'
 import { toneOfSecret } from '../../../core/envtone'
 import type { SecretListState } from '../../../core/hooks/useSecretList'
@@ -15,9 +15,11 @@ type Props = {
   onSelect: (name: string) => void
   /** shows a New button when set */
   onCreate?: () => void
+  /** favourites and recents, shown above the list while no filter is typed */
+  quick?: ReactNode
 }
 
-export function SecretList({ ref, source, list, selected, onSelect, onCreate }: Props) {
+export function SecretList({ ref, source, list, selected, onSelect, onCreate, quick }: Props) {
   const { secrets, shown, groups, loading, error, filter, setFilter, refresh } = list
   const readOnly = readOnlyFor(useSettings(), source)
   const stamp = useStamp()
@@ -61,6 +63,7 @@ export function SecretList({ ref, source, list, selected, onSelect, onCreate }: 
         </div>
       ) : (
         <div className="scroll" role="status" aria-label={`${shown.length} of ${secrets.length} secrets`}>
+          {!filter.trim() && quick}
           {groups.map((g) => (
             <div key={g.key ?? '\u0000other'}>
               {source.group && (

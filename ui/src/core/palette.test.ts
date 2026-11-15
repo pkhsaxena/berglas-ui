@@ -75,3 +75,23 @@ describe('paletteActions', () => {
     expect(paletteActions({ ...base, timeZone: 'utc' }).map((a) => a.label)).toContain('Time: local')
   })
 })
+
+describe('paletteItems favourites and recents', () => {
+  it('lists them first, once each, and only for known sources', () => {
+    const a = { backend: 'storage' as const, parent: 'a' }
+    const items = paletteItems({
+      sources: [a],
+      active: a,
+      secrets: [
+        { backend: 'storage', parent: 'a', name: 'x', updatedAt: '' },
+        { backend: 'storage', parent: 'a', name: 'y', updatedAt: '' },
+      ],
+      favorites: [{ ...a, name: 'y' }, { backend: 'sm', parent: 'gone', name: 'z' }],
+      recent: [{ ...a, name: 'y' }, { ...a, name: 'x' }],
+      openSecret: () => {},
+      setActive: () => {},
+      actions: [],
+    })
+    expect(items.filter((i) => i.group !== 'Sources').map((i) => `${i.group}:${i.label}`)).toEqual(['Favourites:y', 'Recent:x'])
+  })
+})

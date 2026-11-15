@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2"
@@ -67,6 +68,82 @@ type shell struct {
 	saved   string
 	// authed counts self-test unlocks
 	authed int
+
+	mu sync.Mutex
+	// ready is set once the page has loaded; links that arrive before wait in pending
+	ready   bool
+	pending []config.SecretRef
+	// notified records watch notifications during a self-test (none are shown)
+	notified []string
+	// notify is the system notification state: 0 unknown, 1 allowed, -1 not available or refused
+	notify int
+}
+
+// openLink takes a berglas-ui:// link from macOS and opens the secret it
+// names, now or once the page has loaded.
+func (s *shell) openLink(log *slog.Logger, raw string) {
+	r, err := parseLink(raw)
+	if err != nil {
+		log.Warn("ignored link", "err", err)
+		return
+	}
+	s.mu.Lock()
+	if !s.ready {
+		log.Info("link queued until the page loads", "name", r.Name)
+		s.pending = append(s.pending, r)
+		s.mu.Unlock()
+		return
+	}
+	s.mu.Unlock()
+	log.Info("link opened", "backend", r.Backend, "parent", r.Parent, "name", r.Name)
+	wruntime.WindowUnminimise(s.ctx)
+	wruntime.WindowShow(s.ctx)
+	wruntime.WindowExecJS(s.ctx, linkJS(r))
+}
+
+// pageReady flushes links that arrived while the page was loading.
+func (s *shell) pageReady() {
+	s.mu.Lock()
+	s.ready = true
+	links := s.pending
+	s.pending = nil
+	s.mu.Unlock()
+	for _, r := range links {
+		wruntime.WindowExecJS(s.ctx, linkJS(r))
+	}
+}
+
+// watchChanged tells the page (it refreshes its watch marks) and shows a
+// system notification. Permission is asked the first time one is needed.
+func (s *shell) watchChanged(log *slog.Logger, c server.Change) {
+	title := c.Name + " has a new version"
+	body := "#" + c.Version + " in " + c.Parent
+	if c.Deleted {
+		title, body = c.Name+" was deleted", "in "+c.Parent
+	}
+	wruntime.WindowExecJS(s.ctx, "window.berglasUI && window.berglasUI.run('watchChanged')")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.saveDir != "" { // self-test: record instead of showing
+		s.notified = append(s.notified, title)
+		return
+	}
+	if s.notify == 0 {
+		s.notify = -1
+		if err := wruntime.InitializeNotifications(s.ctx); err != nil {
+			log.Warn("notifications unavailable", "err", err)
+		} else if ok, err := wruntime.RequestNotificationAuthorization(s.ctx); err != nil || !ok {
+			log.Warn("notifications not allowed", "err", err)
+		} else {
+			s.notify = 1
+		}
+	}
+	if s.notify != 1 {
+		return
+	}
+	if err := wruntime.SendNotification(s.ctx, wruntime.NotificationOptions{ID: "watch-" + c.Backend + "-" + c.Parent + "-" + c.Name, Title: title, Body: body}); err != nil {
+		log.Warn("notification failed", "err", err)
+	}
 }
 
 func (s *shell) SetClipboard(text string) error {
@@ -185,7 +262,7 @@ func run() error {
 
 	exit := 0
 	if testJS != "" {
-		handler = withSelftest(handler, sh, func(report []byte, ok bool) {
+		handler = withSelftest(handler, sh, store, func(report []byte, ok bool) {
 			fmt.Printf("SELFTEST %s\n", report)
 			if !ok {
 				exit = 1
@@ -209,19 +286,25 @@ func run() error {
 			// keep the window out of screenshots, recordings and screen shares
 			// (NSWindowSharingNone) unless the config allows it
 			ContentProtection: !cfg.Get().AllowScreenCapture,
+			// berglas-ui:// links (Info.plist registers the scheme)
+			OnUrlOpen: func(u string) { sh.openLink(log, u) },
 			About: &mac.AboutInfo{
 				Title:   "berglas-ui " + version,
 				Message: "A desktop ui for berglas secrets.\nUses your gcloud application-default credentials.",
 			},
 		},
-		OnStartup: func(ctx context.Context) { sh.ctx = ctx },
+		OnStartup: func(ctx context.Context) {
+			sh.ctx = ctx
+			api.StartWatcher(ctx, func(c server.Change) { sh.watchChanged(log, c) })
+		},
 		OnDomReady: func(ctx context.Context) {
+			sh.pageReady()
 			if testJS == "" {
 				return
 			}
 			wruntime.WindowExecJS(ctx, testJS)
 			go func() {
-				time.Sleep(240 * time.Second)
+				time.Sleep(300 * time.Second)
 				fmt.Println("SELFTEST timeout: no report from the web view")
 				exit = 1
 				wruntime.Quit(ctx)
@@ -299,7 +382,7 @@ func appMenu(sh *shell) *menu.Menu {
 // withSelftest adds the self-test's routes: POST /__selftest takes the
 // report; GET /__selftest/clipboard and /__selftest/opened let the script
 // check what the app did with a copy or a link.
-func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool)) http.Handler {
+func withSelftest(next http.Handler, sh *shell, store secrets.Store, done func(report []byte, ok bool)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/__selftest/clipboard":
@@ -308,6 +391,24 @@ func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool
 			return
 		case "/__selftest/opened":
 			_, _ = fmt.Fprint(w, strings.Join(*sh.opened, "\n"))
+			return
+		case "/__selftest/link":
+			// as if macOS handed the app this link
+			sh.openLink(slog.Default(), r.URL.Query().Get("u"))
+			return
+		case "/__selftest/notified":
+			sh.mu.Lock()
+			_, _ = fmt.Fprint(w, strings.Join(sh.notified, "\n"))
+			sh.mu.Unlock()
+			return
+		case "/__selftest/external-write":
+			// a write that doesn't go through the core, as another person's would
+			if err := externalWrite(store, r.URL.Query().Get("name")); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
+		case "/__selftest/progress":
+			fmt.Printf("SELFTEST step: %s\n", r.URL.Query().Get("step"))
 			return
 		case "/__selftest/authed":
 			_, _ = fmt.Fprint(w, sh.authed)
@@ -330,4 +431,16 @@ func withSelftest(next http.Handler, sh *shell, done func(report []byte, ok bool
 		w.WriteHeader(http.StatusNoContent)
 		done(body, r.URL.Query().Get("ok") == "1")
 	})
+}
+
+// externalWrite adds a version to a demo secret without going through the
+// core, as another person's write would. It refuses anything but the
+// in-memory demo store, so a self-test can never write to Google Cloud.
+func externalWrite(store secrets.Store, name string) error {
+	m, ok := store.(*secrets.Memory)
+	if !ok {
+		return fmt.Errorf("external writes are for the demo store only")
+	}
+	_, err := m.Update(context.Background(), secrets.UpdateInput{Backend: secrets.Storage, Parent: "demo-bucket", Name: name, Plaintext: []byte("CHANGED_BY=someone-else\n")})
+	return err
 }

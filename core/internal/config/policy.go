@@ -35,6 +35,10 @@ type Settings struct {
 	AuditLog              string      `json:"auditLog"`
 	Credentials           Credentials `json:"credentials"`
 	Sources               []Source    `json:"sources"`
+	Favorites             []SecretRef `json:"favorites"`
+	Recent                []SecretRef `json:"recent"`
+	Watch                 []SecretRef `json:"watch"`
+	WatchMinutes          int         `json:"watchMinutes"`
 }
 
 // Settings resolves c's defaults.
@@ -45,6 +49,10 @@ func (c Config) Settings() Settings {
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 		LockAfterMinutes: c.LockAfterMinutes,
+		Favorites:        nonNil(c.Favorites), Recent: nonNil(c.Recent), Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
+	}
+	if c.WatchMinutes > 0 {
+		s.WatchMinutes = c.WatchMinutes
 	}
 	if c.RevealSeconds != nil {
 		s.RevealSeconds = *c.RevealSeconds
@@ -127,4 +135,15 @@ func ExpandHome(p string) string {
 		}
 	}
 	return p
+}
+
+// DefaultWatchMinutes is how often the mac app checks watched secrets.
+const DefaultWatchMinutes = 5
+
+// nonNil keeps lists as [] in json, so the ui never sees null.
+func nonNil(r []SecretRef) []SecretRef {
+	if r == nil {
+		return []SecretRef{}
+	}
+	return r
 }

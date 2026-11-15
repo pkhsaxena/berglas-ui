@@ -336,3 +336,5 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .quick-mark { width: 1.1em; color: var(--n-muted); flex: none; }
 .quick-mark.fav { color: #d99a00; }
 .small-badge { font-size: 10px; padding: 0 5px; color: var(--n-accent); background: var(--n-accent-soft); }
+.changed-key { color: var(--n-accent); }
+.quick-mark.changed-dot { color: var(--n-accent); }

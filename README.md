@@ -57,6 +57,13 @@ themselves; anything a second skin would also need belongs in `core/`.
   confirmation (and the typed name for protected secrets). In the mac app the core asks where with
   a Save dialog, writes the file with mode 600 and logs an `export` line (path, no value) to the
   audit log; in a browser it is a download.
+- **favourites and recents:** ☆ on a secret stars it; favourites and the last five secrets you
+  opened, from any source, sit above the list and lead ⌘K. Saved in the config (names only).
+- **watch:** **watch** on a secret, and the core checks it for new versions every `watchMinutes`
+  (default 5). Changes you didn't make show under **changed** above the list until you open them,
+  and the mac app posts a notification (macOS asks permission the first time).
+- **links:** **copy link** on a secret gives `berglas-ui://open?backend=…&parent=…&name=…`, which
+  opens the mac app at that secret. Safe to paste anywhere: it holds no value and only navigates.
 - **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or **compare keys** on a
   matrix row, compares that service's keys across its environments: which keys are missing where,
   which values match (a letter per distinct value), empty values, quote-only differences, and a

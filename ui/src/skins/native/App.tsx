@@ -5,12 +5,18 @@ import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
 import { useLock } from '../../core/hooks/useLock'
+import { useWatch } from '../../core/hooks/useWatch'
+import { type LinkTarget, onOpenLink } from '../../core/commands'
+import { linkFor } from '../../core/deeplink'
+import { copyPlain } from '../../core/clipboard'
 import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { identityOptions } from '../../core/identity'
+import { hasRef } from '../../core/refs'
+import type { SecretRef } from '../../core/api'
 import { matrixOf } from '../../core/overview'
 import { paletteActions, paletteItems, type PaletteView } from '../../core/palette'
 import { readOnlyFor } from '../../core/settings'
@@ -26,6 +32,8 @@ import { Credit } from './components/Credit'
 import { DriftPane } from './components/Drift'
 import { FindBar } from './components/FindBar'
 import { Palette } from './components/Palette'
+import { QuickList } from './components/QuickList'
+import { LinkDialog } from './components/LinkDialog'
 import { LockScreen } from './components/LockScreen'
 import { FileDrop } from './components/FileDrop'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
@@ -78,6 +86,44 @@ export default function App() {
   }, [toast])
 
   const ids = identityOptions(app.identity)
+  // whichever secret ends up open goes to the front of the recent list
+  useEffect(() => {
+    if (active && selected) app.noteRecent({ backend: active.backend, parent: active.parent, name: selected })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.backend, active?.parent, selected])
+  // watched secrets: what changed since you last opened them
+  const watch = useWatch(app.watch, session.kind === 'ready')
+  useEffect(() => {
+    if (active && selected) watch.ack({ backend: active.backend, parent: active.parent, name: selected })
+  }, [active, selected, watch.ack, watch.changes])
+  const changeCount = watch.changes.length
+  const lastCount = useRef(0)
+  useEffect(() => {
+    if (changeCount > lastCount.current) setToast(changeCount === 1 ? `${watch.changes[0].name} changed` : `${changeCount} watched secrets changed`)
+    lastCount.current = changeCount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeCount])
+
+  // berglas-ui:// links: open the secret; a source you haven't added is asked about first
+  const [linkAsk, setLinkAsk] = useState<LinkTarget | null>(null)
+  const openRefRef = useRef<(r: SecretRef) => void>(() => {})
+  useEffect(
+    () =>
+      onOpenLink((t) => {
+        if (app.sources.some((x) => x.backend === t.backend && x.parent === t.parent)) openRefRef.current(t)
+        else setLinkAsk(t)
+      }),
+    [app.sources],
+  )
+
+  /** Opens a favourite or recent secret, switching source when it lives elsewhere. */
+  const openRef = (r: SecretRef) => {
+    const src = app.sources.find((x) => x.backend === r.backend && x.parent === r.parent)
+    if (!src) return
+    if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
+    select(r.name)
+  }
+  openRefRef.current = openRef
   const lockState = useLock(session.kind === 'ready' ? app.settings.lockAfterMinutes : 0)
   // a new identity may see other secrets: reload the list and close the open one
   useEffect(() => {
@@ -133,6 +179,8 @@ export default function App() {
       sources: app.sources,
       active,
       secrets: list.secrets ?? null,
+      favorites: app.favorites,
+      recent: app.recent,
       openSecret: (src, name) => {
         if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
         select(name)
@@ -169,6 +217,7 @@ export default function App() {
         identities: ids.options.length > 1 ? ids.options.filter((o) => o.key !== ids.current) : [],
         setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
         lock: lockState.lock,
+        checkWatched: app.watch.length ? () => void watch.checkNow() : undefined,
       }),
     }),
   )
@@ -369,6 +418,7 @@ export default function App() {
                       list={list}
                       selected={selected}
                       onSelect={select}
+                      quick={<QuickList favorites={app.favorites} recent={app.recent} watch={app.watch} sources={app.sources} active={active} selected={selected} onOpen={openRef} changes={watch.changes} />}
                       onCreate={() => {
                         setSelected(null)
                         setCreateInitial(null)
@@ -442,6 +492,18 @@ export default function App() {
                         key={`${base.backend}:${base.parent}/${base.name}`}
                         base={base}
                         dropped={dropEdit}
+                        marks={{
+                          favorite: hasRef(app.favorites, base),
+                          watched: hasRef(app.watch, base),
+                          onFavorite: () => app.toggleFavorite(base),
+                          onWatch: () => app.toggleWatch(base),
+                          onCopyLink: () => {
+                            copyPlain(linkFor(base)).then(
+                              () => setToast('Link copied'),
+                              (e) => setErrorLine(`Couldn't copy the link — ${e instanceof Error ? e.message : String(e)}`),
+                            )
+                          },
+                        }}
                         onDroppedUsed={() => setDropEdit(null)}
                         group={active.group}
                         onToast={setToast}
@@ -486,6 +548,19 @@ export default function App() {
       <FindBar f={find} />
       {session.kind === 'ready' && <Palette p={palette} />}
       <LockScreen l={lockState} />
+      {linkAsk && (
+        <LinkDialog
+          target={linkAsk}
+          onCancel={() => setLinkAsk(null)}
+          onAdd={() => {
+            const t = linkAsk
+            setLinkAsk(null)
+            const err = app.addSource({ backend: t.backend, parent: t.parent })
+            if (err) setErrorLine(`Couldn't add ${t.parent} — ${err}`)
+            else select(t.name)
+          }}
+        />
+      )}
       {session.kind === 'ready' && active && (
         <FileDrop
           drop={drop}

@@ -38,3 +38,8 @@ export async function copySecret(text: string, clearSeconds: number, onNote: (ms
     }
   }, clearSeconds * 1000)
 }
+
+/** Copies text that isn't secret (a link, a name): no auto-clear. */
+export async function copyPlain(text: string): Promise<void> {
+  await backend.write(text)
+}

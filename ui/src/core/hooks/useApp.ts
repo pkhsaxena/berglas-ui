@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api, ApiError, type EnvOrder, type Status } from '../api'
+import { api, ApiError, type EnvOrder, type Ref, type SecretRef, type Status } from '../api'
 import { configureCache, metaCache } from '../cache'
 import { onCommand } from '../commands'
+import { pushRecent, toggleRef } from '../refs'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
 import type { TimeZone } from '../time'
@@ -153,6 +154,20 @@ export function useApp() {
     }
   }
 
+  /** Saves one of the name lists (favourites, recents, watched); the screen updates first. */
+  const saveRefs = (key: 'favorites' | 'recent' | 'watch', list: SecretRef[]) => {
+    setBase((b) => ({ ...b, [key]: list }))
+    api.setConfig({ [key]: list }).catch((e) => setConfigError(`couldn't save ${key === 'recent' ? 'recent secrets' : key} — ${errText(e)}`))
+  }
+  const toggleFavorite = (r: Pick<Ref, 'backend' | 'parent' | 'name'>) => saveRefs('favorites', toggleRef(base.favorites, r))
+  const toggleWatch = (r: Pick<Ref, 'backend' | 'parent' | 'name'>) => saveRefs('watch', toggleRef(base.watch, r))
+  /** Records an opened secret at the front of the recent list (skipped when it already is first). */
+  const noteRecent = (r: Pick<Ref, 'backend' | 'parent' | 'name'>) => {
+    const first = base.recent[0]
+    if (first && first.backend === r.backend && first.parent === r.parent && first.name === r.name) return
+    saveRefs('recent', pushRecent(base.recent, r))
+  }
+
   const setTheme = (name: string) => {
     setThemeState(name)
     setConfigError('')
@@ -174,5 +189,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

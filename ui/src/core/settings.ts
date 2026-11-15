@@ -22,6 +22,10 @@ export const DEFAULT_SETTINGS: Settings = {
   auditLog: '',
   credentials: {},
   sources: [],
+  favorites: [],
+  recent: [],
+  watch: [],
+  watchMinutes: 5,
 }
 
 export const SettingsContext = createContext<Settings>(DEFAULT_SETTINGS)

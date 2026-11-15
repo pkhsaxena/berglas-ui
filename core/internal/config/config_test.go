@@ -102,3 +102,35 @@ func TestInvalidConfigIsRejected(t *testing.T) {
 		})
 	}
 }
+
+func TestFavoritesRecentWatchRoundTrip(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	f, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := SecretRef{Backend: "storage", Parent: "b", Name: "orders-prod-env"}
+	if err := f.SetFavorites([]SecretRef{ref}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.SetRecent([]SecretRef{ref}); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.SetWatch([]SecretRef{ref}); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := again.Get().Settings()
+	if len(s.Favorites) != 1 || s.Favorites[0] != ref || len(s.Recent) != 1 || len(s.Watch) != 1 || s.WatchMinutes != DefaultWatchMinutes {
+		t.Fatalf("settings %+v", s)
+	}
+	if err := f.SetFavorites([]SecretRef{{Backend: "x", Parent: "b", Name: "n"}}); err == nil {
+		t.Fatal("bad backend accepted")
+	}
+	if err := f.SetRecent(make([]SecretRef, MaxRecent+1)); err == nil {
+		t.Fatal("too many recent accepted")
+	}
+}

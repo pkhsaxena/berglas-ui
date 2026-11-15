@@ -37,9 +37,11 @@ type Props = {
   /** a dropped file to open in the editor as the new value (once) */
   dropped?: DroppedFile | null
   onDroppedUsed?: () => void
+  /** favourite and watch toggles in the header */
+  marks?: { favorite: boolean; watched: boolean; onFavorite: () => void; onWatch: () => void; onCopyLink: () => void }
 }
 
-export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(
@@ -107,6 +109,19 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
           title={<span className="mono">{base.name}</span>}
           actions={
             <>
+              {marks && (
+                <>
+                  <button className="icon-btn star" aria-pressed={marks.favorite} aria-label={marks.favorite ? 'remove from favourites' : 'add to favourites'} title={marks.favorite ? 'Remove from favourites' : 'Add to favourites'} onClick={marks.onFavorite}>
+                    {marks.favorite ? '★' : '☆'}
+                  </button>
+                  <button className="btn small-btn" aria-pressed={marks.watched} onClick={marks.onWatch} title="Notify me when this secret gets a new version (mac app)">
+                    {marks.watched ? 'Watching' : 'Watch'}
+                  </button>
+                  <button className="btn small-btn" onClick={marks.onCopyLink} title="Copy a berglas-ui:// link that opens this secret in the mac app (no value in it)">
+                    Copy link
+                  </button>
+                </>
+              )}
               <EnvBadge tone={tone} label={envName} />
               {isProtected && tone !== 'prod' && (
                 <span className="badge warn">

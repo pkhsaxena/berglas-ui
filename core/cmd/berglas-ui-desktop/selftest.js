@@ -711,6 +711,69 @@
       ]
     })
 
+    await step('favourites and recents: star, list sections, ⌘K order, saved', async () => {
+      await openSecret('orders-dev-env')
+      await openSecret('orders-staging-env')
+      await press(['add to favourites'])
+      await wait(300)
+      const cfg = (await call('GET', '/api/config')).json
+      const saved = cfg?.favorites?.some((f) => f.name === 'orders-staging-env') && cfg?.recent?.[0]?.name === 'orders-staging-env' && cfg?.recent?.[1]?.name === 'orders-dev-env'
+      const q = pane('.quick-list')
+      const qt = norm(q?.textContent)
+      const sections = !!q && qt.includes('orders-staging-env') && qt.includes('orders-dev-env')
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
+      await wait(300)
+      const groups = [...document.querySelectorAll('.palette-group')].map((g) => norm(g.textContent))
+      const firstHit = norm(document.querySelector('[role=option]')?.textContent)
+      field('go to')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wait(200)
+      await press(['remove from favourites'])
+      await wait(300)
+      const removed = !(await call('GET', '/api/config')).json?.favorites?.some((f) => f.name === 'orders-staging-env')
+      return [saved && sections && groups[0] === 'favourites' && firstHit.startsWith('orders-staging-env') && removed, `saved ${saved}, list sections ${sections}, palette groups [${groups.slice(0, 3)}], first ${firstHit.slice(0, 20)}, unstarred ${removed}`]
+    })
+
+    await step('deep links: open a secret, ask before adding a source, ignore bad links, copy link', async () => {
+      const link = (u) => fetch('/__selftest/link?u=' + encodeURIComponent(u))
+      await link('berglas-ui://open?backend=storage&parent=demo-bucket&name=payments-dev-env')
+      await wait(800)
+      const opened = norm(document.querySelector('.secret-pane')?.textContent).includes('payments-dev-env')
+      await link('berglas-ui://open?backend=s3&parent=demo-bucket&name=tls-cert')
+      await wait(400)
+      const ignored = norm(document.querySelector('.secret-pane')?.textContent).includes('payments-dev-env')
+      await link('berglas-ui://open?backend=storage&parent=someone-elses-bucket&name=x-env')
+      await wait(400)
+      const asked = !!document.querySelector('[role=dialog][aria-label="open link"]')
+      await press(['cancel'])
+      const notAdded = !sourceRow('someone-elses-bucket') && !document.querySelector('[role=dialog][aria-label="open link"]')
+      await press(['copy link', 'link'])
+      await wait(300)
+      const clip = await (await fetch('/__selftest/clipboard')).text()
+      const copied = clip === 'berglas-ui://open?backend=storage&parent=demo-bucket&name=payments-dev-env'
+      return [opened && ignored && asked && notAdded && copied, `opened ${opened}, bad link ignored ${ignored}, unknown source asked ${asked}, not added ${notAdded}, link copied ${copied}`]
+    })
+
+    await step('watch: someone else\'s write is reported and notified; opening clears it', async () => {
+      await openSecret('orders-dev-env')
+      await press(['watch'])
+      await wait(300)
+      const watching = (await call('GET', '/api/config')).json?.watch?.some((w) => w.name === 'orders-dev-env')
+      await call('POST', '/api/watch/check', {}) // first look only records the version
+      await openSecret('orders-staging-env')
+      await fetch('/__selftest/external-write?name=orders-dev-env')
+      const found = (await call('POST', '/api/watch/check', {})).json?.found ?? []
+      await wait(600)
+      const notified = (await (await fetch('/__selftest/notified')).text()).includes('orders-dev-env has a new version')
+      const row = [...document.querySelectorAll('.quick-list button')].find((b) => vis(b) && norm(b.getAttribute('aria-label')).includes('orders-dev-env (changed)'))
+      row?.click()
+      await wait(800)
+      const cleared = !((await call('GET', '/api/watch')).json?.changes ?? []).some((c) => c.name === 'orders-dev-env')
+      await press(['watching'])
+      await wait(300)
+      const unwatched = !(await call('GET', '/api/config')).json?.watch?.some((w) => w.name === 'orders-dev-env')
+      return [watching && found.length === 1 && notified && !!row && cleared && unwatched, `watching ${watching}, found ${found.length}, notified ${notified}, changed row ${!!row}, cleared on open ${cleared}, unwatched ${unwatched}`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 

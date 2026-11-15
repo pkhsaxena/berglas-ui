@@ -38,9 +38,11 @@ type Props = {
   /** a dropped file to open in the editor as the new value (once) */
   dropped?: DroppedFile | null
   onDroppedUsed?: () => void
+  /** favourite and watch toggles in the header */
+  marks?: { favorite: boolean; watched: boolean; onFavorite: () => void; onWatch: () => void; onCopyLink: () => void }
 }
 
-export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -103,7 +105,27 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
   return (
     <div className={`right${mode}`}>
       <div className="card pane secret-pane">
-        <PaneTitle tabs={showVersions ? undefined : titleTabs} extra={tone && <EnvTag tone={tone} label={envOf(base.name, group)} />}>
+        <PaneTitle
+          tabs={showVersions ? undefined : titleTabs}
+          extra={
+            <>
+              {marks && (
+                <>
+                  <button aria-pressed={marks.favorite} aria-label={marks.favorite ? 'remove from favourites' : 'add to favourites'} title={marks.favorite ? 'remove from favourites' : 'add to favourites'} onClick={marks.onFavorite}>
+                    {marks.favorite ? '★' : '☆'}
+                  </button>
+                  <button aria-pressed={marks.watched} onClick={marks.onWatch} title="notify me when this secret gets a new version (mac app)">
+                    {marks.watched ? 'watching' : 'watch'}
+                  </button>
+                  <button onClick={marks.onCopyLink} title="copy a berglas-ui:// link that opens this secret in the mac app (no value in it)">
+                    link
+                  </button>
+                </>
+              )}
+              {tone && <EnvTag tone={tone} label={envOf(base.name, group)} />}
+            </>
+          }
+        >
           secret <span className="muted">— {base.name}</span>
         </PaneTitle>
         <div className="body">

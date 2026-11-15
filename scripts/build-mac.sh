@@ -54,6 +54,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>dev.berglas-ui.desktop</string>
   <key>CFBundleExecutable</key><string>berglas-ui</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>berglas-ui link</string>
+      <key>CFBundleURLSchemes</key><array><string>berglas-ui</string></array>
+    </dict>
+  </array>
   <key>CFBundleShortVersionString</key><string>${VERSION#v}</string>
   <key>CFBundleVersion</key><string>${VERSION#v}</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>

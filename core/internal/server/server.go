@@ -44,6 +44,9 @@ type Server struct {
 	Auth   gcpauth.Auth
 	authMu sync.RWMutex
 
+	watcher   *watcher
+	watchOnce sync.Once
+
 	audit auditor
 }
 
@@ -107,6 +110,9 @@ func (s *Server) apiMux() http.Handler {
 	api.HandleFunc("GET /api/config", s.handleGetConfig)
 	api.HandleFunc("POST /api/config", s.handleSetConfig)
 	api.HandleFunc("POST /api/credentials", s.handleCredentials)
+	api.HandleFunc("GET /api/watch", s.handleWatchList)
+	api.HandleFunc("POST /api/watch/ack", s.handleWatchAck)
+	api.HandleFunc("POST /api/watch/check", s.handleWatchCheck)
 	api.HandleFunc("GET /api/secrets", s.handleList)
 	api.HandleFunc("GET /api/secrets/versions", s.handleVersions)
 	api.HandleFunc("POST /api/secrets/read", s.handleRead)
@@ -161,6 +167,13 @@ func writeError(w http.ResponseWriter, code int, kind, msg string) {
 // fail maps library and Google API errors to HTTP statuses. Error text from
 // berglas and Google never contains secret values, so it is passed through.
 func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
+	code, kind := classify(err)
+	s.log.Warn("request failed", "method", r.Method, "path", r.URL.Path, "status", code, "err", err)
+	writeError(w, code, kind, err.Error())
+}
+
+// classify maps an error to an HTTP status and an error kind.
+func classify(err error) (int, string) {
 	code, kind := http.StatusBadGateway, "upstream"
 	var gerr *googleapi.Error
 	switch {
@@ -184,8 +197,7 @@ func (s *Server) fail(w http.ResponseWriter, r *http.Request, err error) {
 	if code == http.StatusForbidden {
 		kind = "permission_denied"
 	}
-	s.log.Warn("request failed", "method", r.Method, "path", r.URL.Path, "status", code, "err", err)
-	writeError(w, code, kind, err.Error())
+	return code, kind
 }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
@@ -307,18 +319,37 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.B
 // from the ui; it only takes effect at startup.
 func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Skin     *string          `json:"skin"`
-		Zoom     *int             `json:"zoom"`
-		Theme    *string          `json:"theme"`
-		TimeZone *string          `json:"timeZone"`
-		EnvOrder *string          `json:"envOrder"`
-		Sources  *[]config.Source `json:"sources"`
+		Skin      *string             `json:"skin"`
+		Zoom      *int                `json:"zoom"`
+		Theme     *string             `json:"theme"`
+		TimeZone  *string             `json:"timeZone"`
+		EnvOrder  *string             `json:"envOrder"`
+		Sources   *[]config.Source    `json:"sources"`
+		Favorites *[]config.SecretRef `json:"favorites"`
+		Recent    *[]config.SecretRef `json:"recent"`
+		Watch     *[]config.SecretRef `json:"watch"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
 	if in.Sources != nil {
 		if err := s.cfg.SetSources(*in.Sources); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	for _, l := range []struct {
+		refs *[]config.SecretRef
+		set  func([]config.SecretRef) error
+	}{{in.Favorites, s.cfg.SetFavorites}, {in.Recent, s.cfg.SetRecent}, {in.Watch, s.cfg.SetWatch}} {
+		if l.refs == nil {
+			continue
+		}
+		refs := *l.refs
+		if refs == nil {
+			refs = []config.SecretRef{}
+		}
+		if err := l.set(refs); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
 			return
 		}
@@ -413,6 +444,7 @@ func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.markSeen(string(in.Backend), in.Parent, in.Name, versionOf(sec))
 	s.log.Info("secret created", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
 	writeOK(w, map[string]any{"secret": sec}, audit)
 }
@@ -430,6 +462,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.markSeen(string(in.Backend), in.Parent, in.Name, versionOf(sec))
 	s.log.Info("secret updated", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
 	writeOK(w, map[string]any{"secret": sec}, audit)
 }
@@ -447,6 +480,7 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, r, err)
 		return
 	}
+	s.markSeen(string(in.Backend), in.Parent, in.Name, "-")
 	s.log.Info("secret deleted", "backend", in.Backend, "parent", in.Parent, "name", in.Name)
 	writeOK(w, map[string]any{"ok": true}, audit)
 }

@@ -22,6 +22,12 @@ export type Secret = {
 
 export type Ref = { backend: Backend; parent: string; name: string; version?: string }
 
+/** A watched secret with a version this core didn't write. */
+export type WatchChange = { backend: Backend; parent: string; name: string; version?: string; deleted?: boolean; at: string }
+
+/** A secret by source and name (no version): favourites, recents, watched. */
+export type SecretRef = { backend: Backend; parent: string; name: string }
+
 export type Status = {
   version: string
   credentials: boolean
@@ -132,6 +138,12 @@ export type Config = {
   auditLog: string
   credentials: { impersonateServiceAccount?: string; quotaProject?: string; choices?: Identity[] }
   sources: SourceConfig[]
+  /** starred secrets; recently opened (newest first); watched for new versions */
+  favorites: SecretRef[]
+  recent: SecretRef[]
+  watch: SecretRef[]
+  /** how often the mac app checks watched secrets */
+  watchMinutes: number
   /** where the core keeps the file, for display */
   path: string
 }
@@ -139,10 +151,14 @@ export type Config = {
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
-  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources'>>) => call<Config>('POST', '/api/config', c),
+  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources' | 'favorites' | 'recent' | 'watch'>>) => call<Config>('POST', '/api/config', c),
   /** Switches the identity the core acts as and saves it; returns the config. */
   setIdentity: (impersonateServiceAccount: string, quotaProject: string) =>
     call<Config>('POST', '/api/credentials', { impersonateServiceAccount, quotaProject }),
+  /** Watched secrets that changed and haven't been opened since. */
+  watchChanges: () => call<{ changes: WatchChange[]; checkedAt: string }>('GET', '/api/watch'),
+  watchAck: (r: SecretRef) => call<{ ok: boolean }>('POST', '/api/watch/ack', r),
+  watchCheck: () => call<{ found: WatchChange[] }>('POST', '/api/watch/check', {}),
   list: (backend: Backend, parent: string, prefix = '') =>
     call<{ secrets: Secret[] }>('GET', `/api/secrets?${qs({ backend, parent, prefix })}`).then((r) => r.secrets),
   versions: (r: Ref) =>

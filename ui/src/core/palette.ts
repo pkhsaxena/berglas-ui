@@ -1,10 +1,10 @@
 // The command palette (⌘K): one box to jump to a secret, switch source or run
 // an action. Holds no markup; a skin renders usePalette's state.
 import { listKey, metaCache } from './cache'
-import type { Secret } from './api'
+import type { Secret, SecretRef } from './api'
 import { type Source, sourceId, sourceName } from './sources'
 
-export type PaletteGroup = 'Secrets' | 'Sources' | 'Actions'
+export type PaletteGroup = 'Favourites' | 'Recent' | 'Secrets' | 'Sources' | 'Actions'
 
 export type PaletteItem = {
   id: string
@@ -43,7 +43,7 @@ export function fuzzyScore(query: string, text: string): number | null {
   return score - t.length * 0.1
 }
 
-const GROUP_ORDER: Record<PaletteGroup, number> = { Secrets: 0, Sources: 1, Actions: 2 }
+const GROUP_ORDER: Record<PaletteGroup, number> = { Favourites: 0, Recent: 1, Secrets: 2, Sources: 3, Actions: 4 }
 
 /**
  * Items matching the query, best first (ties keep group then input order).
@@ -71,6 +71,9 @@ export type PaletteContext = {
   active: Source | null
   /** the open source's list, when loaded */
   secrets: Secret[] | null
+  /** starred and recently opened secrets, listed first */
+  favorites?: SecretRef[]
+  recent?: SecretRef[]
   openSecret: (source: Source, name: string) => void
   setActive: (source: Source) => void
   actions: { label: string; hint?: string; run: () => void }[]
@@ -83,8 +86,25 @@ export type PaletteContext = {
  */
 export function paletteItems(c: PaletteContext): PaletteItem[] {
   const out: PaletteItem[] = []
+  const seen = new Set<string>()
+  const srcOf = (r: SecretRef) => c.sources.find((s) => s.backend === r.backend && s.parent === r.parent)
+  const quick = (group: 'Favourites' | 'Recent', refs: SecretRef[] | undefined) => {
+    for (const r of refs ?? []) {
+      const src = srcOf(r)
+      const id = `secret ${r.backend}:${r.parent} ${r.name}`
+      if (!src || seen.has(id)) continue
+      seen.add(id)
+      out.push({ id, group, label: r.name, hint: sourceName(src), run: () => c.openSecret(src, r.name) })
+    }
+  }
+  quick('Favourites', c.favorites)
+  quick('Recent', c.recent?.slice(0, 5))
   const add = (src: Source, list: Secret[]) => {
-    for (const s of list) out.push({ id: `secret ${sourceId(src)} ${s.name}`, group: 'Secrets', label: s.name, hint: sourceName(src), run: () => c.openSecret(src, s.name) })
+    for (const s of list) {
+      const id = `secret ${sourceId(src)} ${s.name}`
+      if (seen.has(id)) continue
+      out.push({ id, group: 'Secrets', label: s.name, hint: sourceName(src), run: () => c.openSecret(src, s.name) })
+    }
   }
   if (c.active && c.secrets) add(c.active, c.secrets)
   for (const src of c.sources) {
@@ -126,6 +146,7 @@ export function paletteActions(o: {
   setSkin: (name: string) => void
   setTimeZone: (z: 'local' | 'utc') => void
   lock?: () => void
+  checkWatched?: () => void
   /** other identities to act as */
   identities?: { key: string; label: string; serviceAccount: string; quotaProject: string }[]
   setIdentity?: (o: { serviceAccount: string; quotaProject: string }) => void
@@ -142,6 +163,7 @@ export function paletteActions(o: {
   for (const s of o.skins) if (s.name !== o.skin) a.push({ label: `Skin: ${s.label}`, hint: 'skin (reloads)', run: () => o.setSkin(s.name) })
   if (o.timeZone !== 'local') a.push({ label: 'Time: local', hint: 'time zone', run: () => o.setTimeZone('local') })
   if (o.timeZone !== 'utc') a.push({ label: 'Time: UTC', hint: 'time zone', run: () => o.setTimeZone('utc') })
+  if (o.checkWatched) a.push({ label: 'Check watched secrets now', hint: 'watch', run: o.checkWatched })
   if (o.lock) a.push({ label: 'Lock now', hint: '⇧⌘L · Touch ID to unlock', run: o.lock })
   for (const id of o.identities ?? []) a.push({ label: `Act as ${id.label}`, hint: id.serviceAccount || 'your gcloud login', run: () => o.setIdentity?.(id) })
   return a

@@ -372,3 +372,5 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .quick-mark { width: 1.2ch; color: var(--t-comment); flex: none; }
 .quick-mark.fav { color: var(--t-string); }
 .card > h2 .title-extra button[aria-pressed="true"] { color: var(--t-string); }
+.changed-key { color: var(--t-prompt); }
+.quick-mark.changed-dot { color: var(--t-prompt); }

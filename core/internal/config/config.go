@@ -113,6 +113,67 @@ type Config struct {
 	Credentials Credentials `yaml:"credentials,omitempty" json:"credentials"`
 	// Sources are listed in the ui in this order.
 	Sources []Source `yaml:"sources,omitempty" json:"sources"`
+	// Favorites are secrets starred in the ui; Recent the last ones opened,
+	// newest first. Both hold names only, never values.
+	Favorites []SecretRef `yaml:"favorites,omitempty" json:"favorites"`
+	Recent    []SecretRef `yaml:"recent,omitempty" json:"recent"`
+	// Watch lists secrets the mac app checks for new versions every
+	// WatchMinutes (default 5), with a notification when one appears.
+	Watch        []SecretRef `yaml:"watch,omitempty" json:"watch"`
+	WatchMinutes int         `yaml:"watchMinutes,omitempty" json:"-"`
+}
+
+// SecretRef names one secret: a source and a name.
+type SecretRef struct {
+	Backend string `yaml:"backend" json:"backend"`
+	Parent  string `yaml:"parent" json:"parent"`
+	Name    string `yaml:"name" json:"name"`
+}
+
+// Limits on the lists the ui keeps in the config.
+const (
+	MaxFavorites = 50
+	MaxRecent    = 10
+	MaxWatch     = 50
+)
+
+func validRefs(field string, refs []SecretRef, max int) error {
+	if len(refs) > max {
+		return fmt.Errorf("%s: at most %d", field, max)
+	}
+	for i, r := range refs {
+		if r.Backend != "storage" && r.Backend != "sm" {
+			return fmt.Errorf("%s[%d]: backend must be storage or sm, got %q", field, i, r.Backend)
+		}
+		if r.Parent == "" || r.Name == "" {
+			return fmt.Errorf("%s[%d]: parent and name are required", field, i)
+		}
+	}
+	return nil
+}
+
+// SetFavorites replaces the starred secrets and saves the file.
+func (f *File) SetFavorites(refs []SecretRef) error {
+	if err := validRefs("favorites", refs, MaxFavorites); err != nil {
+		return err
+	}
+	return f.set("favorites", refs, func(c *Config) { c.Favorites = refs })
+}
+
+// SetRecent replaces the recently opened secrets and saves the file.
+func (f *File) SetRecent(refs []SecretRef) error {
+	if err := validRefs("recent", refs, MaxRecent); err != nil {
+		return err
+	}
+	return f.set("recent", refs, func(c *Config) { c.Recent = refs })
+}
+
+// SetWatch replaces the watched secrets and saves the file.
+func (f *File) SetWatch(refs []SecretRef) error {
+	if err := validRefs("watch", refs, MaxWatch); err != nil {
+		return err
+	}
+	return f.set("watch", refs, func(c *Config) { c.Watch = refs })
 }
 
 const template = `# berglas-ui config. Edit by hand or from the ui; comments are kept.
@@ -199,6 +260,18 @@ func Validate(c Config) error {
 	}
 	if c.TimeZone != "" && c.TimeZone != "local" && c.TimeZone != "utc" {
 		return fmt.Errorf("timeZone must be local or utc, got %q", c.TimeZone)
+	}
+	if c.WatchMinutes < 0 {
+		return fmt.Errorf("watchMinutes must be 0 or more")
+	}
+	for _, l := range []struct {
+		name string
+		refs []SecretRef
+		max  int
+	}{{"favorites", c.Favorites, MaxFavorites}, {"recent", c.Recent, MaxRecent}, {"watch", c.Watch, MaxWatch}} {
+		if err := validRefs(l.name, l.refs, l.max); err != nil {
+			return err
+		}
 	}
 	if c.LockAfterMinutes < 0 {
 		return fmt.Errorf("lockAfterMinutes must be 0 or more")

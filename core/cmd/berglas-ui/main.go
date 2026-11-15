@@ -139,6 +139,8 @@ func run() error {
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	// watched secrets are checked here too; the browser ui shows what changed
+	api.StartWatcher(ctx, nil)
 	defer stop()
 	go func() {
 		<-ctx.Done()
