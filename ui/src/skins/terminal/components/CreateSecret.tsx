@@ -6,6 +6,7 @@ import type { Source } from '../../../core/sources'
 import { ConfirmName } from './ConfirmName'
 import { EnvTag } from './EnvMarks'
 import { PaneTitle } from './PaneTitle'
+import { EnvWarnings } from './EnvWarnings'
 
 type Props = {
   source: Source
@@ -85,6 +86,7 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }
             <div className="t-keyword" style={{ marginTop: 6 }}>
               review
             </div>
+            <EnvWarnings warnings={c.warnings} />
             <div className="kv">
               <span className="label">name</span>
               <span className="str">{c.ref.name}</span>

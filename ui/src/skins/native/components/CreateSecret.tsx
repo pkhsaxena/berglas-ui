@@ -4,6 +4,7 @@ import { toneOfSecret } from '../../../core/envtone'
 import { useCreate } from '../../../core/hooks/useCreate'
 import type { Source } from '../../../core/sources'
 import { ConfirmName, EnvBadge, ErrorText, PaneHead } from './bits'
+import { EnvWarnings } from './EnvWarnings'
 
 type Props = {
   source: Source
@@ -66,6 +67,7 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }
         ) : (
           <>
             <h3 style={{ margin: '0 0 6px', fontSize: 13 }}>Review</h3>
+            <EnvWarnings warnings={c.warnings} />
             <div className="kv">
               <span>Name</span>
               <span className="mono">{c.ref.name}</span>

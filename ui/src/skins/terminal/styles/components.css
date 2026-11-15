@@ -367,3 +367,8 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .drift-pick { gap: 8px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--t-line); }
 .drift-pick .combo-btn { border-color: var(--t-prompt); color: var(--t-string); }
 .matrix td.matrix-drift { text-align: right; }
+.env-warnings { margin: 6px 0; padding: 4px 8px; border-left: 2px solid var(--t-string); }
+.quick-list { margin-bottom: 6px; border-bottom: 1px dashed var(--t-line); padding-bottom: 4px; }
+.quick-mark { width: 1.2ch; color: var(--t-comment); flex: none; }
+.quick-mark.fav { color: var(--t-string); }
+.card > h2 .title-extra button[aria-pressed="true"] { color: var(--t-string); }

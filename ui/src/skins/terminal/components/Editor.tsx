@@ -10,6 +10,7 @@ import type { EnvTone } from '../../../core/envtone'
 import { ConfirmName } from './ConfirmName'
 import { EnvBanner, EnvTag } from './EnvMarks'
 import { DiffView } from './DiffView'
+import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
 import { KeyText } from './KeyText'
 import { PaneTitle } from './PaneTitle'
@@ -257,6 +258,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                 warning: someone else also changed {ed.overlaps.join(', ')} — your value{ed.overlaps.length > 1 ? 's' : ''} will replace theirs.
               </div>
             )}
+            <EnvWarnings warnings={ed.warnings} />
             <DiffView diff={ed.diff} />
             {isProtected && (
               <ConfirmName name={base.name} value={typed} onChange={setTyped} why="this name is protected by config." />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues, reapplyEnv } from '../diff'
+import { lintEnv } from '../envlint'
 import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
@@ -169,6 +170,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     loadedVersion: loaded ? versionOf(loaded.secret) : '',
     restoredFrom,
     fromFile,
+    /** duplicate keys and empty values in the draft (shown at review; they never block a save) */
+    warnings: phase === 'review' || phase === 'saving' ? lintEnv(draft, loaded?.text ?? '') : [],
     draft,
     mode,
     setMode,

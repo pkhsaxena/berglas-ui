@@ -3,7 +3,10 @@
 // reaches the core through the web view, then reports to /__selftest.
 ;(async () => {
   const checks = []
-  const check = (name, ok, detail) => checks.push({ name, ok: !!ok, detail })
+  const check = (name, ok, detail) => {
+    checks.push({ name, ok: !!ok, detail })
+    fetch('/__selftest/progress?step=' + encodeURIComponent('done: ' + name)).catch(() => {})
+  }
   const call = async (method, path, body, headers = {}) => {
     const init = { method, headers: { ...headers } }
     if (body !== undefined) {
@@ -199,6 +202,8 @@
     const toastWatch = new MutationObserver(noteToast)
     toastWatch.observe(document.body, { subtree: true, childList: true, characterData: true })
     const step = async (name, fn) => {
+      // tell the app which step is running, so a hang names its step
+      fetch('/__selftest/progress?step=' + encodeURIComponent(name)).catch(() => {})
       await cancelIfOpen() // a step that failed half-way may have left an editor open
       try {
         const [ok, detail] = await fn()
@@ -444,6 +449,21 @@
       await wait(600)
       const row = document.querySelector('.rowbtn[aria-label="selftest-svc-nonprod-env"]')
       return [!!row && !!row.querySelector('[class*="tone-staging"]'), `in list ${!!row}, staging tone ${!!row?.querySelector('[class*="tone-staging"]')}`]
+    })
+    await step('review warns about duplicate keys and empty values (nothing saved)', async () => {
+      await press(['new', 'new secret'])
+      setField('secret name', 'selftest-lint-dev-env')
+      setField('kms key', 'projects/demo-project/locations/global/keyRings/berglas/cryptoKeys/berglas-key')
+      setField('secret value', 'A=1\nB=\nA=2\nC=3\n')
+      await press(['review'])
+      const box = pane('.env-warnings')
+      const t = norm(box?.textContent)
+      const dup = t.includes('a is set 2 times (lines 1, 3)')
+      const empty = t.includes('b is empty (line 2)')
+      const createOk = findButton(['create*'])?.disabled === false
+      await press(['cancel'])
+      const notCreated = !document.querySelector('.rowbtn[aria-label="selftest-lint-dev-env"]')
+      return [dup && empty && createOk && notCreated, `duplicate ${dup}, empty ${empty}, create still allowed ${createOk}, nothing created ${notCreated}`]
     })
     await step('delete needs the name typed', async () => {
       await openSecret('selftest-svc-nonprod-env')

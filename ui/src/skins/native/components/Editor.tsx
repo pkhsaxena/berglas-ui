@@ -9,6 +9,7 @@ import type { Pinned } from '../../../core/hooks/usePinned'
 import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { ConfirmName, EnvBadge, EnvBanner, ErrorText, KeyText, PaneHead } from './bits'
 import { DiffView } from './DiffView'
+import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
 import { Select } from './Select'
 
@@ -245,6 +246,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
                 Someone else also changed {ed.overlaps.join(', ')} — your value{ed.overlaps.length > 1 ? 's' : ''} will replace theirs.
               </div>
             )}
+            <EnvWarnings warnings={ed.warnings} />
             <DiffView diff={ed.diff} />
             {isProtected && <ConfirmName name={base.name} value={typed} onChange={setTyped} why={tone === 'prod' ? 'This is a protected production secret.' : 'This name is protected by config.'} />}
             <div className="row">

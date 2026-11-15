@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, encodeText, type Secret } from '../api'
 import { metaCache, versionsKey } from '../cache'
+import { lintEnv } from '../envlint'
 import { looksLikeEnv, parseEnv } from '../envfile'
 import { kmsKeyFor, protectedFor, useSettings } from '../settings'
 import type { Source } from '../sources'
@@ -75,6 +76,8 @@ export function useCreate(source: Source, onCreated: (s: Secret) => void, initia
     setKmsKey,
     kmsFromConfig: !!kmsKeyFor(settings, source),
     env,
+    /** duplicate keys and empty values (shown at review; never block) */
+    warnings: phase === 'editing' ? [] : lintEnv(text),
     ref,
     isProtected,
     error,
