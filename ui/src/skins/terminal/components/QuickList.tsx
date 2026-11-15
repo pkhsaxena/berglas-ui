@@ -27,12 +27,12 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
     return (
       <li key={`${kind}-${refKey(r)}`}>
         <button className="rowbtn secret quick" aria-label={`open ${r.name}`} aria-current={here && r.name === selected ? 'true' : undefined} onClick={() => onOpen(r)} title={`${sourceName(src)} / ${r.name}`}>
-          <span className="line">
+          <span className="nm">
             <span className={kind === 'fav' ? 'quick-mark fav' : 'quick-mark'} aria-hidden="true">
               {kind === 'fav' ? '★' : '↺'}
-            </span>
-            <span className="nm">{r.name}</span>
-            {hasRef(watch, r) && <span className="muted small">[watching]</span>}
+            </span>{' '}
+            {r.name}
+            {hasRef(watch, r) && <span className="muted small"> [watching]</span>}
           </span>
           {!here && <span className="meta">{sourceName(src)}</span>}
         </button>
@@ -48,9 +48,8 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
             {changed.map((c) => (
               <li key={`chg-${refKey(c)}`}>
                 <button className="rowbtn secret quick changed" aria-label={`open ${c.name} (changed)`} onClick={() => onOpen(c)} title={`${sourceName(known(c)!)} / ${c.name}`}>
-                  <span className="line">
-                    <span className="quick-mark changed-dot" aria-hidden="true">●</span>
-                    <span className="nm">{c.name}</span>
+                  <span className="nm">
+                    <span className="quick-mark changed-dot" aria-hidden="true">●</span> {c.name}
                   </span>
                   <span className="meta">{c.deleted ? 'deleted' : `new #${c.version}`}</span>
                 </button>

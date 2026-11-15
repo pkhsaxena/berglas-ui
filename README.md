@@ -35,7 +35,9 @@ themselves; anything a second skin would also need belongs in `core/`.
   every registered skin, the web ui and the desktop app alike.
 - `theme:` is an opaque name, so each skin decides which names it understands; switching skin
   may fall back to that skin's default theme. terminal: Dracula, GitHub light, … ; native:
-  System (follows the OS), Light, Dark.
+  System (follows the OS), Light, Dark. Both skins also have the four Catppuccin flavours
+  (`Catppuccin Latte`, `Catppuccin Frappé`, `Catppuccin Macchiato`, `Catppuccin Mocha`), with
+  Latte's accents darkened so every text colour reaches 4.5:1.
 - **skins available:** `terminal` (the default) and `native`. Both have every feature: sources,
   grouped list, reveal with filter, copy, pin and compare, edit with review and protect, create,
   delete, versions and diffs, overview and matrix, zoom and find.

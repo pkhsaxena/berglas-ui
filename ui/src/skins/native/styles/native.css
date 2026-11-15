@@ -9,6 +9,8 @@
   --n-accent: #0a64d6; --n-accent-soft: #e6effc; --n-on-accent: #ffffff;
   --n-good: #1f7a3d; --n-warn: #9a5b00; --n-bad: #c1352d;
   --n-prod: #d23a31; --n-staging: #b77306; --n-dev: #13897a;
+  /* the production banner, under white text: at least 4.5:1 in every theme */
+  --n-banner: color-mix(in srgb, var(--n-prod) 80%, #000);
   --n-shadow: 0 1px 2px rgba(0, 0, 0, .08);
   --n-mark: rgba(255, 196, 0, .38); --n-mark-current: rgba(10, 100, 214, .35);
   --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
@@ -41,6 +43,13 @@
   --n-mark: rgba(255, 196, 0, .32); --n-mark-current: rgba(59, 140, 245, .45);
   color-scheme: dark;
 }
+
+/* Catppuccin flavours (catppuccin.com, MIT). Neutrals map onto the layers;
+   Latte's accents are darkened to 4.5:1 on its page, sidebar and panels. */
+:root[data-theme="ctp-latte"] { --n-bg: #e6e9ef; --n-sidebar: #dce0e8; --n-surface: #eff1f5; --n-surface-2: #e6e9ef; --n-line: #ccd0da; --n-line-strong: #bcc0cc; --n-fg: #4c4f69; --n-fg-2: #5c5f77; --n-muted: #5f6275; --n-key: #7d34dc; --n-section: #1a5ad8; --n-accent: #1a5ad8; --n-accent-soft: #cdd9f0; --n-on-accent: #eff1f5; --n-good: #2d701e; --n-warn: #a84207; --n-bad: #c50e36; --n-prod: #c50e36; --n-staging: #8a5812; --n-dev: #116c71; --n-shadow: 0 1px 2px rgba(76, 79, 105, .14); --n-mark: rgba(223, 142, 29, 0.38); --n-mark-current: rgba(30, 102, 245, 0.35); color-scheme: light; }
+:root[data-theme="ctp-frappe"] { --n-bg: #292c3c; --n-sidebar: #232634; --n-surface: #303446; --n-surface-2: #414559; --n-line: #51576d; --n-line-strong: #626880; --n-fg: #c6d0f5; --n-fg-2: #b5bfe2; --n-muted: #a5adce; --n-key: #ca9ee6; --n-section: #85c1dc; --n-accent: #8caaee; --n-accent-soft: #444e6b; --n-on-accent: #232634; --n-good: #a6d189; --n-warn: #e5c890; --n-bad: #e78284; --n-prod: #e78284; --n-staging: #ef9f76; --n-dev: #81c8be; --n-shadow: 0 1px 2px rgba(0, 0, 0, .5); --n-mark: rgba(229, 200, 144, 0.3); --n-mark-current: rgba(140, 170, 238, 0.45); --n-banner: color-mix(in srgb, var(--n-prod) 55%, #000); color-scheme: dark; }
+:root[data-theme="ctp-macchiato"] { --n-bg: #1e2030; --n-sidebar: #181926; --n-surface: #24273a; --n-surface-2: #363a4f; --n-line: #494d64; --n-line-strong: #5b6078; --n-fg: #cad3f5; --n-fg-2: #b8c0e0; --n-muted: #a5adcb; --n-key: #c6a0f6; --n-section: #7dc4e4; --n-accent: #8aadf4; --n-accent-soft: #3a4463; --n-on-accent: #181926; --n-good: #a6da95; --n-warn: #eed49f; --n-bad: #ed8796; --n-prod: #ed8796; --n-staging: #f5a97f; --n-dev: #8bd5ca; --n-shadow: 0 1px 2px rgba(0, 0, 0, .5); --n-mark: rgba(238, 212, 159, 0.3); --n-mark-current: rgba(138, 173, 244, 0.45); --n-banner: color-mix(in srgb, var(--n-prod) 55%, #000); color-scheme: dark; }
+:root[data-theme="ctp-mocha"] { --n-bg: #181825; --n-sidebar: #11111b; --n-surface: #1e1e2e; --n-surface-2: #313244; --n-line: #45475a; --n-line-strong: #585b70; --n-fg: #cdd6f4; --n-fg-2: #bac2de; --n-muted: #a6adc8; --n-key: #cba6f7; --n-section: #74c7ec; --n-accent: #89b4fa; --n-accent-soft: #363f5b; --n-on-accent: #11111b; --n-good: #a6e3a1; --n-warn: #f9e2af; --n-bad: #f38ba8; --n-prod: #f38ba8; --n-staging: #fab387; --n-dev: #94e2d5; --n-shadow: 0 1px 2px rgba(0, 0, 0, .5); --n-mark: rgba(249, 226, 175, 0.3); --n-mark-current: rgba(137, 180, 250, 0.45); --n-banner: color-mix(in srgb, var(--n-prod) 55%, #000); color-scheme: dark; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -93,7 +102,7 @@ textarea { border: 1px solid var(--n-line-strong); background: var(--n-surface);
 /* the banner over a production secret, and a thin strip for the others */
 .env-banner {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 12px; font-size: 12px; font-weight: 600;
-  background: color-mix(in srgb, var(--n-prod) 80%, #000); color: #ffffff; border-radius: 10px 10px 0 0;
+  background: var(--n-banner); color: #ffffff; border-radius: 10px 10px 0 0;
 }
 .env-banner svg { flex: none; }
 .env-strip { height: 3px; border-radius: 10px 10px 0 0; }
