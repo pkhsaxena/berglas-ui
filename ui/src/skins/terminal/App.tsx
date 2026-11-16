@@ -49,7 +49,7 @@ const LOCAL_ZONE = zoneName(new Date())
 export default function App() {
   const app = useApp()
   const find = useFind()
-  useLayoutWidth({ narrow: 820, wide: 2000 }, app.zoom)
+  useLayoutWidth({ narrow: 820, wide: 1900 }, app.zoom)
   const { session, active } = app
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)

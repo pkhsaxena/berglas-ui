@@ -31,13 +31,13 @@ strong { color: var(--t-string); font-weight: 500; }
      secret list; main area = a tab row (secret · overview · matrix) over the
      chosen view. The secret view is the secret pane over the versions pane;
      editing or creating replaces both.
-   - 2000px+ (zoomed out): left | side (matrix over overview) | main, where
+   - 1900px+ (zoomed out): left | side (matrix over overview) | main, where
      the secret and versions panes sit side by side. No tab row.
    - under 820px: one column and the page scrolls, as a fallback. */
 html, body, #root { height: 100%; }
 /* the layout's width breakpoints key off #root[data-width], which
    core/hooks/useLayoutWidth.ts sets from #root's own width (narrow under
-   820px, wide from 2000px). Media and container queries can't be used: the
+   820px, wide from 1900px). Media and container queries can't be used: the
    ui zoom (css zoom on <html>) never moves media queries, and WebKit still
    reads container queries at the unzoomed width. So zoomed out to 67%, a
    1440px window lays out like a 2150px one, in the mac app too. */
