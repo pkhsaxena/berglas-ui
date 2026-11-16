@@ -273,6 +273,12 @@ func run() error {
 		})
 	}
 
+	// self-tests run in a fixed 1440x900 window, so the layout they check
+	// doesn't depend on which screen is attached; the app opens maximized
+	startState := options.Maximised
+	if testJS != "" {
+		startState = options.Normal
+	}
 	err = wails.Run(&options.App{
 		Title:     "berglas-ui",
 		Width:     1440,
@@ -280,7 +286,7 @@ func run() error {
 		MinWidth:  900,
 		MinHeight: 600,
 		// open filling the screen; Width and Height are the size it restores to
-		WindowStartState: options.Maximised,
+		WindowStartState: startState,
 		Menu:             appMenu(sh),
 		AssetServer:      &assetserver.Options{Handler: handler},
 		Mac: &mac.Options{
