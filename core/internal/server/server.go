@@ -332,7 +332,9 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 		Sources   *[]config.Source    `json:"sources"`
 		Favorites *[]config.SecretRef `json:"favorites"`
 		Recent    *[]config.SecretRef `json:"recent"`
-		Watch     *[]config.SecretRef `json:"watch"`
+		// RecentCollapsed folds the recent list
+		RecentCollapsed *bool               `json:"recentCollapsed"`
+		Watch           *[]config.SecretRef `json:"watch"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -356,6 +358,12 @@ func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := l.set(refs); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
+			return
+		}
+	}
+	if in.RecentCollapsed != nil {
+		if err := s.cfg.SetRecentCollapsed(*in.RecentCollapsed); err != nil {
+			writeError(w, http.StatusInternalServerError, "config", err.Error())
 			return
 		}
 	}

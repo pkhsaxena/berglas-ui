@@ -37,6 +37,7 @@ type Settings struct {
 	Sources               []Source    `json:"sources"`
 	Favorites             []SecretRef `json:"favorites"`
 	Recent                []SecretRef `json:"recent"`
+	RecentCollapsed       bool        `json:"recentCollapsed"`
 	Watch                 []SecretRef `json:"watch"`
 	WatchMinutes          int         `json:"watchMinutes"`
 }
@@ -49,7 +50,7 @@ func (c Config) Settings() Settings {
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 		LockAfterMinutes: c.LockAfterMinutes,
-		Favorites:        nonNil(c.Favorites), Recent: nonNil(c.Recent), Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
+		Favorites:        nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
 	}
 	if c.WatchMinutes > 0 {
 		s.WatchMinutes = c.WatchMinutes

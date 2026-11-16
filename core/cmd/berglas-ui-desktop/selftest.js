@@ -733,6 +733,25 @@
       return [saved && sections && groups[0] === 'favourites' && firstHit.startsWith('orders-staging-env') && removed, `saved ${saved}, list sections ${sections}, palette groups [${groups.slice(0, 3)}], first ${firstHit.slice(0, 20)}, unstarred ${removed}`]
     })
 
+    await step('recent list: remove an entry, fold and unfold, both saved', async () => {
+      await openSecret('orders-dev-env')
+      await openSecret('tls-cert')
+      const removeBtn = document.querySelector('[aria-label="remove orders-dev-env from recent"]')
+      if (!removeBtn) throw new Error('no remove button on the recent row')
+      removeBtn.click()
+      await wait(400)
+      const cfg = (await call('GET', '/api/config')).json
+      const removed = !cfg?.recent?.some((r) => r.name === 'orders-dev-env') && !document.querySelector('[aria-label="remove orders-dev-env from recent"]')
+      const toggle = pane('.quick-toggle')
+      toggle.click()
+      await wait(400)
+      const folded = toggle.getAttribute('aria-expanded') === 'false' && !document.querySelector('[aria-label="remove tls-cert from recent"]') && (await call('GET', '/api/config')).json?.recentCollapsed === true
+      pane('.quick-toggle').click()
+      await wait(400)
+      const unfolded = !!document.querySelector('[aria-label="remove tls-cert from recent"]') && (await call('GET', '/api/config')).json?.recentCollapsed === false
+      return [removed && folded && unfolded, `removed and saved ${removed}, folded and saved ${folded}, unfolded and saved ${unfolded}`]
+    })
+
     await step('deep links: open a secret, ask before adding a source, ignore bad links, copy link', async () => {
       const link = (u) => fetch('/__selftest/link?u=' + encodeURIComponent(u))
       await link('berglas-ui://open?backend=storage&parent=demo-bucket&name=payments-dev-env')

@@ -119,12 +119,15 @@ func TestFavoritesRecentWatchRoundTrip(t *testing.T) {
 	if err := f.SetWatch([]SecretRef{ref}); err != nil {
 		t.Fatal(err)
 	}
+	if err := f.SetRecentCollapsed(true); err != nil {
+		t.Fatal(err)
+	}
 	again, err := Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	s := again.Get().Settings()
-	if len(s.Favorites) != 1 || s.Favorites[0] != ref || len(s.Recent) != 1 || len(s.Watch) != 1 || s.WatchMinutes != DefaultWatchMinutes {
+	if len(s.Favorites) != 1 || s.Favorites[0] != ref || len(s.Recent) != 1 || len(s.Watch) != 1 || s.WatchMinutes != DefaultWatchMinutes || !s.RecentCollapsed {
 		t.Fatalf("settings %+v", s)
 	}
 	if err := f.SetFavorites([]SecretRef{{Backend: "x", Parent: "b", Name: "n"}}); err == nil {

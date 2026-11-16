@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sources: [],
   favorites: [],
   recent: [],
+  recentCollapsed: false,
   watch: [],
   watchMinutes: 5,
 }

@@ -12,10 +12,15 @@ type Props = {
   active: Source
   selected: string | null
   onOpen: (r: SecretRef) => void
+  /** the recent list folded to its heading, and how to fold it */
+  recentCollapsed: boolean
+  onRecentCollapsed: (collapsed: boolean) => void
+  /** takes a secret off the recent list */
+  onRemoveRecent: (r: SecretRef) => void
 }
 
 /** Starred and recently opened secrets, from any source, above the list. */
-export function QuickList({ favorites, recent, watch, changes, sources, active, selected, onOpen }: Props) {
+export function QuickList({ favorites, recent, watch, changes, sources, active, selected, onOpen, recentCollapsed, onRecentCollapsed, onRemoveRecent }: Props) {
   const known = (r: SecretRef) => sources.find((s) => sourceId(s) === `${r.backend}:${r.parent}`)
   const recentOnly = recent.filter((r) => !hasRef(favorites, r) && known(r)).slice(0, 5)
   const favs = favorites.filter((r) => known(r))
@@ -25,7 +30,7 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
     const src = known(r)!
     const here = sourceId(src) === sourceId(active)
     return (
-      <li key={`${kind}-${refKey(r)}`}>
+      <li key={`${kind}-${refKey(r)}`} className="quick-row">
         <button className="rowbtn secret quick" aria-label={`open ${r.name}`} aria-current={here && r.name === selected ? 'true' : undefined} onClick={() => onOpen(r)} title={`${sourceName(src)} / ${r.name}`}>
           <span className="nm">
             <span className={kind === 'fav' ? 'quick-mark fav' : 'quick-mark'} aria-hidden="true">
@@ -36,6 +41,11 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
           </span>
           {!here && <span className="meta">{sourceName(src)}</span>}
         </button>
+        {kind === 'recent' && (
+          <button className="quick-remove" aria-label={`remove ${r.name} from recent`} title="remove from recent" onClick={() => onRemoveRecent(r)}>
+            ×
+          </button>
+        )}
       </li>
     )
   }
@@ -66,8 +76,14 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
       )}
       {recentOnly.length > 0 && (
         <>
-          <div className="group-key">recent/</div>
-          <ul className="clean grouped">{recentOnly.map((r) => row(r, 'recent'))}</ul>
+          <button className="group-key quick-toggle" aria-expanded={!recentCollapsed} onClick={() => onRecentCollapsed(!recentCollapsed)} title={recentCollapsed ? 'show recent secrets' : 'hide recent secrets'}>
+            <span className="quick-caret" aria-hidden="true">
+              {recentCollapsed ? '▸' : '▾'}
+            </span>
+            recent/
+            <span className="count">{recentOnly.length}</span>
+          </button>
+          {!recentCollapsed && <ul className="clean grouped">{recentOnly.map((r) => row(r, 'recent'))}</ul>}
         </>
       )}
     </div>

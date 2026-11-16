@@ -374,3 +374,11 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .card > h2 .title-extra button[aria-pressed="true"] { color: var(--t-string); }
 .changed-key { color: var(--t-prompt); }
 .quick-mark.changed-dot { color: var(--t-prompt); }
+.quick-toggle { display: flex; align-items: center; gap: 4px; width: 100%; border: 0; background: none; padding: 0; color: var(--t-keyword); cursor: pointer; text-align: left; }
+.quick-toggle:hover { background: none; color: var(--t-fg); }
+.quick-toggle .count { margin-left: auto; color: var(--t-comment); }
+.quick-caret { width: 1.2ch; color: var(--t-comment); }
+.quick-row { display: flex; align-items: center; }
+.quick-row > .rowbtn { flex: 1; min-width: 0; }
+.quick-remove { flex: none; border: 0; padding: 0 6px; color: var(--t-comment); }
+.quick-remove:hover { color: var(--t-error); background: none; }

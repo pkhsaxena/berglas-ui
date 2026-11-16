@@ -13,6 +13,9 @@ export function toggleRef(list: SecretRef[], r: Pick<Ref, 'backend' | 'parent' |
   return hasRef(list, r) ? list.filter((x) => refKey(x) !== refKey(r)) : [...list, toSecretRef(r)]
 }
 
+/** The list without r. */
+export const withoutRef = (list: SecretRef[], r: Pick<Ref, 'backend' | 'parent' | 'name'>) => list.filter((x) => refKey(x) !== refKey(r))
+
 /** The list with r moved (or added) to the front, at most max long. */
 export function pushRecent(list: SecretRef[], r: Pick<Ref, 'backend' | 'parent' | 'name'>, max = 10): SecretRef[] {
   return [toSecretRef(r), ...list.filter((x) => refKey(x) !== refKey(r))].slice(0, max)

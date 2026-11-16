@@ -117,6 +117,8 @@ type Config struct {
 	// newest first. Both hold names only, never values.
 	Favorites []SecretRef `yaml:"favorites,omitempty" json:"favorites"`
 	Recent    []SecretRef `yaml:"recent,omitempty" json:"recent"`
+	// RecentCollapsed folds the ui's recent list to its heading.
+	RecentCollapsed bool `yaml:"recentCollapsed,omitempty" json:"recentCollapsed"`
 	// Watch lists secrets the mac app checks for new versions every
 	// WatchMinutes (default 5), with a notification when one appears.
 	Watch        []SecretRef `yaml:"watch,omitempty" json:"watch"`
@@ -166,6 +168,11 @@ func (f *File) SetRecent(refs []SecretRef) error {
 		return err
 	}
 	return f.set("recent", refs, func(c *Config) { c.Recent = refs })
+}
+
+// SetRecentCollapsed saves whether the recent list is folded.
+func (f *File) SetRecentCollapsed(collapsed bool) error {
+	return f.set("recentCollapsed", collapsed, func(c *Config) { c.RecentCollapsed = collapsed })
 }
 
 // SetWatch replaces the watched secrets and saves the file.

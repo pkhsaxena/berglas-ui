@@ -116,7 +116,8 @@ the desktop app is macOS only for now.
   runs an action (new, refresh, views, compare keys, find, zoom, theme, skin, time zone, act as,
   lock).
 - **favourites and recents:** ☆ on a secret stars it; favourites and the last five secrets you
-  opened, from any source, sit above the list and lead ⌘K. Saved in the config (names only).
+  opened, from any source, sit above the list and lead ⌘K; the **recent** heading folds the list
+  and × takes one off it. Saved in the config (names only).
 - **watch:** **watch** on a secret, and the core checks it for new versions every
   `watchMinutes` (default 5). Changes you didn't make show under **changed** above the list
   until you open them, and the mac app posts a notification (macOS asks permission once).

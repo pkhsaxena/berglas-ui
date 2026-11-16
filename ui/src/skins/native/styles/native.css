@@ -347,3 +347,10 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .small-badge { font-size: 10px; padding: 0 5px; color: var(--n-accent); background: var(--n-accent-soft); }
 .changed-key { color: var(--n-accent); }
 .quick-mark.changed-dot { color: var(--n-accent); }
+.quick-toggle { display: flex; align-items: center; gap: 4px; width: 100%; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.quick-toggle .count { margin-left: auto; }
+.quick-caret { width: 1em; color: var(--n-muted); }
+.quick-row { display: flex; align-items: center; gap: 2px; }
+.quick-row > .rowbtn { flex: 1; min-width: 0; }
+.quick-remove { flex: none; border: 0; background: none; color: var(--n-muted); font-size: 15px; line-height: 1; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+.quick-remove:hover { color: var(--n-bad); background: color-mix(in srgb, var(--n-bad) 10%, transparent); }

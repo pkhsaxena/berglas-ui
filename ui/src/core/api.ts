@@ -141,6 +141,8 @@ export type Config = {
   /** starred secrets; recently opened (newest first); watched for new versions */
   favorites: SecretRef[]
   recent: SecretRef[]
+  /** the recent list folded to its heading */
+  recentCollapsed: boolean
   watch: SecretRef[]
   /** how often the mac app checks watched secrets */
   watchMinutes: number
@@ -153,7 +155,7 @@ export type Config = {
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
-  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources' | 'favorites' | 'recent' | 'watch'>>) => call<Config>('POST', '/api/config', c),
+  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources' | 'favorites' | 'recent' | 'recentCollapsed' | 'watch'>>) => call<Config>('POST', '/api/config', c),
   /** Switches the identity the core acts as and saves it; returns the config. */
   setIdentity: (impersonateServiceAccount: string, quotaProject: string) =>
     call<Config>('POST', '/api/credentials', { impersonateServiceAccount, quotaProject }),

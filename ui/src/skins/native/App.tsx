@@ -418,7 +418,7 @@ export default function App() {
                       list={list}
                       selected={selected}
                       onSelect={select}
-                      quick={<QuickList favorites={app.favorites} recent={app.recent} watch={app.watch} sources={app.sources} active={active} selected={selected} onOpen={openRef} changes={watch.changes} />}
+                      quick={<QuickList favorites={app.favorites} recent={app.recent} watch={app.watch} sources={app.sources} active={active} selected={selected} onOpen={openRef} changes={watch.changes} recentCollapsed={app.recentCollapsed} onRecentCollapsed={app.setRecentCollapsed} onRemoveRecent={app.removeRecent} />}
                       onCreate={() => {
                         setSelected(null)
                         setCreateInitial(null)
