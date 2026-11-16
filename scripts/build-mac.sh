@@ -4,11 +4,22 @@
 #   scripts/build-mac.sh               this mac's cpu (arm64 or x86_64)
 #   UNIVERSAL=1 scripts/build-mac.sh   one app for Apple silicon and Intel (about twice the size)
 #   SKIP_UI=1 scripts/build-mac.sh     reuse the ui already in core/webui/dist
+#   scripts/build-mac.sh --dmg         also pack the app into dist/berglas-ui-<version>-<arch>.dmg
+#                                      (drag-to-Applications disk image; flags combine with the above)
 #
 # The app is signed ad hoc, which is enough to run it on the mac that built
 # it. To hand it to others without Gatekeeper warnings it needs a Developer
 # ID signature and notarization (paid Apple developer account).
 set -euo pipefail
+
+DMG=
+for arg in "$@"; do
+  case $arg in
+    --dmg) DMG=1 ;;
+    -h | --help) sed -n '2,12p' "$0"; exit 0 ;;
+    *) echo "error: unknown option $arg (see --help)" >&2; exit 2 ;;
+  esac
+done
 
 ROOT=${0:A:h:h}
 VERSION=${VERSION:-$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo dev)}
@@ -72,3 +83,18 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 codesign --force --sign - "$APP" >/dev/null
 echo "built $APP ($VERSION, $(du -sh "$APP" | cut -f1), $(lipo -archs "$APP/Contents/MacOS/berglas-ui"))"
+
+if [[ -n $DMG ]]; then
+  # the app next to a link to /Applications, so the window that opens says
+  # what to do: drag one onto the other. Compressed and read-only (UDZO).
+  ARCH=$([[ -n ${UNIVERSAL:-} ]] && echo universal || go env GOARCH)
+  IMG="$OUT/berglas-ui-${VERSION#v}-$ARCH.dmg"
+  mkdir "$WORK/dmg"
+  cp -R "$APP" "$WORK/dmg/"
+  ln -s /Applications "$WORK/dmg/Applications"
+  rm -f "$IMG"
+  hdiutil create -quiet -volname berglas-ui -srcfolder "$WORK/dmg" -fs HFS+ -format UDZO "$IMG"
+  hdiutil verify -quiet "$IMG"
+  codesign --force --sign - "$IMG" >/dev/null
+  echo "packed $IMG ($(du -sh "$IMG" | cut -f1)); ad hoc signed like the app, so other macs ask before opening it"
+fi

@@ -82,11 +82,14 @@ There are no published builds yet. Build the mac app yourself:
 ```bash
 scripts/build-mac.sh            # → dist/berglas-ui.app; UNIVERSAL=1 for Apple silicon + Intel
 open dist/berglas-ui.app
+scripts/build-mac.sh --dmg      # also → dist/berglas-ui-<version>-<arch>.dmg, a drag-to-Applications disk image
 ```
 
 It needs Xcode's command line tools, Go and Node. The build is **signed ad hoc and not
 notarized**: it runs on the Mac that built it, and on any other Mac Gatekeeper warns or blocks
-it. Handing it to others needs a Developer ID signature and notarization. The browser version
+it. Handing it to others needs a Developer ID signature and notarization; until then, someone
+opening it from the `.dmg` allows it once in System Settings → Privacy & Security → Open Anyway.
+The browser version
 is one Go binary with the ui embedded (`cd core && go build ./cmd/berglas-ui`, after building
 the ui) and runs wherever Go does;
 the desktop app is macOS only for now.
