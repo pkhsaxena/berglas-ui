@@ -56,7 +56,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
   const sections = envAvailable
     ? sortEnv(ed.draft).sections.map((x) => ({ value: sectionValue(x), label: x.title ? `# ${x.title}` : 'no section' }))
     : []
-  const ref = pinned?.value.env && pinned.value.text !== null ? pinned.value.text : null
+  const ref = pinned?.value?.env && pinned.value.text !== null ? pinned.value.text : null
   const vs = ref !== null && envAvailable ? matchAgainst(ed.draft, ref) : null
 
   // how one key compares with the pinned secret: = same, ≠ differs (with a

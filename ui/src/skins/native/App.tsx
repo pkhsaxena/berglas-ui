@@ -132,7 +132,7 @@ export default function App() {
     setCreating(false)
   }, [app.identityRev])
   const list = useSecretList(active, session.kind === 'ready', listRev + app.identityRev)
-  const { pinned, pin, unpin } = usePinned()
+  const { pinned, pin, unpin, setPinnedValue, clearPinnedValue } = usePinned()
   const copyText = async (text: string) => {
     try {
       await copySecret(text, app.settings.clipboardClearSeconds, setToast)
@@ -271,6 +271,8 @@ export default function App() {
   const base: Ref | null = useMemo(() => (active && selected ? { backend: active.backend, parent: active.parent, name: selected } : null), [active, selected])
 
   const comparingPin = !!pinned && !!base && !(pinned.ref.backend === base.backend && pinned.ref.parent === base.parent && pinned.ref.name === base.name)
+  // while the pinned secret is itself the open one, its own pane shows it: no second pane for the same secret
+  const pinShown = !!pinned && (!base || comparingPin)
   const wideAlt =
     comparingPin && active && wideView === 'overview' ? (
       <OverviewPane source={active} list={list} onSelect={select} wideTabs={wideTabs} />
@@ -450,20 +452,17 @@ export default function App() {
                 )}
 
                 {active && (
-                  <div className={pinned ? 'main-area with-pin' : 'main-area'}>
-                    {pinned && (
+                  <div className={pinShown ? 'main-area with-pin' : 'main-area'}>
+                    {pinned && pinShown && (
                       <PinnedPane
                         key={`${pinnedId(pinned)}|${base ? `${base.parent}/${base.name}` : ''}`}
                         pinned={pinned}
-                        other={base}
                         group={app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)?.group}
                         onUnpin={unpin}
                         onCopy={copyText}
-                        onOpen={() => {
-                          const src = app.sources.find((x) => x.backend === pinned.ref.backend && x.parent === pinned.ref.parent)
-                          if (src && sourceId(src) !== sourceId(active)) app.setActive(src)
-                          select(pinned.ref.name)
-                        }}
+                        onValue={setPinnedValue}
+                        onHide={clearPinnedValue}
+                        onToast={setToast}
                       />
                     )}
 

@@ -55,7 +55,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
 
   const env = value.env
   const mode = env ? view : 'raw'
-  const vs = env && against?.value.env && against.value.text !== null ? matchAgainst(value.text, against.value.text) : null
+  const vs = env && against?.value?.env && against.value.text !== null ? matchAgainst(value.text, against.value.text) : null
   const pinName = against?.ref.name
   const pairs = env ? env.filter((l): l is Extract<typeof l, { kind: 'pair' }> => l.kind === 'pair') : []
   const filtering = query.trim() !== ''

@@ -342,9 +342,13 @@ belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code a
   through them, and it follows the page as it changes. Masked values are not text, so they are
   never found. In a browser, ⌘F stays the browser's.
 - **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
-- **pin:** after **reveal**, **pin** keeps that value in its own pane while you open other secrets.
-  It stays until **unpin** (it does not hide on the reveal timer). With a pin:
+- **pin:** **pin** keeps the shown version in its own pane while you open other secrets. Revealed
+  first, its value comes along; pinned while hidden, it stays masked until you reveal it there. The pane
+  appears once you open another secret and has the same details and buttons as a secret's pane
+  (reveal / hide, copy value, save to file); a value shown there stays until you **hide** or
+  **unpin** it (it does not hide on the reveal timer). With a pin:
   - **compare with pinned …** diffs the pinned value against the open secret's latest version.
+    It works on a hidden pin too and shows only the diff; neither value is revealed.
     It reports "identical", or "same keys and values" when only comments, order or formatting
     differ.
   - revealing the open secret marks each key against the pin (`=`, `≈ quotes`, `≠ differs`,

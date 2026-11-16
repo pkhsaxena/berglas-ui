@@ -99,7 +99,9 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
   }
 
   const mode = (showVersions ? ' show-versions' : revealed || comparing ? ' revealed' : '') + (wideAlt ? ' alt-wide' : '')
-  const isPinned = !!pinned && pinnedId(pinned) === refString(s.ref)
+  // a pin names its exact version, so a newer one arriving later doesn't change what it points to
+  const pinRef = shown ? { ...s.ref, version: versionOf(shown) } : s.ref
+  const isPinned = !!pinned && pinnedId(pinned) === refString(pinRef)
   return (
     <div className={`right${mode}`}>
       <div className="pane secret-pane">
@@ -186,8 +188,13 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
             <button className="btn" onClick={() => copy(revealed?.text ?? undefined)} disabled={s.busy || !shown}>
               Copy value
             </button>
-            {revealed && shown && revealed.text !== null && (
-              <button className="btn" onClick={() => onPin({ ref: s.ref, secret: shown, value: revealed })} disabled={isPinned} title="keep this value on screen while you open another secret">
+            {shown && !(revealed && revealed.text === null) && (
+              <button
+                className="btn"
+                onClick={() => onPin({ ref: pinRef, secret: shown, value: revealed })}
+                disabled={isPinned}
+                title={revealed ? 'keep this value on screen while you open another secret' : 'keep this version on screen, still hidden; compare another secret against it'}
+              >
                 {isPinned ? 'Pinned' : 'Pin'}
               </button>
             )}

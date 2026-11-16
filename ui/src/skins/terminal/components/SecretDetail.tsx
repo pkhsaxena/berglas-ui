@@ -101,6 +101,9 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
   // At normal width the versions tab shows only versions, and a revealed
   // value fills the column; the css keeps both side by side when zoomed out.
   // a revealed value or an open comparison with the pin fills the column
+  // a pin names its exact version, so a newer one arriving later doesn't change what it points to
+  const pinRef = shown ? { ...s.ref, version: versionOf(shown) } : s.ref
+  const isPinned = !!pinned && pinnedId(pinned) === refString(pinRef)
   const mode = (showVersions ? ' show-versions' : revealed || comparing ? ' revealed' : '') + (wideAlt ? ' alt-wide' : '')
   return (
     <div className={`right${mode}`}>
@@ -182,13 +185,13 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
             <button onClick={() => copy(revealed?.text ?? undefined)} disabled={s.busy || !shown}>
               copy value
             </button>
-            {revealed && shown && revealed.text !== null && (
+            {shown && !(revealed && revealed.text === null) && (
               <button
-                onClick={() => onPin({ ref: s.ref, secret: shown, value: revealed })}
-                disabled={!!pinned && pinnedId(pinned) === refString(s.ref)}
-                title="keep this value on screen while you open another secret"
+                onClick={() => onPin({ ref: pinRef, secret: shown, value: revealed })}
+                disabled={isPinned}
+                title={revealed ? 'keep this value on screen while you open another secret' : 'keep this version on screen, still hidden; compare another secret against it'}
               >
-                {pinned && pinnedId(pinned) === refString(s.ref) ? 'pinned' : 'pin'}
+                {isPinned ? 'pinned' : 'pin'}
               </button>
             )}
             {revealed && shown && !x.open && (

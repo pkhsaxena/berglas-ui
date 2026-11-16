@@ -89,9 +89,9 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 
 | Feature | What the user sees | Core | Verified by |
 |---|---|---|---|
-| Pin | After reveal, Pin keeps the value in its own pane until Unpin; Open jumps back to it | `usePinned` | app "pin keeps the value; marks and compare against it" |
+| Pin | Pin keeps the shown version in its own pane until Unpin. Revealed first, the value comes along; pinned while hidden, the pane stays masked until its own Reveal. The pin names its exact version. The pane shows once another secret is open (never a second pane for the open secret) and has the secret pane's fields (version, updated, KMS key, replication, location) and actions (Reveal / Hide, Copy value, Save to file…, Unpin) | `usePinned` | app "pin keeps the value; marks and compare against it", "pin without revealing; compare shows only the diff; pinned pane like a secret pane" |
 | Key marks | The open secret's keys marked `=` same, `≠` differs, `≈` quotes only, `+` only here; "only in pinned" list; a one-line summary | `diff.ts` `matchAgainst` | unit `diff.test.ts` |
-| Compare with pinned | Button in the open secret's pane; diff of pinned (a) against this secret's latest (b) | `useCompare` | app "pin keeps the value; marks and compare against it" |
+| Compare with pinned | Button in the open secret's pane; diff of pinned (a) against this secret's latest (b). Works on a hidden pin too; only the diff is shown, both values stay hidden | `useCompare` | app "pin keeps the value; marks and compare against it", "pin without revealing; compare shows only the diff; pinned pane like a secret pane" |
 | Comparing layout | Wide: the matrix / overview column steps aside; Versions · Overview · Matrix tabs move into the versions column | skin layout | app "comparing layout: the side column steps aside when zoomed out" |
 
 ## Edit, create, delete

@@ -64,7 +64,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
   const target = refString({ ...base, version: undefined })
   const envAvailable = looksLikeEnv(ed.draft)
   const sections = envAvailable ? sortEnv(ed.draft).sections.map((x) => ({ value: sectionValue(x), label: x.title || 'No section' })) : []
-  const ref = pinned?.value.env && pinned.value.text !== null ? pinned.value.text : null
+  const ref = pinned?.value?.env && pinned.value.text !== null ? pinned.value.text : null
   const vs = ref !== null && envAvailable ? matchAgainst(ed.draft, ref) : null
 
   const pinMark = (c: KeyChange | undefined, line: number) => {

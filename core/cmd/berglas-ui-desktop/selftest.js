@@ -359,8 +359,10 @@
     await step('pin keeps the value; marks and compare against it', async () => {
       if (findButton(['reveal'])) await press(['reveal'])
       await press(['pin'])
-      const pinned = vis(pane('.pinned-pane'))
+      // no second pane for the secret that is open; it appears once another one is
+      const notTwice = !pane('.pinned-pane')
       await openSecret('payments-prod-env')
+      const pinned = notTwice && vis(pane('.pinned-pane'))
       if (findButton(['reveal'])) await press(['reveal'])
       const differs = [...document.querySelectorAll('.secret-pane td')].filter((td) => td.textContent.includes('≠')).length
       await press(['compare with pinned*'])
@@ -392,16 +394,52 @@
       await press(['add all*'])
       const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
       await press(['review changes'])
-      const save = findButton(['save*'])
+      // not just 'save*': the pinned pane, still on screen, has its own "save to file…"
+      const save = findButton(['save to production*'])
       const lockedBefore = save?.disabled
       setField('type payments-prod-env to confirm', 'payments-prod-env')
       await wait(150)
-      const unlocked = !findButton(['save*']).disabled
-      await press(['save*'])
+      const unlocked = !findButton(['save to production*']).disabled
+      await press(['save to production*'])
       await wait(500)
       const v = (await readSecret('payments-prod-env')) || ''
       await press(['unpin'])
       return [used > 0 && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
+    })
+    await step('pin without revealing; compare shows only the diff; pinned pane like a secret pane', async () => {
+      const masked = (sel) => !!pane(sel)?.querySelector('[aria-label="value hidden"]')
+      await openSecret('orders-dev-env')
+      if (findButton(['hide'])) await press(['hide'])
+      await press(['pin'])
+      await wait(200)
+      await openSecret('orders-staging-env')
+      if (findButton(['hide'], pane('.secret-pane'))) await press(['hide'], pane('.secret-pane'))
+      const pinPane = pane('.pinned-pane')
+      const pinnedHidden = vis(pinPane) && masked('.pinned-pane')
+      const noOpen = !findButton(['open'], pinPane)
+      // the pinned pane has the secret pane's fields and actions
+      const pinText = norm(pinPane?.textContent)
+      const fields = pinText.includes('kms key') && pinText.includes('orders-dev-env')
+      const actions = !!findButton(['reveal'], pinPane) && !!findButton(['copy value'], pinPane) && !!findButton(['unpin'], pinPane)
+      const stagingHidden = masked('.secret-pane')
+      await press(['compare with pinned*'])
+      await wait(800)
+      const diff = !!document.querySelector('.secret-pane table.diff, .secret-pane .diff-lines')
+      // the compare shows only the diff: both values stay hidden
+      const bothHidden = masked('.pinned-pane') && masked('.secret-pane')
+      await press(['hide comparison'])
+      // the pinned pane's own reveal shows the value and offers the file; hide masks it again
+      await press(['reveal'], pane('.pinned-pane'))
+      await wait(500)
+      const revealed = !masked('.pinned-pane') && norm(pane('.pinned-pane')?.textContent).includes('api_url')
+      const saveOffered = !!findButton(['save to file…'], pane('.pinned-pane'))
+      await press(['hide'], pane('.pinned-pane'))
+      const rehidden = masked('.pinned-pane')
+      await press(['unpin'])
+      return [
+        pinnedHidden && stagingHidden && noOpen && fields && actions && diff && bothHidden && revealed && saveOffered && rehidden,
+        `pinned hidden ${pinnedHidden}, open secret hidden ${stagingHidden}, no open button ${noOpen}, fields ${fields}, actions ${actions}, comparison ${diff}, both still hidden ${bothHidden}, pinned reveal ${revealed}, save offered ${saveOffered}, hide masks again ${rehidden}`,
+      ]
     })
 
     // edit
