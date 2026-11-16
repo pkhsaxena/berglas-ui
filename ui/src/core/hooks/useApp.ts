@@ -37,11 +37,12 @@ export function useApp() {
   const load = useCallback(async () => {
     try {
       const [status, config] = await Promise.all([api.status(), api.config()])
-      const { skin, theme, sources, path, ...rest } = config
+      const { skin, theme, sources, path, throwaway, ...rest } = config
       setSkinState(skin)
       setThemeState(theme)
       setSources(sources)
-      setConfigPath(path)
+      // skins print "saved in …"; a demo's temp path means nothing to anyone
+      setConfigPath(throwaway ? 'a throwaway demo config, deleted on exit' : path)
       setBase(rest)
       setActive((a) => a ?? sources.find((s) => s.default) ?? sources[0] ?? null)
       setSession(status.credentials ? { kind: 'ready', status } : { kind: 'no-credentials', status })

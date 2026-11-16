@@ -247,6 +247,7 @@ func run() error {
 	// The token is unused here: DesktopHandler does no token check.
 	api := server.New("", store, cfg, ui, version, log)
 	api.Demo = demo
+	api.ThrowawayConfig = demo && os.Getenv("BERGLAS_UI_CONFIG") == ""
 	api.Auth = auth
 	sh := &shell{}
 	if testJS != "" {

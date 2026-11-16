@@ -144,6 +144,8 @@ export type Config = {
   watch: SecretRef[]
   /** how often the mac app checks watched secrets */
   watchMinutes: number
+  /** set when the config is a temporary demo file (deleted on exit) */
+  throwaway?: boolean
   /** where the core keeps the file, for display */
   path: string
 }

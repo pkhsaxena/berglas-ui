@@ -247,7 +247,7 @@
     await step('sources list both demo sources', async () => [!!sourceRow('demo-bucket') && !!sourceRow('demo-project'), [...document.querySelectorAll('.sources-pane .rowbtn')].map((b) => norm(b.textContent)).join(' | ')])
     await step('config path is shown', async () => {
       const t = norm(pane('.sources-pane').textContent)
-      return [t.includes('saved in') && t.includes('.yaml'), t.slice(t.indexOf('saved in'), t.indexOf('saved in') + 60)]
+      return [t.includes('saved in') && (t.includes('.yaml') || t.includes('throwaway demo config')), t.slice(t.indexOf('saved in'), t.indexOf('saved in') + 60)]
     })
     await step('add a source: bad names refused, a good one added and opened', async () => {
       if (!field('bucket name')) await press(['add a source'])

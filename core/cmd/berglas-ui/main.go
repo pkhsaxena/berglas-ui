@@ -53,6 +53,7 @@ func run() error {
 
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
+	throwaway := false
 	if *demo {
 		configSet := os.Getenv("BERGLAS_UI_CONFIG") != ""
 		flag.Visit(func(f *flag.Flag) { configSet = configSet || f.Name == "config" })
@@ -61,6 +62,7 @@ func run() error {
 			if *configPath, err = demoConfig(); err != nil {
 				return err
 			}
+			throwaway = true
 		}
 	}
 
@@ -113,6 +115,7 @@ func run() error {
 	api := server.New(token, store, cfg, ui, version, log)
 	api.Demo = *demo
 	api.Auth = auth
+	api.ThrowawayConfig = throwaway
 	srv := &http.Server{
 		Addr:              *listen,
 		Handler:           api.Handler(),
@@ -161,7 +164,9 @@ func demoConfig() (string, error) {
 		return "", err
 	}
 	path := filepath.Join(dir, "config.yaml")
-	body := "# demo config; deleted with your temp dir\nsources:\n  - backend: storage\n    parent: demo-bucket\n  - backend: sm\n    parent: demo-project\n"
+	// the same demo sources as the mac app: the bucket grouped by service and
+	// environment, so the matrix, drift and environment colors show
+	body := "# demo config; deleted with your temp dir\nsources:\n  - backend: storage\n    parent: demo-bucket\n    group: \"{service}-{env}-env\"\n  - backend: sm\n    parent: demo-project\n"
 	return path, os.WriteFile(path, []byte(body), 0o600)
 }
 

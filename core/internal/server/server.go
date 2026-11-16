@@ -39,6 +39,8 @@ type Server struct {
 	// Demo marks an in-memory store: /api/status skips the credential check
 	// and says that nothing reaches Google Cloud.
 	Demo bool
+	// ThrowawayConfig marks the config as a temporary demo file.
+	ThrowawayConfig bool
 	// Auth is the identity /api/status checks; it should match the store's.
 	// Set it before serving; afterwards POST /api/credentials changes it.
 	Auth   gcpauth.Auth
@@ -289,10 +291,13 @@ func tokenEmail(ctx context.Context, accessToken string) string {
 type configResp struct {
 	config.Settings
 	Path string `json:"path"`
+	// Throwaway is set when the config is a temporary demo file, so the ui
+	// says so instead of showing a temp path
+	Throwaway bool `json:"throwaway,omitempty"`
 }
 
 func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, configResp{Settings: s.cfg.Get().Settings(), Path: s.cfg.Path()})
+	writeJSON(w, http.StatusOK, configResp{Settings: s.cfg.Get().Settings(), Path: s.cfg.Path(), Throwaway: s.ThrowawayConfig})
 }
 
 // ConfirmHeader carries the secret name, typed by the user, for writes to a
