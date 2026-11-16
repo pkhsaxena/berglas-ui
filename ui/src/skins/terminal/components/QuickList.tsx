@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import type { SecretRef, WatchChange } from '../../../core/api'
+import { useFlip } from '../../../core/hooks/useFlip'
 import { hasRef, refKey } from '../../../core/refs'
 import { type Source, sourceId, sourceName } from '../../../core/sources'
 
@@ -23,6 +25,9 @@ type Props = {
 export function QuickList({ favorites, recent, watch, changes, sources, active, selected, onOpen, recentCollapsed, onRecentCollapsed, onRemoveRecent }: Props) {
   const known = (r: SecretRef) => sources.find((s) => sourceId(s) === `${r.backend}:${r.parent}`)
   const recentOnly = recent.filter((r) => !hasRef(favorites, r) && known(r)).slice(0, 5)
+  // opening a secret moves it to the top: slide the rows there instead of snapping
+  const recentList = useRef<HTMLUListElement>(null)
+  useFlip(recentList, recentOnly.map(refKey).join('|'))
   const favs = favorites.filter((r) => known(r))
   const changed = changes.filter((c) => known(c))
   if (favs.length === 0 && recentOnly.length === 0 && changed.length === 0) return null
@@ -30,7 +35,7 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
     const src = known(r)!
     const here = sourceId(src) === sourceId(active)
     return (
-      <li key={`${kind}-${refKey(r)}`} className="quick-row">
+      <li key={`${kind}-${refKey(r)}`} className="quick-row" data-flip={kind === 'recent' ? refKey(r) : undefined}>
         <button className="rowbtn secret quick" aria-label={`open ${r.name}`} aria-current={here && r.name === selected ? 'true' : undefined} onClick={() => onOpen(r)} title={`${sourceName(src)} / ${r.name}`}>
           <span className="nm">
             <span className={kind === 'fav' ? 'quick-mark fav' : 'quick-mark'} aria-hidden="true">
@@ -83,7 +88,11 @@ export function QuickList({ favorites, recent, watch, changes, sources, active, 
             recent/
             <span className="count">{recentOnly.length}</span>
           </button>
-          {!recentCollapsed && <ul className="clean grouped">{recentOnly.map((r) => row(r, 'recent'))}</ul>}
+          {!recentCollapsed && (
+            <ul ref={recentList} className="clean grouped">
+              {recentOnly.map((r) => row(r, 'recent'))}
+            </ul>
+          )}
         </>
       )}
     </div>
