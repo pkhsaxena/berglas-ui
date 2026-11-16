@@ -109,17 +109,31 @@ type MatrixProps = {
   onSort: (s: MatrixSort) => void
   /** compare a service's keys across its environments (rows with 2+ environments) */
   onDrift?: (service: string) => void
+  /** zoomed out the view tabs are hidden, so the side column's matrix offers a Drift toggle */
+  onToggleDrift?: () => void
+  driftOpen?: boolean
 }
 
 // a column header click cycles: default → ascending → descending → default
 const nextSort = (cur: MatrixSort, col: string): MatrixSort => (cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null)
 
 /** The {first} × {second} grid from the group pattern, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, onDrift, titleTabs, wideTabs }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, onDrift, onToggleDrift, driftOpen, titleTabs, wideTabs }: MatrixProps) {
   const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className="pane matrix-pane">
-      <PaneHead tabs={titleTabs} wideTabs={wideTabs} title={`Matrix · ${source.group}`} />
+      <PaneHead
+        tabs={titleTabs}
+        wideTabs={wideTabs}
+        title={`Matrix · ${source.group}`}
+        actions={
+          onToggleDrift && (
+            <button className="btn small-btn" aria-pressed={!!driftOpen} onClick={onToggleDrift} title={driftOpen ? 'Back to the secret' : 'Compare keys across environments'}>
+              Drift
+            </button>
+          )
+        }
+      />
       <div className="body">
         <div className="muted small" style={{ marginBottom: 8 }}>
           Cells show the time since the last change; – means no such secret. Click an environment to sort: newest first, oldest first, back to default. Compare keys opens Drift for that service.

@@ -432,7 +432,19 @@ export default function App() {
                 {/* zoomed out only: the matrix over the overview, always in view */}
                 {active && (
                   <div className="side-col">
-                    {matrix && <MatrixPane source={active} matrix={matrix} selected={selected} onSelect={select} sort={matrixSort} onSort={setMatrixSort} onDrift={openDrift} />}
+                    {matrix && (
+                      <MatrixPane
+                        source={active}
+                        matrix={matrix}
+                        selected={selected}
+                        onSelect={select}
+                        sort={matrixSort}
+                        onSort={setMatrixSort}
+                        onDrift={openDrift}
+                        driftOpen={shownView === 'drift'}
+                        onToggleDrift={drift.services.length > 0 ? () => setView(shownView === 'drift' ? 'secret' : 'drift') : undefined}
+                      />
+                    )}
                     <OverviewPane source={active} list={list} onSelect={select} />
                   </div>
                 )}

@@ -127,6 +127,9 @@ type MatrixProps = {
   onSort: (s: MatrixSort) => void
   /** compare a service's keys across its environments (rows with 2+ environments) */
   onDrift?: (service: string) => void
+  /** zoomed out the view tabs are hidden, so the side column's matrix offers a Drift toggle */
+  onToggleDrift?: () => void
+  driftOpen?: boolean
   className?: string
 }
 
@@ -135,11 +138,21 @@ const nextSort = (cur: MatrixSort, col: string): MatrixSort =>
   cur?.col !== col ? { col, dir: 'asc' } : cur.dir === 'asc' ? { col, dir: 'desc' } : null
 
 /** The {first} × {second} placeholder grid, e.g. service × env; a cell opens that secret. */
-export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, onDrift, className = '', titleTabs, wideTabs }: MatrixProps) {
+export function MatrixPane({ source, matrix: unsorted, selected, onSelect, sort, onSort, onDrift, onToggleDrift, driftOpen, className = '', titleTabs, wideTabs }: MatrixProps) {
   const matrix = sortMatrixRows(unsorted, sort?.col ?? null, sort?.dir ?? 'asc')
   return (
     <div className={`card pane matrix-pane ${className}`}>
-      <PaneTitle tabs={titleTabs} wideTabs={wideTabs}>
+      <PaneTitle
+        tabs={titleTabs}
+        wideTabs={wideTabs}
+        extra={
+          onToggleDrift && (
+            <button aria-pressed={!!driftOpen} onClick={onToggleDrift} title={driftOpen ? 'back to the secret' : 'compare keys across environments'}>
+              drift
+            </button>
+          )
+        }
+      >
         matrix <span className="muted">— {source.group}</span>
       </PaneTitle>
       <div className="body">

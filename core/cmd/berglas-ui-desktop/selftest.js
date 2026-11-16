@@ -547,6 +547,30 @@
       ]
     })
 
+    await step('drift zoomed out: the side matrix has a Drift toggle (the view tabs are hidden)', async () => {
+      for (let i = 0; i < 5; i++) window.berglasUI.run('zoomOut')
+      await wait(500)
+      const wide = document.getElementById('root').dataset.width === 'wide'
+      const tabsHidden = ![...document.querySelectorAll('[role=tab]')].some((t) => vis(t) && norm(t.textContent) === 'drift')
+      const toggle = [...document.querySelectorAll('.side-col .matrix-pane button')].find((b) => vis(b) && norm(b.textContent) === 'drift')
+      const shown = () => !!document.querySelector('.main-area .drift-pane') && vis(document.querySelector('.main-area .drift-pane'))
+      // the drift step above may have left the drift view open; the toggle shows it either way
+      const state = () => [toggle?.getAttribute('aria-pressed'), shown()].join(' ')
+      const before = state()
+      toggle?.click()
+      await wait(400)
+      const flipped = state()
+      toggle?.click()
+      await wait(400)
+      const back = state()
+      // each state: pressed exactly when the drift pane fills the main column
+      const consistent = [before, flipped, back].every((s) => s === 'true true' || s === 'false false')
+      const toggles = consistent && before !== flipped && back === before
+      window.berglasUI.run('zoomReset')
+      await wait(400)
+      return [wide && tabsHidden && !!toggle && toggles, `wide ${wide}, drift tab hidden ${tabsHidden}, toggle ${!!toggle}, pressed/shown ${before} → ${flipped} → ${back}`]
+    })
+
     await step('command palette: ⌘K and the Go menu open it; jump to a secret, run an action, esc closes', async () => {
       const key = (el, k, extra = {}) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...extra }))
       key(document.body, 'k', { metaKey: true })
