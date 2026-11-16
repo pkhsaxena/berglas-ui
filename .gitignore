@@ -9,3 +9,5 @@ core/main
 core/berglas-ui
 # built mac app
 dist/
+# editor settings
+.idea/
