@@ -342,6 +342,8 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .btn.small-btn { padding: 1px 8px; font-size: 12px; }
 .btn.small-btn[aria-pressed="true"] { background: var(--n-accent-soft); border-color: var(--n-accent); color: var(--n-accent); }
 .quick-list { margin-bottom: 6px; border-bottom: 1px solid var(--n-line); padding-bottom: 4px; }
+/* the next group heading already draws a line above itself; don't draw a second */
+.quick-list:has(+ div > .group-key) { border-bottom: 0; margin-bottom: 0; }
 .quick-mark { width: 1.1em; color: var(--n-muted); flex: none; }
 .quick-mark.fav { color: #d99a00; }
 .small-badge { font-size: 10px; padding: 0 5px; color: var(--n-accent); background: var(--n-accent-soft); }
