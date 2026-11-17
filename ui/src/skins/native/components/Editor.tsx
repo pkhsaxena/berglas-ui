@@ -6,7 +6,7 @@ import { type Section, sortEnv } from '../../../core/envsort'
 import type { EnvTone } from '../../../core/envtone'
 import type { useEditor } from '../../../core/hooks/useEditor'
 import type { Pinned } from '../../../core/hooks/usePinned'
-import { protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
+import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { ConfirmName, EnvBadge, EnvBanner, ErrorText, KeyText, PaneHead } from './bits'
 import { DiffView } from './DiffView'
 import { EnvWarnings } from './EnvWarnings'
@@ -248,9 +248,9 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
             )}
             <EnvWarnings warnings={ed.warnings} />
             <DiffView diff={ed.diff} />
-            {isProtected && <ConfirmName name={base.name} value={typed} onChange={setTyped} why={tone === 'prod' ? 'This is a protected production secret.' : 'This name is protected by config.'} />}
+            {isProtected && <ConfirmName name={base.name} word={CONFIRM_WORD} value={typed} onChange={setTyped} why={tone === 'prod' ? 'This is a protected production secret.' : 'This name is protected by config.'} />}
             <div className="row">
-              <button className={tone === 'prod' ? 'btn prod' : 'btn primary'} onClick={() => ed.save(isProtected ? typed : undefined)} disabled={ed.phase === 'saving' || (isProtected && typed !== base.name)}>
+              <button className={tone === 'prod' ? 'btn prod' : 'btn primary'} onClick={() => ed.save(isProtected ? base.name : undefined)} disabled={ed.phase === 'saving' || (isProtected && !typedConfirm(typed))}>
                 {ed.phase === 'saving' ? 'Saving…' : tone === 'prod' ? 'Save to production' : 'Save'}
               </button>
               <button className="btn" onClick={ed.backToEdit} disabled={ed.phase === 'saving'}>

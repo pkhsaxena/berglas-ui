@@ -304,8 +304,9 @@ func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, configResp{Settings: s.cfg.Get().Settings(), Path: s.cfg.Path(), Throwaway: s.ThrowawayConfig})
 }
 
-// ConfirmHeader carries the secret name, typed by the user, for writes to a
-// protected name.
+// ConfirmHeader carries the secret's name on a write to a protected name:
+// the client's word that the user confirmed this very secret (the ui has
+// them type "confirm" to save, also to a file, and the name itself to delete).
 const ConfirmHeader = "X-Berglas-Confirm"
 
 // guard refuses writes the config forbids. The ui hides or gates those
@@ -318,7 +319,7 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.B
 		return false
 	}
 	if name != "" && c.ProtectedFor(string(backend), parent, name) && r.Header.Get(ConfirmHeader) != name {
-		writeError(w, http.StatusPreconditionRequired, "confirm_required", name+" is protected by config — type its name to confirm")
+		writeError(w, http.StatusPreconditionRequired, "confirm_required", name+" is protected by config — confirm the write (send its name in "+ConfirmHeader+")")
 		return false
 	}
 	return true

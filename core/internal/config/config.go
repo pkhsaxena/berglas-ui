@@ -83,7 +83,8 @@ type Config struct {
 	// ReadOnly refuses every write, in every source.
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly"`
 	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
-	// whose writes and deletes need the secret's name typed to confirm.
+	// whose writes and deletes need a typed confirmation in the ui (the word
+	// "confirm" to save, the name to delete).
 	Protect []string `yaml:"protect,omitempty" json:"protect"`
 	// LockAfterMinutes locks the ui after this long without input; 0 (the
 	// default) never locks by itself. In the mac app, unlocking asks for
@@ -193,7 +194,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # timeZone: local              # show times in the system zone, or utc
 # envOrder: sorted             # .env views sorted by section and key, or file
 # readOnly: false              # refuse every write
-# protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
+# protect: ["*-prod-*"]        # writes/deletes to matching names need a typed confirmation
 # revealSeconds: 60            # hide revealed values after this long; 0 = never
 # clipboardClearSeconds: 30    # clear copied values after this long; 0 = never
 # cacheSeconds: 600            # keep secret/version lists (never values) this long; 0 = off

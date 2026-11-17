@@ -20,8 +20,8 @@ comparing one service's keys across its environments. Also: a
 - **values don't travel:** key drift compares fingerprints. The core decrypts and returns one
   HMAC per key, under a key made fresh each run, so no value reaches the ui. Reveal is a click,
   hides itself after a minute, and copies clear from the clipboard.
-- **typed-name confirmation:** writes and deletes to protected names (`protect:` globs, e.g.
-  `*-prod-*`) need the name typed; the core refuses them otherwise (`428`). Prod secrets sit
+- **typed confirmation:** writes and deletes to protected names (`protect:` globs, e.g.
+  `*-prod-*`) need a typed confirmation (the word `confirm` to save, also to a file; the name itself to delete); the core refuses them otherwise (`428`). Prod secrets sit
   under a red banner.
 - **review before save:** every edit, create and restore shows the diff, with warnings for
   duplicate keys and empty values, and writes nothing until you save. If someone saved in
@@ -131,7 +131,7 @@ the desktop app is macOS only for now.
   editor opens with the file as the draft) or start a new secret named after the file. Nothing is
   written until the usual review and save.
 - **save to file:** after a reveal, **save to file…** writes that version as plain text after a
-  confirmation (and the typed name for protected secrets). In the mac app the core asks where
+  confirmation (and the word `confirm` typed for protected secrets). In the mac app the core asks where
   with a Save dialog, writes mode 600 and logs an `export` line (path, no value); in a browser it
   is a download.
 - **dropdowns** are the app's own: each opens with a search box that keeps the options
@@ -195,7 +195,7 @@ zoom: 100                    # scale the whole ui, 50-200 percent (also the head
 timeZone: local              # times in the system zone, or utc (also a switch in the header)
 envOrder: sorted             # .env views sorted by section and key, or file
 readOnly: false              # refuse every write, everywhere
-protect: ["*-prod-*"]        # writes/deletes to matching names need the name typed
+protect: ["*-prod-*"]        # writes/deletes to matching names need a typed confirmation
 revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
 clipboardClearSeconds: 30    # clear copied values after this; 0 = never
 cacheSeconds: 600            # keep secret/version lists (never values) for revisits; 0 = off

@@ -114,7 +114,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     setPhase('review')
   }
 
-  /** `confirm` is the typed secret name; required by the core when the name is protected. */
+  /** `confirm` is the secret's name, sent once the user has typed the confirm word; required by the core when the name is protected. */
   const save = async (confirm?: string) => {
     if (!loaded || phase !== 'review') return
     setPhase('saving')

@@ -16,7 +16,7 @@ export function exportName(name: string): string {
 
 export type ExportResult = { path: string } | { downloaded: string } | { cancelled: true }
 
-/** `confirm` is the typed name, needed for protected names in the desktop app. */
+/** `confirm` is the secret's name, sent once the confirm word is typed; needed for protected names in the desktop app. */
 export async function saveToFile(ref: Ref, confirm?: string): Promise<ExportResult> {
   if (inDesktop()) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }

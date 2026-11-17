@@ -16,7 +16,7 @@ export function EnvBanner({ tone, isProtected, readOnly }: { tone: EnvTone | nul
       <div className="env-banner" role="note">
         <span>!! production</span>
         <span className="why">
-          {readOnly ? '— read-only by config' : isProtected ? '— protected: saving or deleting asks for the name' : '— changes here reach production'}
+          {readOnly ? '— read-only by config' : isProtected ? '— protected: saving asks you to type “confirm”, deleting to type the name' : '— changes here reach production'}
         </span>
       </div>
     )

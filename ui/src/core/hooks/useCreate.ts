@@ -23,7 +23,7 @@ export const KMS_KEY = /^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cry
 
 /**
  * Creates a secret in one source: edit → review → save. The review is the
- * confirmation step; protected names also need the name typed.
+ * confirmation step; protected names also need the confirm word typed.
  */
 /** `initial` prefills the name and value, e.g. from a dropped file. */
 export function useCreate(source: Source, onCreated: (s: Secret) => void, initial?: { name: string; text: string }) {

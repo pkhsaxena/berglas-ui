@@ -153,7 +153,7 @@ func (s *Server) DesktopHandler(d Desktop) http.Handler {
 	})
 	// save writes one version's value to a file the user picks, as plain
 	// text with mode 0600. The core reads the value itself, so the request
-	// carries only the ref. Protected names need the name typed, like a write;
+	// carries only the ref. Protected names need the confirmation header, like a write;
 	// each export goes to the audit log with its path.
 	mux.HandleFunc("POST /api/desktop/save", func(w http.ResponseWriter, r *http.Request) {
 		var in secrets.Ref
@@ -161,7 +161,7 @@ func (s *Server) DesktopHandler(d Desktop) http.Handler {
 			return
 		}
 		if s.cfg.Get().ProtectedFor(string(in.Backend), in.Parent, in.Name) && r.Header.Get(ConfirmHeader) != in.Name {
-			writeError(w, http.StatusPreconditionRequired, "confirm_required", in.Name+" is protected by config — type its name to save it to a file")
+			writeError(w, http.StatusPreconditionRequired, "confirm_required", in.Name+" is protected by config — confirm saving it to a file (send its name in "+ConfirmHeader+")")
 			return
 		}
 		ctx, cancel := timeout(r)

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { refString, type Ref } from '../../../core/api'
+import { CONFIRM_WORD } from '../../../core/settings'
 import type { ExportState } from '../../../core/hooks/useExport'
 import { ConfirmName } from './ConfirmName'
 
@@ -17,7 +18,7 @@ export function ExportSecret({ target, x, prod }: { target: Ref; x: ExportState;
       </div>
       <div className={prod ? 't-error' : undefined}>the file holds the value as plain text. anyone who can read it can read the secret, and it stays on disk until you delete it.</div>
       <div className="muted small"># written readable by you only (mode 600); the export goes to the audit log, if one is set.</div>
-      {x.isProtected && <ConfirmName name={target.name} value={x.typed} onChange={x.setTyped} why="it is protected by config." />}
+      {x.isProtected && <ConfirmName name={target.name} word={CONFIRM_WORD} value={x.typed} onChange={x.setTyped} why="it is protected by config." />}
       <div className="row">
         <button className={prod ? 'primary prod' : 'primary'} onClick={x.save} disabled={!x.confirmed || x.busy}>
           {x.busy ? 'saving…' : 'choose where to save…'}

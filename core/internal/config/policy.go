@@ -110,7 +110,7 @@ func (c Config) ReadOnlyFor(backend, parent string) bool {
 }
 
 // ProtectedFor reports whether name matches a global or per-source protect
-// pattern, so writing or deleting it needs the name typed to confirm.
+// pattern, so writing or deleting it needs a typed confirmation.
 func (c Config) ProtectedFor(backend, parent, name string) bool {
 	pats := c.Protect
 	if s := c.Source(backend, parent); s != nil {

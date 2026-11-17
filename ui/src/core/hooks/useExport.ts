@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import type { Ref } from '../api'
 import { saveToFile } from '../exportfile'
-import { protectedFor, useSettings } from '../settings'
+import { protectedFor, useSettings, typedConfirm } from '../settings'
 import { errText } from './useApp'
 
 /**
  * "Save to file…": a confirmation step first (the file holds the value as
- * plain text), with the name typed for protected secrets. `ref` names the
+ * plain text), with the confirm word typed for protected secrets. `ref` names the
  * exact version shown.
  */
 export function useExport(ref: Ref, onDone: (msg: string) => void) {
@@ -16,7 +16,7 @@ export function useExport(ref: Ref, onDone: (msg: string) => void) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const isProtected = protectedFor(settings, ref)
-  const confirmed = !isProtected || typed === ref.name
+  const confirmed = !isProtected || typedConfirm(typed)
 
   const start = () => {
     setOpen(true)
@@ -30,7 +30,7 @@ export function useExport(ref: Ref, onDone: (msg: string) => void) {
     setBusy(true)
     setError('')
     try {
-      const r = await saveToFile(ref, isProtected ? typed : undefined)
+      const r = await saveToFile(ref, isProtected ? ref.name : undefined)
       if ('cancelled' in r) return
       setOpen(false)
       onDone('path' in r ? `Saved to ${r.path}` : `Downloaded ${r.downloaded}`)

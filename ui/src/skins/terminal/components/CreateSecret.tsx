@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { refString, type Secret } from '../../../core/api'
+import { CONFIRM_WORD, typedConfirm } from '../../../core/settings'
 import { toneOfSecret } from '../../../core/envtone'
 import { useCreate } from '../../../core/hooks/useCreate'
 import type { Source } from '../../../core/sources'
@@ -104,12 +105,12 @@ export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }
               </span>
             </div>
             <pre className="value">{c.text}</pre>
-            {c.isProtected && <ConfirmName name={c.ref.name} value={typed} onChange={setTyped} why="this name is protected by config." />}
+            {c.isProtected && <ConfirmName name={c.ref.name} word={CONFIRM_WORD} value={typed} onChange={setTyped} why="this name is protected by config." />}
             <div className="row">
               <button
                 className="primary"
-                onClick={() => c.save(c.isProtected ? typed : undefined)}
-                disabled={c.phase === 'saving' || (c.isProtected && typed !== c.ref.name)}
+                onClick={() => c.save(c.isProtected ? c.ref.name : undefined)}
+                disabled={c.phase === 'saving' || (c.isProtected && !typedConfirm(typed))}
               >
                 {c.phase === 'saving' ? 'creating…' : `create ${target}`}
               </button>

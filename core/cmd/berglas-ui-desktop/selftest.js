@@ -380,7 +380,7 @@
       await wait(400)
       return [ok, `layout "${layout.className}"`]
     })
-    await step('edit against the pin: use pinned, add all, typed name, save', async () => {
+    await step('edit against the pin: use pinned, add all, typed confirm, save', async () => {
       await press(['edit production…'])
       await wait(400)
       const before = document.querySelectorAll('.right button').length
@@ -396,8 +396,11 @@
       await press(['review changes'])
       // not just 'save*': the pinned pane, still on screen, has its own "save to file…"
       const save = findButton(['save to production*'])
-      const lockedBefore = save?.disabled
-      setField('type payments-prod-env to confirm', 'payments-prod-env')
+      // a protected save unlocks on the word "confirm", not on the secret's name
+      setField('type confirm to confirm', 'payments-prod-env')
+      await wait(150)
+      const lockedBefore = save?.disabled && findButton(['save to production*']).disabled
+      setField('type confirm to confirm', 'confirm')
       await wait(150)
       const unlocked = !findButton(['save to production*']).disabled
       await press(['save to production*'])
@@ -677,7 +680,7 @@
       return [hint && dialog.includes('2 keys') && editorNote && draft && prefilled && refused && unchanged, `drop hint ${hint}, dialog "${dialog.slice(0, 40)}…", editor note ${editorNote}, draft ${draft}, new prefilled ${prefilled}, binary refused ${refused}, value unchanged ${unchanged}`]
     })
 
-    await step('save to file: confirmation first, mode 600, protected needs the name typed', async () => {
+    await step('save to file: confirmation first, mode 600, protected needs confirm typed', async () => {
       await openSecret('orders-dev-env')
       await press(['reveal'])
       await press(['save to file…'])
@@ -694,8 +697,11 @@
       await openSecret('orders-prod-env')
       await press(['reveal'])
       await press(['save to file…'])
+      // unlocks on the word "confirm", not on the secret's name
+      setField('type confirm to confirm', 'orders-prod-env')
+      await wait(100)
       const locked = findButton(['choose where to save…'])?.disabled === true
-      setField('type orders-prod-env to confirm', 'orders-prod-env')
+      setField('type confirm to confirm', 'confirm')
       await wait(100)
       await press(['choose where to save…'])
       await wait(500)
