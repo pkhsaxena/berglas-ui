@@ -130,13 +130,14 @@ main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: colum
 }
 .layout > .left { grid-area: left; } .layout > .main-area { grid-area: main; } .layout > .side-col { grid-area: side; display: none; }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 12px; }
-.left { grid-template-rows: fit-content(40%) minmax(0, 1fr); background: var(--n-sidebar); border-right: 1px solid var(--n-line); padding: 12px 8px; gap: 6px; }
-.side-col { grid-template-rows: fit-content(55%) minmax(0, 1fr); padding: 12px 0 12px 12px; }
+/* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
+.left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); background: var(--n-sidebar); border-right: 1px solid var(--n-line); padding: 12px 8px; gap: 6px; }
+.side-col { grid-template-rows: fit-content(calc(55% + var(--refit, 0px))) minmax(0, 1fr); padding: 12px 0 12px 12px; }
 .side-col > :only-child { grid-row: 1 / -1; }
 .main-area { display: grid; min-height: 0; min-width: 0; grid-template-rows: minmax(0, 1fr); padding: 12px; gap: 12px; }
 .main-area > .right { grid-row: 1; }
 .main-area > .wide-only { display: none; }
-.right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
+.right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(55% + var(--refit, 0px))) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
 .right.revealed, .right.show-versions { grid-template-rows: minmax(0, 1fr); }
 .right.revealed > .versions-pane, .right.show-versions > .secret-pane { display: none; }

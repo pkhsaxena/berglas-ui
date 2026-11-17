@@ -414,6 +414,15 @@ func withSelftest(next http.Handler, sh *shell, store secrets.Store, done func(r
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 			return
+		case "/__selftest/resize":
+			// resize the window, as dragging it or tiling it to a side would
+			q := r.URL.Query()
+			wd, _ := strconv.Atoi(q.Get("w"))
+			ht, _ := strconv.Atoi(q.Get("h"))
+			if wd > 0 && ht > 0 {
+				wruntime.WindowSetSize(sh.ctx, wd, ht)
+			}
+			return
 		case "/__selftest/progress":
 			fmt.Printf("SELFTEST step: %s\n", r.URL.Query().Get("step"))
 			return

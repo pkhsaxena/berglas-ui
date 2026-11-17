@@ -33,6 +33,22 @@
   await wait(600)
   checks.push(...measure('pinned + other open'))
   checks.push({ name: 'html/body overflow and overscroll', ok: true, detail: `html ${cs(document.documentElement).overflow}/${cs(document.documentElement).overscrollBehavior}, body ${cs(document.body).overflow}/${cs(document.body).overscrollBehavior}` })
+  // a pane in a fit-content row keeps to its content when the window changes
+  // width: narrow wraps the sources pane's text taller, and enlarging the
+  // window must not leave it that tall (WebKit kept the old height)
+  const sourcesFit = () => {
+    const body = document.querySelector('.left > :first-child > .body')
+    const pad = parseFloat(cs(body).paddingBottom) || 0
+    const content = Math.round(body.lastElementChild.getBoundingClientRect().bottom + pad - body.getBoundingClientRect().top)
+    const box = Math.round(body.getBoundingClientRect().height)
+    const capped = body.scrollHeight > body.clientHeight + 1
+    return { ok: capped || Math.abs(box - content) <= 2, detail: `${innerWidth}x${innerHeight} ${document.getElementById('root').dataset.width}: body ${box}, content ${content}${capped ? ' (capped, scrolls)' : ''}` }
+  }
+  for (const [w, h] of [[900, 700], [1900, 1000], [1000, 700], [1440, 900]]) {
+    await fetch(`/__selftest/resize?w=${w}&h=${h}`)
+    await wait(900)
+    checks.push({ name: `sources pane fits its content after resizing to ${w}x${h}`, ...sourcesFit() })
+  }
   const ok = checks.every((c) => c.ok)
   await fetch('/__selftest?ok=' + (ok ? 1 : 0), { method: 'POST', body: JSON.stringify(checks) })
 })()

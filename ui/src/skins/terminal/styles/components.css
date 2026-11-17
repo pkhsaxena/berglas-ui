@@ -60,8 +60,9 @@ main {
 .layout > .main-area { grid-area: main; }
 .layout > .side-col { grid-area: side; display: none; }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
-.left { grid-template-rows: fit-content(40%) minmax(0, 1fr); }
-.side-col { grid-template-rows: fit-content(55%) minmax(0, 1fr); }
+/* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
+.left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); }
+.side-col { grid-template-rows: fit-content(calc(55% + var(--refit, 0px))) minmax(0, 1fr); }
 .side-col > :only-child { grid-row: 1 / -1; }
 .main-area { display: grid; min-height: 0; min-width: 0; grid-template-rows: minmax(0, 1fr); }
 .main-area > .right { grid-row: 1; }
@@ -78,7 +79,7 @@ main {
 .card > h2 .pane-tabs button { padding: 0 6px; font-size: 13px; line-height: 1.6; }
 .card > h2 .pane-tabs button:first-child { padding-left: 0; }
 .card > h2 .pane-tabs .tab-secret { max-width: 30ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(55%) minmax(0, 1fr); }
+.right { grid-template-columns: minmax(0, 1fr); grid-template-rows: fit-content(calc(55% + var(--refit, 0px))) minmax(0, 1fr); }
 .right.single { grid-template-rows: minmax(0, 1fr); }
 /* normal width, value revealed: the secret fills the column; the versions
    tab swaps in the versions pane instead */
