@@ -146,16 +146,50 @@ export type Config = {
   watch: SecretRef[]
   /** how often the mac app checks watched secrets */
   watchMinutes: number
+  /** screenshots and screen sharing may see the mac app's window; read when the app starts */
+  allowScreenCapture: boolean
+  /** the browser version's address and whether it opens a browser; both read when it starts */
+  listen: string
+  openBrowser: boolean
   /** set when the config is a temporary demo file (deleted on exit) */
   throwaway?: boolean
   /** where the core keeps the file, for display */
   path: string
 }
 
+/** What POST /api/config can change: any of these, saved together in one write of the file. */
+export type ConfigPatch = Partial<
+  Pick<
+    Config,
+    | 'skin'
+    | 'zoom'
+    | 'theme'
+    | 'timeZone'
+    | 'envOrder'
+    | 'sources'
+    | 'favorites'
+    | 'recent'
+    | 'recentCollapsed'
+    | 'watch'
+    | 'readOnly'
+    | 'protect'
+    | 'lockAfterMinutes'
+    | 'revealSeconds'
+    | 'clipboardClearSeconds'
+    | 'allowScreenCapture'
+    | 'cacheSeconds'
+    | 'cacheEntries'
+    | 'watchMinutes'
+    | 'auditLog'
+    | 'listen'
+    | 'openBrowser'
+  >
+>
+
 export const api = {
   status: () => call<Status>('GET', '/api/status'),
   config: () => call<Config>('GET', '/api/config'),
-  setConfig: (c: Partial<Pick<Config, 'skin' | 'zoom' | 'theme' | 'timeZone' | 'envOrder' | 'sources' | 'favorites' | 'recent' | 'recentCollapsed' | 'watch'>>) => call<Config>('POST', '/api/config', c),
+  setConfig: (c: ConfigPatch) => call<Config>('POST', '/api/config', c),
   /** Switches the identity the core acts as and saves it; returns the config. */
   setIdentity: (impersonateServiceAccount: string, quotaProject: string) =>
     call<Config>('POST', '/api/credentials', { impersonateServiceAccount, quotaProject }),

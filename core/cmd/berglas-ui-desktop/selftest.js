@@ -742,6 +742,102 @@
       return [screen && hidden && after === before + 1 && unlocked, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}`]
     })
 
+    await step('settings: ⌘, opens it; search; an ordinary setting saves at once; safety settings save together after one confirmation', async () => {
+      const cfg = async () => (await call('GET', '/api/config')).json
+      const dialog = () => document.querySelector('[role="dialog"][aria-label="settings"]')
+      const rows = () => [...dialog().querySelectorAll('[data-setting]')].filter(vis).map((r) => r.dataset.setting)
+      const input = (setting) => dialog().querySelector(`[data-setting="${setting}"] input`)
+      const enter = (el) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      const bar = () => dialog().querySelector('.settings-save')
+      const start = await cfg()
+
+      // ⌘, opens it (the mac app's Go → Settings… runs the same command), and again closes it
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: ',', metaKey: true, bubbles: true }))
+      await wait(300)
+      const byKey = vis(dialog())
+      window.berglasUI.run('settings')
+      await wait(200)
+      const closed = !dialog()
+      window.berglasUI.run('settings')
+      await wait(300)
+      const all = rows()
+      // Find (⌘F, the Find menu) is the screen's own search box while it is open, not the window's find bar
+      field('search settings').blur()
+      window.berglasUI.run('find')
+      await wait(200)
+      const findHere = document.activeElement === field('search settings') && !vis(document.querySelector('.find-bar'))
+      const complete = ['skin', 'theme', 'zoom', 'timeZone', 'envOrder', 'readOnly', 'protect', 'lockAfterMinutes', 'revealSeconds', 'clipboardClearSeconds', 'allowScreenCapture', 'auditLog', 'cacheSeconds', 'cacheEntries', 'watchMinutes', 'configFile'].every((k) => all.includes(k))
+      // the browser version's settings are left out of the mac app
+      const noBrowser = !all.includes('listen') && !all.includes('openBrowser')
+
+      // search keeps only what matches
+      setField('search settings', 'clipboard')
+      await wait(200)
+      const found = rows()
+      setField('search settings', 'no such setting')
+      await wait(200)
+      const none = rows().length === 0
+      setField('search settings', '')
+      await wait(200)
+
+      // an ordinary setting: saved on enter, no save bar; a letter is refused and not saved
+      setField(input('cacheEntries'), '321')
+      enter(input('cacheEntries'))
+      await wait(500)
+      const atOnce = (await cfg()).cacheEntries === 321 && !bar()
+      setField(input('cacheEntries'), 'many')
+      enter(input('cacheEntries'))
+      await wait(300)
+      const refused = (await cfg()).cacheEntries === 321
+      setField(input('cacheEntries'), String(start.cacheEntries))
+      enter(input('cacheEntries'))
+      await wait(500)
+
+      // safety settings: nothing is saved while editing; the bar lists both; one confirmation saves both
+      field('Read-only').click()
+      setField(input('lockAfterMinutes'), '7')
+      await wait(300)
+      const mid = await cfg()
+      const staged = mid.readOnly === start.readOnly && mid.lockAfterMinutes === start.lockAfterMinutes && bar()?.querySelectorAll('li').length === 2
+      // a field that is not a value holds the save back
+      setField(input('revealSeconds'), 'soon')
+      await wait(200)
+      const held = !!findButton(['save safety settings…'], dialog())?.disabled
+      setField(input('revealSeconds'), String(start.revealSeconds))
+      await wait(200)
+      await press(['save safety settings…'], dialog())
+      const asked = !!findButton(['confirm'], dialog()) && (await cfg()).readOnly === start.readOnly
+      await press(['confirm'], dialog())
+      await wait(400)
+      const after = await cfg()
+      const savedBoth = after.readOnly === true && after.lockAfterMinutes === 7 && !bar()
+      // read-only is in force at once: the core refuses a write
+      const write = await call('POST', '/api/secrets/update', { ...ref('search-api-key'), plaintext: btoa('x') })
+      const enforced = write.status === 403
+
+      // back to how it was, the same way
+      field('Read-only').click()
+      setField(input('lockAfterMinutes'), String(start.lockAfterMinutes))
+      await wait(300)
+      await press(['save safety settings…'], dialog())
+      await press(['confirm'], dialog())
+      await wait(400)
+      const back = await cfg()
+      const restored = back.readOnly === start.readOnly && back.lockAfterMinutes === start.lockAfterMinutes
+
+      // closing with an unsaved safety edit asks first; discarding saves nothing
+      field('Read-only').click()
+      await wait(200)
+      window.berglasUI.run('settings')
+      await wait(300)
+      const asks = vis(dialog()) && !!findButton(['discard and close'], dialog())
+      if (asks) await press(['discard and close'], dialog())
+      const gone = !dialog() && (await cfg()).readOnly === start.readOnly
+      return [
+        byKey && closed && complete && noBrowser && findHere && found.length === 1 && found[0] === 'clipboardClearSeconds' && none && atOnce && refused && staged && held && asked && savedBoth && enforced && restored && asks && gone,
+        `⌘, opens ${byKey}, again closes ${closed}, every setting listed ${complete}, browser section left out ${noBrowser}, find goes to its search ${findHere}, search [${found}] none ${none}, saved at once ${atOnce}, letter refused ${refused}, staged ${staged}, bad field holds save ${held}, asks once ${asked}, saved both ${savedBoth}, write refused ${enforced} (${write.status}), restored ${restored}, close asks ${asks}, discarded ${gone}`,
+      ]
+    })
     await step('dropdown: substring search, arrow keys, enter picks, esc closes', async () => {
       const zoom = headerSelect('zoom')
       const before = zoom.dataset.value

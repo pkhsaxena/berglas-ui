@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { api, ApiError, type EnvOrder, type Ref, type SecretRef, type Status } from '../api'
+import { api, ApiError, type Config, type ConfigPatch, type EnvOrder, type Ref, type SecretRef, type Status } from '../api'
 import { configureCache, metaCache } from '../cache'
 import { onCommand } from '../commands'
 import { pushRecent, toggleRef, withoutRef } from '../refs'
@@ -34,23 +34,44 @@ export function useApp() {
   const [base, setBase] = useState<Omit<Settings, 'sources'>>(DEFAULT_SETTINGS)
   const settings: Settings = useMemo(() => ({ ...base, sources }), [base, sources])
 
+  /** Takes the config as the core has it: on load and after every settings save. */
+  const applyConfig = useCallback((config: Config) => {
+    const { skin, theme, sources, path, throwaway, ...rest } = config
+    setSkinState(skin)
+    setThemeState(theme)
+    setSources(sources)
+    // skins print "saved in …"; a demo's temp path means nothing to anyone
+    setConfigPath(throwaway ? 'a throwaway demo config, deleted on exit' : path)
+    setBase(rest)
+    // the open source keeps its place, with its settings as they now are
+    setActive((a) => {
+      const same = a ? sources.find((s) => sourceId(s) === sourceId(a)) : undefined
+      return same ?? sources.find((s) => s.default) ?? sources[0] ?? null
+    })
+  }, [])
+
+  /**
+   * Saves settings (any number, in one write of the config file) and takes
+   * the config the core answers with. Rejects when the core refuses a value
+   * or cannot write the file; nothing is changed then.
+   */
+  const saveSettings = useCallback(
+    async (patch: ConfigPatch) => {
+      applyConfig(await api.setConfig(patch))
+    },
+    [applyConfig],
+  )
+
   const load = useCallback(async () => {
     try {
       const [status, config] = await Promise.all([api.status(), api.config()])
-      const { skin, theme, sources, path, throwaway, ...rest } = config
-      setSkinState(skin)
-      setThemeState(theme)
-      setSources(sources)
-      // skins print "saved in …"; a demo's temp path means nothing to anyone
-      setConfigPath(throwaway ? 'a throwaway demo config, deleted on exit' : path)
-      setBase(rest)
-      setActive((a) => a ?? sources.find((s) => s.default) ?? sources[0] ?? null)
+      applyConfig(config)
       setSession(status.credentials ? { kind: 'ready', status } : { kind: 'no-credentials', status })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setSession({ kind: 'unauthorized' })
       else setSession({ kind: 'offline', message: errText(e) })
     }
-  }, [])
+  }, [applyConfig])
 
   useEffect(() => {
     void load()
@@ -198,5 +219,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
 }

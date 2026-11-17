@@ -1,22 +1,32 @@
 // Commands the ui can be told to run from outside the page: the desktop app's
-// menu items (View → Zoom, Edit → Find) call window.berglasUI.run(name).
+// menu items (View → Zoom, Find, Go → Settings…) call window.berglasUI.run(name).
 // Whoever owns the state registers the handler; a command with no handler
 // does nothing.
 
-export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette' | 'lock' | 'watchChanged'
+export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette' | 'lock' | 'watchChanged' | 'settings'
 
-const handlers = new Map<Command, () => void>()
+// a command runs its handler of the highest priority, the newest among
+// equals; removing that one hands the command back to the next. The settings
+// screen takes 'find' this way while it is open.
+const handlers = new Map<Command, { fn: () => void; priority: number }[]>()
 
-/** Registers a handler; returns a function that removes it. */
-export function onCommand(c: Command, fn: () => void): () => void {
-  handlers.set(c, fn)
+/** Registers a handler; returns a function that removes it. A higher `priority` wins over other handlers of the command. */
+export function onCommand(c: Command, fn: () => void, priority = 0): () => void {
+  const entry = { fn, priority }
+  handlers.set(c, [...(handlers.get(c) ?? []), entry])
   return () => {
-    if (handlers.get(c) === fn) handlers.delete(c)
+    handlers.set(
+      c,
+      (handlers.get(c) ?? []).filter((e) => e !== entry),
+    )
   }
 }
 
 export function runCommand(c: Command) {
-  handlers.get(c)?.()
+  const list = handlers.get(c) ?? []
+  let best: (typeof list)[number] | undefined
+  for (const e of list) if (!best || e.priority >= best.priority) best = e
+  best?.fn()
 }
 
 /** A secret named by a berglas-ui:// link (the app has already checked it). */

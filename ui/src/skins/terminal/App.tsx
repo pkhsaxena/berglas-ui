@@ -4,6 +4,8 @@ import { copySecret } from '../../core/clipboard'
 import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
+import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
+import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
 import { type LinkTarget, onOpenLink } from '../../core/commands'
@@ -29,6 +31,7 @@ import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview
 import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
+import { Settings } from './components/Settings'
 import { Sources } from './components/Sources'
 import { stepZoom, ZOOM_STEPS } from '../../core/zoom'
 import { useFind } from '../../core/hooks/useFind'
@@ -127,6 +130,27 @@ export default function App() {
   }
   openRefRef.current = openRef
   const lockState = useLock(session.kind === 'ready' ? app.settings.lockAfterMinutes : 0)
+  // ⌘,: the settings screen; there is a config to show once the core has answered
+  const settingsScreen = useSettingsScreen({
+    enabled: session.kind === 'ready' || session.kind === 'no-credentials',
+    settings: app.settings,
+    sources: app.sources,
+    skin: skinFor(app.skin).name,
+    theme,
+    zoom: app.zoom,
+    recentCollapsed: app.recentCollapsed,
+    setSkin: app.setSkin,
+    setTheme: app.setTheme,
+    setZoom: app.setZoom,
+    setTimeZone: app.setTimeZone,
+    setEnvOrder: app.setEnvOrder,
+    setRecentCollapsed: app.setRecentCollapsed,
+    saveSettings: app.saveSettings,
+    onToast: setToast,
+  })
+  const settingsChoices = choiceOptions({ skins: SKINS, themes: PRESETS.map((p) => p.name), zoomSteps: ZOOM_STEPS, zoom: app.zoom, localZone: LOCAL_ZONE })
+  // this skin writes its own words in lower case; theme names keep theirs
+  for (const k of ['timeZone', 'envOrder'] as const) settingsChoices[k] = settingsChoices[k].map((o) => ({ ...o, label: o.label.toLowerCase() }))
   // a new identity may see other secrets: reload the list and close the open one
   useEffect(() => {
     if (app.identityRev === 0) return
@@ -221,6 +245,7 @@ export default function App() {
         identities: ids.options.length > 1 ? ids.options.filter((o) => o.key !== ids.current) : [],
         setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
         lock: lockState.lock,
+        settings: settingsScreen.show,
         checkWatched: app.watch.length ? () => void watch.checkNow() : undefined,
       }),
     }),
@@ -352,6 +377,11 @@ export default function App() {
             skin
             <Select ariaLabel="skin" value={skinFor(app.skin).name} options={SKINS.map((s) => ({ value: s.name, label: s.label }))} onChange={app.setSkin} />
           </label>
+        )}
+        {(session.kind === 'ready' || session.kind === 'no-credentials') && (
+          <button onClick={settingsScreen.show} title="every setting, with search (⌘,)">
+            settings
+          </button>
         )}
       </header>
 
@@ -575,6 +605,22 @@ export default function App() {
       <Credit />
       <FindBar f={find} />
       {session.kind === 'ready' && <Palette p={palette} />}
+      <Settings
+        s={settingsScreen}
+        sources={app.sources}
+        choices={settingsChoices}
+        identity={{
+          options: ids.options,
+          current: ids.current,
+          serviceAccount: app.identity.impersonateServiceAccount ?? '',
+          quotaProject: app.identity.quotaProject ?? '',
+          switching: app.switching,
+          error: app.configError.startsWith("couldn't switch identity") ? app.configError : '',
+          apply: (sa, quota) => void app.setIdentity(sa, quota),
+        }}
+        configPath={app.configPath}
+        version={session.kind === 'ready' || session.kind === 'no-credentials' ? session.status.version : ''}
+      />
       <LockScreen l={lockState} />
       {linkAsk && (
         <LinkDialog

@@ -27,6 +27,9 @@ export const DEFAULT_SETTINGS: Settings = {
   recentCollapsed: false,
   watch: [],
   watchMinutes: 5,
+  allowScreenCapture: false,
+  listen: '',
+  openBrowser: false,
 }
 
 export const SettingsContext = createContext<Settings>(DEFAULT_SETTINGS)

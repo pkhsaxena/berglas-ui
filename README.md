@@ -117,7 +117,15 @@ the desktop app is macOS only for now.
 - **command palette** (`core/palette.ts`): ⌘K (Ctrl+K; in the mac app also Go → Go To…) jumps
   to any secret of the open source, or of another source seen this session, switches source, or
   runs an action (new, refresh, views, compare keys, find, zoom, theme, skin, time zone, act as,
-  lock).
+  lock, settings).
+- **settings screen** (`core/settingsModel.ts`): ⌘, (Ctrl+,; in the mac app also Go →
+  Settings…) opens every setting of the config file in sections, with a search box. Most settings
+  are saved the moment you change them. **Safety settings** (read-only, protected names, the lock,
+  reveal and clipboard timers, screen capture, the audit log, and each source's read-only and
+  protected names) are collected instead: a bar lists what would change, and **save safety
+  settings…** then **confirm** writes all of them in one save. Until then the saved values stay in
+  force, and closing with unsaved ones asks first. A safety change is also written to the audit
+  log (to the old file too when the change moves or turns off the log).
 - **favourites and recents:** ☆ on a secret stars it; favourites and the last five secrets you
   opened, from any source, sit above the list and lead ⌘K; the **recent** heading folds the list
   and × takes one off it. Saved in the config (names only).
@@ -185,6 +193,10 @@ keys are an error, so a typo like `readonly` fails at startup instead of being s
 
 - default location: `~/.berglas-ui/config.yaml` (on Windows `%USERPROFILE%\.berglas-ui\config.yaml`)
 - override: `-config <path>` or `BERGLAS_UI_CONFIG`
+- the settings screen (⌘,) edits this same file; there is no second store. A save is one atomic
+  write (owner-only, `0600`) and is all or nothing: one bad value and none of it is written.
+- changes made in the settings screen apply at once, except `allowScreenCapture`, `listen` and
+  `openBrowser`, which are read at startup. Hand edits to the file are also read at startup only.
 
 ```yaml
 listen: 127.0.0.1:0          # -listen / BERGLAS_UI_LISTEN win; port 0 = a free port
@@ -200,7 +212,7 @@ revealSeconds: 60            # hide revealed values and diffs after this; 0 = ne
 clipboardClearSeconds: 30    # clear copied values after this; 0 = never
 cacheSeconds: 600            # keep secret/version lists (never values) for revisits; 0 = off
 cacheEntries: 500            # at most this many cached lists, least recently used out first
-auditLog: ~/.berglas-ui/audit.log   # one json line per write or export; empty = off
+auditLog: ~/.berglas-ui/audit.log   # one json line per write, export or safety settings change; empty = off
 watchMinutes: 5              # how often watched secrets are checked
 lockAfterMinutes: 15         # mac app: lock after this long without input; 0 = never
 allowScreenCapture: false    # mac app: let screenshots and screen sharing see the window
@@ -230,7 +242,7 @@ The ui also keeps `favorites`, `recent` and `watch` here (source and name only).
 | `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; clipboard clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
 | `zoom` | scales the whole ui. Zooming out gives the layout more room, the way browser zoom does: at 67% a 1440px window gets the wide layout (panes side by side) | ui |
 | `cacheSeconds`, `cacheEntries` | lists of secrets and versions (names and times, never values) seen before show at once on a revisit while a fresh copy loads. Each expires `cacheSeconds` after it was fetched; at most `cacheEntries` are kept. Either at 0 turns the cache off | ui |
-| `auditLog` | appends `{time, actor, action, backend, parent, name, version, path, result, error}` per write or export attempt (never values), file mode 0600. If a line cannot be written, the write has still happened and the ui shows an error | core |
+| `auditLog` | appends `{time, actor, action, backend, parent, name, version, path, result, error}` per write or export attempt (never values), file mode 0600. A change to a safety setting from the settings screen adds `{action: "settings change", changes: ["readOnly: false → true", …]}`, in the file in use before the change and, if the change moved the log, in the new one. If a line cannot be written, the write has still happened and the ui shows an error | core |
 | `credentials` | every call is made as `impersonateServiceAccount` (your ADC identity needs `roles/iam.serviceAccountTokenCreator` on it), with quota billed to `quotaProject`; `choices` feeds the **act as** picker | core |
 | `label`, `group`, `default` | display only; `group` also adds the service × env matrix and drift (click an env header to sort rows: newest first, oldest first, default) | ui |
 | `timeZone`, `envOrder` | `local` / `utc`; `sorted` / `file` (the stored file is never reordered) | ui |
@@ -248,7 +260,7 @@ Finder. Building it: [releases](#releases).
   clipboard back. `mailto:` and `http(s)` links open in your mail app or browser; other schemes
   are refused.
 - **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); Go (Go To… ⌘K; Lock ⇧⌘L); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
+  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Lock ⇧⌘L); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
   reload ⌘R, full screen); Window.
 - **lock:** Go → Lock, **Lock now** in ⌘K, or `lockAfterMinutes`. Unlocking asks for Touch ID
   (or the login password). An open editor keeps its draft under the lock.
@@ -376,6 +388,10 @@ The core serves secret values over plain HTTP on a local port, so:
 - `?destination=` references are refused by `/api/resolve`, because berglas would write the
   secret to that file path
 
+`readOnly` and `protect` guard against mistakes, not against the person at the keyboard: whoever
+can use the app can change them in the settings screen (after a confirmation, and on record in
+the audit log) or in the config file.
+
 The mac app has no port, so it drops the loopback, token and origin checks (nothing outside
 the app can send it requests) and keeps everything else, including read-only and protect.
 
@@ -384,7 +400,7 @@ the app can send it requests) and keeps everything else, including read-only and
 | method | path | body / query |
 |---|---|---|
 | GET | `/api/status` | — |
-| GET, POST | `/api/config` | POST: `{skin?, theme?, zoom?, timeZone?, envOrder?, sources?, favorites?, recent?, watch?}` |
+| GET, POST | `/api/config` | POST: any of `{skin, theme, zoom, timeZone, envOrder, sources, favorites, recent, recentCollapsed, watch, watchMinutes, readOnly, protect, lockAfterMinutes, revealSeconds, clipboardClearSeconds, allowScreenCapture, cacheSeconds, cacheEntries, auditLog, listen, openBrowser}`, saved in one write, all or nothing |
 | POST | `/api/credentials` | `{impersonateServiceAccount, quotaProject}` |
 | GET | `/api/secrets` | `backend, parent, prefix` |
 | GET | `/api/secrets/versions` | `backend, parent, name` |

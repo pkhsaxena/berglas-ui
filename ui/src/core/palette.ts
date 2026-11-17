@@ -146,6 +146,8 @@ export function paletteActions(o: {
   setSkin: (name: string) => void
   setTimeZone: (z: 'local' | 'utc') => void
   lock?: () => void
+  /** opens the settings screen */
+  settings?: () => void
   checkWatched?: () => void
   /** other identities to act as */
   identities?: { key: string; label: string; serviceAccount: string; quotaProject: string }[]
@@ -164,6 +166,7 @@ export function paletteActions(o: {
   if (o.timeZone !== 'local') a.push({ label: 'Time: local', hint: 'time zone', run: () => o.setTimeZone('local') })
   if (o.timeZone !== 'utc') a.push({ label: 'Time: UTC', hint: 'time zone', run: () => o.setTimeZone('utc') })
   if (o.checkWatched) a.push({ label: 'Check watched secrets now', hint: 'watch', run: o.checkWatched })
+  if (o.settings) a.push({ label: 'Settings…', hint: '⌘, · every setting, with search', run: o.settings })
   if (o.lock) a.push({ label: 'Lock now', hint: '⇧⌘L · Touch ID to unlock', run: o.lock })
   for (const id of o.identities ?? []) a.push({ label: `Act as ${id.label}`, hint: id.serviceAccount || 'your gcloud login', run: () => o.setIdentity?.(id) })
   return a
