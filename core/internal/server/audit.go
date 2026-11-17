@@ -17,12 +17,13 @@ type auditEntry struct {
 	Time    time.Time `json:"time"`
 	Actor   string    `json:"actor,omitempty"`
 	Action  string    `json:"action"`
-	Backend string    `json:"backend"`
-	Parent  string    `json:"parent"`
+	Backend string    `json:"backend,omitempty"` // empty for a settings change
+	Parent  string    `json:"parent,omitempty"`
 	Name    string    `json:"name,omitempty"`
 	Version string    `json:"version,omitempty"` // the version a write created
 	Members []string  `json:"members,omitempty"` // grant / revoke
 	Path    string    `json:"path,omitempty"`    // export: the file written
+	Changes []string  `json:"changes,omitempty"` // settings: "name: old → new"
 	Result  string    `json:"result"`            // ok | error
 	Error   string    `json:"error,omitempty"`
 }
@@ -53,7 +54,11 @@ func (s *Server) actorFor(ctx context.Context) string {
 // message saying the write could not be logged; callers pass that on to the
 // ui, since the secret write itself already happened.
 func (s *Server) record(ctx context.Context, e auditEntry, opErr error) string {
-	path := s.cfg.Get().Settings().AuditLog
+	return s.recordTo(ctx, s.cfg.Get().Settings().AuditLog, e, opErr)
+}
+
+// recordTo is record for a given log file ("" for none).
+func (s *Server) recordTo(ctx context.Context, path string, e auditEntry, opErr error) string {
 	if path == "" {
 		return ""
 	}

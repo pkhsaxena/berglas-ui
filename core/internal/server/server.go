@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -294,6 +295,9 @@ type configResp struct {
 	// Throwaway is set when the config is a temporary demo file, so the ui
 	// says so instead of showing a temp path
 	Throwaway bool `json:"throwaway,omitempty"`
+	// AuditError is set when a safety setting changed but the change could
+	// not be written to the audit log
+	AuditError string `json:"auditError,omitempty"`
 }
 
 func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
@@ -320,84 +324,85 @@ func (s *Server) guard(w http.ResponseWriter, r *http.Request, backend secrets.B
 	return true
 }
 
-// handleSetConfig saves the fields that are present. listen is not settable
-// from the ui; it only takes effect at startup.
+// handleSetConfig saves the settings that are present, all in one write of
+// the file, and answers with the config as it now is. A change to a safety
+// setting (see safetyChanges) goes into the audit log.
 func (s *Server) handleSetConfig(w http.ResponseWriter, r *http.Request) {
-	var in struct {
-		Skin      *string             `json:"skin"`
-		Zoom      *int                `json:"zoom"`
-		Theme     *string             `json:"theme"`
-		TimeZone  *string             `json:"timeZone"`
-		EnvOrder  *string             `json:"envOrder"`
-		Sources   *[]config.Source    `json:"sources"`
-		Favorites *[]config.SecretRef `json:"favorites"`
-		Recent    *[]config.SecretRef `json:"recent"`
-		// RecentCollapsed folds the recent list
-		RecentCollapsed *bool               `json:"recentCollapsed"`
-		Watch           *[]config.SecretRef `json:"watch"`
-	}
+	var in config.Patch
 	if !decode(w, r, &in) {
 		return
 	}
-	if in.Sources != nil {
-		if err := s.cfg.SetSources(*in.Sources); err != nil {
+	before := s.cfg.Get()
+	if err := s.cfg.Apply(in); err != nil {
+		var invalid *config.InvalidError
+		if errors.As(err, &invalid) {
 			writeError(w, http.StatusBadRequest, "invalid", err.Error())
-			return
-		}
-	}
-	for _, l := range []struct {
-		refs *[]config.SecretRef
-		set  func([]config.SecretRef) error
-	}{{in.Favorites, s.cfg.SetFavorites}, {in.Recent, s.cfg.SetRecent}, {in.Watch, s.cfg.SetWatch}} {
-		if l.refs == nil {
-			continue
-		}
-		refs := *l.refs
-		if refs == nil {
-			refs = []config.SecretRef{}
-		}
-		if err := l.set(refs); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid", err.Error())
-			return
-		}
-	}
-	if in.RecentCollapsed != nil {
-		if err := s.cfg.SetRecentCollapsed(*in.RecentCollapsed); err != nil {
+		} else {
 			writeError(w, http.StatusInternalServerError, "config", err.Error())
-			return
+		}
+		return
+	}
+	after := s.cfg.Get()
+	out := configResp{Settings: after.Settings(), Path: s.cfg.Path(), Throwaway: s.ThrowawayConfig}
+	if changes := safetyChanges(before, after); len(changes) > 0 {
+		s.log.Info("safety settings changed", "changes", changes)
+		// in the log that was in use and, when the change moved it, the new one:
+		// turning the audit log off is itself on record
+		e := auditEntry{Action: "settings change", Changes: changes}
+		paths := []string{config.ExpandHome(before.AuditLog)}
+		if p := config.ExpandHome(after.AuditLog); p != paths[0] {
+			paths = append(paths, p)
+		}
+		for _, p := range paths {
+			if msg := s.recordTo(r.Context(), p, e, nil); msg != "" && out.AuditError == "" {
+				out.AuditError = msg
+			}
 		}
 	}
-	if in.EnvOrder != nil {
-		if err := s.cfg.SetEnvOrder(*in.EnvOrder); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid", err.Error())
-			return
+	writeJSON(w, http.StatusOK, out)
+}
+
+// safetyChanges lists, as "name: old → new", the settings that guard secrets
+// and differ between two configs: read-only and protection (global and per
+// source), the lock, reveal and clipboard timers, screen capture and the
+// audit log itself.
+func safetyChanges(a, b config.Config) []string {
+	var out []string
+	add := func(name string, from, to any) {
+		if f, t := fmt.Sprint(from), fmt.Sprint(to); f != t {
+			out = append(out, name+": "+f+" → "+t)
 		}
 	}
-	if in.TimeZone != nil {
-		if err := s.cfg.SetTimeZone(*in.TimeZone); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid", err.Error())
-			return
+	as, bs := a.Settings(), b.Settings()
+	add("readOnly", as.ReadOnly, bs.ReadOnly)
+	add("protect", as.Protect, bs.Protect)
+	add("lockAfterMinutes", as.LockAfterMinutes, bs.LockAfterMinutes)
+	add("revealSeconds", as.RevealSeconds, bs.RevealSeconds)
+	add("clipboardClearSeconds", as.ClipboardClearSeconds, bs.ClipboardClearSeconds)
+	add("allowScreenCapture", as.AllowScreenCapture, bs.AllowScreenCapture)
+	add("auditLog", orOff(a.AuditLog), orOff(b.AuditLog))
+	for _, src := range b.Sources {
+		was := a.Source(src.Backend, src.Parent)
+		if was == nil {
+			was = &config.Source{}
+		}
+		id := "sources[" + src.Backend + ":" + src.Parent + "]"
+		add(id+".readOnly", was.ReadOnly, src.ReadOnly)
+		add(id+".protect", was.Protect, src.Protect)
+	}
+	for _, src := range a.Sources {
+		if b.Source(src.Backend, src.Parent) == nil && (src.ReadOnly || len(src.Protect) > 0) {
+			out = append(out, "sources["+src.Backend+":"+src.Parent+"]: removed (was readOnly "+fmt.Sprint(src.ReadOnly)+", protect "+fmt.Sprint(src.Protect)+")")
 		}
 	}
-	if in.Zoom != nil {
-		if err := s.cfg.SetZoom(*in.Zoom); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid", err.Error())
-			return
-		}
+	return out
+}
+
+func orOff(path string) string {
+	if path == "" {
+		return "off"
 	}
-	if in.Skin != nil {
-		if err := s.cfg.SetSkin(*in.Skin); err != nil {
-			writeError(w, http.StatusInternalServerError, "config", err.Error())
-			return
-		}
-	}
-	if in.Theme != nil {
-		if err := s.cfg.SetTheme(*in.Theme); err != nil {
-			writeError(w, http.StatusInternalServerError, "config", err.Error())
-			return
-		}
-	}
-	s.handleGetConfig(w, r)
+	return path
 }
 
 func (s *Server) handleList(w http.ResponseWriter, r *http.Request) {

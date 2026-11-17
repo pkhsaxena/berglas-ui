@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -197,6 +198,9 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # clipboardClearSeconds: 30    # clear copied values after this long; 0 = never
 # cacheSeconds: 600            # keep secret/version lists (never values) this long; 0 = off
 # cacheEntries: 500            # at most this many cached lists
+# lockAfterMinutes: 10         # lock the ui after this long without input; 0 = never
+# allowScreenCapture: false    # let screenshots and screen sharing see the mac app's window
+# watchMinutes: 5              # how often the mac app checks watched secrets
 # auditLog: ~/.berglas-ui/audit.log   # one json line per write, never values
 # credentials:
 #   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
@@ -270,6 +274,11 @@ func Validate(c Config) error {
 	}
 	if c.WatchMinutes < 0 {
 		return fmt.Errorf("watchMinutes must be 0 or more")
+	}
+	if c.Listen != "" {
+		if _, _, err := net.SplitHostPort(c.Listen); err != nil {
+			return fmt.Errorf("listen must be host:port (like 127.0.0.1:0), got %q", c.Listen)
+		}
 	}
 	for _, l := range []struct {
 		name string
@@ -419,32 +428,183 @@ func (f *File) SetTheme(name string) error {
 	return f.set("theme", name, func(c *Config) { c.Theme = name })
 }
 
+// Patch names the settings to change; a nil field is left as it is. Its json
+// form is what POST /api/config takes. Credentials are not here: switching
+// identity also swaps the core's auth, so it has its own route (SetIdentity).
+type Patch struct {
+	Listen                *string      `json:"listen"`
+	OpenBrowser           *bool        `json:"openBrowser"`
+	Skin                  *string      `json:"skin"`
+	Zoom                  *int         `json:"zoom"`
+	Theme                 *string      `json:"theme"`
+	TimeZone              *string      `json:"timeZone"`
+	EnvOrder              *string      `json:"envOrder"`
+	ReadOnly              *bool        `json:"readOnly"`
+	Protect               *[]string    `json:"protect"`
+	LockAfterMinutes      *int         `json:"lockAfterMinutes"`
+	RevealSeconds         *int         `json:"revealSeconds"`
+	ClipboardClearSeconds *int         `json:"clipboardClearSeconds"`
+	CacheSeconds          *int         `json:"cacheSeconds"`
+	CacheEntries          *int         `json:"cacheEntries"`
+	AuditLog              *string      `json:"auditLog"`
+	AllowScreenCapture    *bool        `json:"allowScreenCapture"`
+	Sources               *[]Source    `json:"sources"`
+	Favorites             *[]SecretRef `json:"favorites"`
+	Recent                *[]SecretRef `json:"recent"`
+	RecentCollapsed       *bool        `json:"recentCollapsed"`
+	Watch                 *[]SecretRef `json:"watch"`
+	WatchMinutes          *int         `json:"watchMinutes"`
+}
+
+// InvalidError is a patch the config cannot take (a bad value), as opposed
+// to a file that could not be written.
+type InvalidError struct{ Err error }
+
+func (e *InvalidError) Error() string { return e.Err.Error() }
+func (e *InvalidError) Unwrap() error { return e.Err }
+
+// change is one key of a patch: its yaml value and how it lands in a Config.
+type change struct {
+	key   string
+	value any
+	apply func(*Config)
+}
+
+func (p Patch) changes() []change {
+	var out []change
+	add := func(key string, value any, apply func(*Config)) { out = append(out, change{key, value, apply}) }
+	if v := p.Listen; v != nil {
+		add("listen", *v, func(c *Config) { c.Listen = *v })
+	}
+	if v := p.OpenBrowser; v != nil {
+		add("openBrowser", *v, func(c *Config) { c.OpenBrowser = *v })
+	}
+	if v := p.Skin; v != nil {
+		add("skin", *v, func(c *Config) { c.Skin = *v })
+	}
+	if v := p.Zoom; v != nil {
+		add("zoom", *v, func(c *Config) { c.Zoom = v })
+	}
+	if v := p.Theme; v != nil {
+		add("theme", *v, func(c *Config) { c.Theme = *v })
+	}
+	if v := p.TimeZone; v != nil {
+		add("timeZone", *v, func(c *Config) { c.TimeZone = *v })
+	}
+	if v := p.EnvOrder; v != nil {
+		add("envOrder", *v, func(c *Config) { c.EnvOrder = *v })
+	}
+	if v := p.ReadOnly; v != nil {
+		add("readOnly", *v, func(c *Config) { c.ReadOnly = *v })
+	}
+	if v := p.Protect; v != nil {
+		list := append([]string{}, *v...)
+		add("protect", list, func(c *Config) { c.Protect = list })
+	}
+	if v := p.LockAfterMinutes; v != nil {
+		add("lockAfterMinutes", *v, func(c *Config) { c.LockAfterMinutes = *v })
+	}
+	if v := p.RevealSeconds; v != nil {
+		add("revealSeconds", *v, func(c *Config) { c.RevealSeconds = v })
+	}
+	if v := p.ClipboardClearSeconds; v != nil {
+		add("clipboardClearSeconds", *v, func(c *Config) { c.ClipboardClearSeconds = v })
+	}
+	if v := p.CacheSeconds; v != nil {
+		add("cacheSeconds", *v, func(c *Config) { c.CacheSeconds = v })
+	}
+	if v := p.CacheEntries; v != nil {
+		add("cacheEntries", *v, func(c *Config) { c.CacheEntries = v })
+	}
+	if v := p.AuditLog; v != nil {
+		add("auditLog", *v, func(c *Config) { c.AuditLog = *v })
+	}
+	if v := p.AllowScreenCapture; v != nil {
+		add("allowScreenCapture", *v, func(c *Config) { c.AllowScreenCapture = *v })
+	}
+	if v := p.Sources; v != nil {
+		list := append([]Source{}, *v...)
+		add("sources", list, func(c *Config) { c.Sources = list })
+	}
+	for _, l := range []struct {
+		key  string
+		refs *[]SecretRef
+		set  func(*Config, []SecretRef)
+	}{
+		{"favorites", p.Favorites, func(c *Config, r []SecretRef) { c.Favorites = r }},
+		{"recent", p.Recent, func(c *Config, r []SecretRef) { c.Recent = r }},
+		{"watch", p.Watch, func(c *Config, r []SecretRef) { c.Watch = r }},
+	} {
+		if l.refs == nil {
+			continue
+		}
+		list, set := append([]SecretRef{}, *l.refs...), l.set
+		add(l.key, list, func(c *Config) { set(c, list) })
+	}
+	if v := p.RecentCollapsed; v != nil {
+		add("recentCollapsed", *v, func(c *Config) { c.RecentCollapsed = *v })
+	}
+	if v := p.WatchMinutes; v != nil {
+		add("watchMinutes", *v, func(c *Config) { c.WatchMinutes = *v })
+	}
+	return out
+}
+
+// Apply changes every setting the patch names and saves the file once: all
+// of them are written, or (a bad value, a file that cannot be written) none.
+// A bad value is an *InvalidError.
+func (f *File) Apply(p Patch) error {
+	return f.apply(p.changes())
+}
+
 func (f *File) set(key string, value any, apply func(*Config)) error {
+	return f.apply([]change{{key, value, apply}})
+}
+
+func (f *File) apply(changes []change) error {
+	if len(changes) == 0 {
+		return nil
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
-	var v yaml.Node
-	if err := v.Encode(value); err != nil {
-		return err
+	// the whole config as it would be: one setting can make another invalid
+	next := f.cfg
+	for _, c := range changes {
+		c.apply(&next)
 	}
+	if err := Validate(next); err != nil {
+		return &InvalidError{err}
+	}
+
 	root := f.mapping()
-	replaced := false
-	for i := 0; i+1 < len(root.Content); i += 2 {
-		if root.Content[i].Value == key {
-			old := root.Content[i+1]
-			v.LineComment, v.FootComment = old.LineComment, old.FootComment
-			root.Content[i+1] = &v
-			replaced = true
-			break
+	before := append([]*yaml.Node(nil), root.Content...)
+	for _, c := range changes {
+		v := new(yaml.Node)
+		if err := v.Encode(c.value); err != nil {
+			root.Content = before
+			return err
+		}
+		replaced := false
+		for i := 0; i+1 < len(root.Content); i += 2 {
+			if root.Content[i].Value == c.key {
+				old := root.Content[i+1]
+				v.LineComment, v.FootComment = old.LineComment, old.FootComment
+				root.Content[i+1] = v
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			root.Content = append(root.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: c.key}, v)
 		}
 	}
-	if !replaced {
-		root.Content = append(root.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, &v)
-	}
 	if err := f.write(); err != nil {
+		// keep the tree in step with the file on disk
+		root.Content = before
 		return err
 	}
-	apply(&f.cfg)
+	f.cfg = next
 	return nil
 }
 

@@ -40,6 +40,10 @@ type Settings struct {
 	RecentCollapsed       bool        `json:"recentCollapsed"`
 	Watch                 []SecretRef `json:"watch"`
 	WatchMinutes          int         `json:"watchMinutes"`
+	AllowScreenCapture    bool        `json:"allowScreenCapture"`
+	// Listen and OpenBrowser are the browser version's; shown as written
+	Listen      string `json:"listen"`
+	OpenBrowser bool   `json:"openBrowser"`
 }
 
 // Settings resolves c's defaults.
@@ -49,8 +53,8 @@ func (c Config) Settings() Settings {
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
-		LockAfterMinutes: c.LockAfterMinutes,
-		Favorites:        nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
+		LockAfterMinutes: c.LockAfterMinutes, AllowScreenCapture: c.AllowScreenCapture, Listen: c.Listen, OpenBrowser: c.OpenBrowser,
+		Favorites: nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
 	}
 	if c.WatchMinutes > 0 {
 		s.WatchMinutes = c.WatchMinutes
