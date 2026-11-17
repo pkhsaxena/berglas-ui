@@ -24,6 +24,8 @@ type Props = {
   group?: string
   onToast: (msg: string) => void
   onDeleted: () => void
+  /** told when the editor opens and closes, so the view tabs can wait for it */
+  onEditing?: (editing: boolean) => void
   /** the pinned value, if any, shown beside this secret */
   pinned: Pinned | null
   onPin: (p: Pinned) => void
@@ -42,7 +44,7 @@ type Props = {
   marks?: { favorite: boolean; watched: boolean; onFavorite: () => void; onWatch: () => void; onCopyLink: () => void }
 }
 
-export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, onEditing, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -51,6 +53,11 @@ export function SecretDetail({ base, group, onToast, onDeleted, pinned, onPin, s
     onToast('saved')
   }, s.latestId)
   const editing = ed.phase !== 'idle'
+  useEffect(() => {
+    onEditing?.(editing)
+    return () => onEditing?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing])
   // the exact version on screen, so the file holds what was revealed
   const shownRef: Ref = { ...base, version: shown ? versionOf(shown) : undefined }
   const x = useExport(shownRef, onToast)

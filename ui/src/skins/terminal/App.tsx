@@ -53,6 +53,8 @@ export default function App() {
   const { session, active } = app
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  // the open secret's editor is up: leaving its view would drop the draft
+  const [editing, setEditing] = useState(false)
   // bumped after a create or delete so the list reloads
   const [listRev, setListRev] = useState(0)
   const [toast, setToast] = useState('')
@@ -225,26 +227,28 @@ export default function App() {
   )
 
   // the view tabs, set into the title of the right column's top pane (normal width only)
+  // while a secret is being edited or created, the other views wait: switching would drop the draft
+  const drafting = editing || creating
   const titleTabs = active && (
     <span className="tabs pane-tabs" role="tablist" aria-label="right column">
       <button role="tab" className="tab-secret" aria-selected={shownView === 'secret'} onClick={() => setView('secret')} title={selected ?? undefined}>
         {creating ? 'new secret' : (selected ?? 'secret')}
       </button>
       {selected && !creating && (
-        <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')}>
+        <button role="tab" aria-selected={shownView === 'versions'} onClick={() => setView('versions')} disabled={drafting} title={drafting ? 'finish or cancel the edit first' : undefined}>
           versions
         </button>
       )}
-      <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')}>
+      <button role="tab" aria-selected={shownView === 'overview'} onClick={() => setView('overview')} disabled={drafting} title={drafting ? 'finish or cancel the edit first' : undefined}>
         overview
       </button>
       {matrix && (
-        <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')}>
+        <button role="tab" aria-selected={shownView === 'matrix'} onClick={() => setView('matrix')} disabled={drafting} title={drafting ? 'finish or cancel the edit first' : undefined}>
           matrix
         </button>
       )}
       {drift.services.length > 0 && (
-        <button role="tab" aria-selected={shownView === 'drift'} onClick={() => setView('drift')}>
+        <button role="tab" aria-selected={shownView === 'drift'} onClick={() => setView('drift')} disabled={drafting} title={drafting ? 'finish or cancel the edit first' : undefined}>
           drift
         </button>
       )}
@@ -528,6 +532,7 @@ export default function App() {
                         onDroppedUsed={() => setDropEdit(null)}
                         group={active.group}
                         onToast={setToast}
+                        onEditing={setEditing}
                         onDeleted={() => {
                           setSelected(null)
                           setListRev((n) => n + 1)

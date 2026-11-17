@@ -450,6 +450,9 @@
       await openSecret('payments-dev-env')
       await press(['edit', 'edit…'])
       await wait(400)
+      // while the editor is up the other views wait: switching would drop the draft
+      const others = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean)
+      const waits = others.length >= 3 && others.every((b) => b.disabled) && !tab('payments-dev-env')?.disabled && !tab('secret')?.disabled
       setField('value of LOG_LEVEL', 'warn')
       await press(['remove WEBHOOK_SECRET'])
       setField('new key', 'SELFTEST_FLAG')
@@ -462,7 +465,8 @@
       await press(['save*'])
       await wait(600)
       const v = (await readSecret('payments-dev-env')) || ''
-      return [v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')]
+      const freed = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean).every((b) => !b.disabled)
+      return [waits && freed && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
     })
     await step('conflict: a newer save meanwhile is refused, not overwritten', async () => {
       await press(['edit', 'edit…'])
