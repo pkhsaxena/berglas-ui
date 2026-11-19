@@ -5,6 +5,8 @@ secrets, on both of its backends: Cloud Storage + KMS (`berglas://`) and Secret 
 
 > Not an official Google project, and not affiliated with or endorsed by Google.
 
+**New here? Start with the [user guide](docs/GUIDE.md)**: everything the app does, in plain language.
+
 <p>
   <img src="docs/screenshots/native-prod.png" alt="The native skin on demo data: a production secret under a red banner, with the service by environment matrix and the overview beside it" width="49%">
   <img src="docs/screenshots/terminal-drift.png" alt="The terminal skin on demo data: one service's keys compared across dev, staging and prod, with missing keys and a prod equals staging check" width="49%">
