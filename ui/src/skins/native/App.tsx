@@ -6,6 +6,7 @@ import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
 import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
 import { useSetup } from '../../core/hooks/useSetup'
+import { useLeaveGuard } from '../../core/hooks/useLeaveGuard'
 import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
@@ -38,6 +39,7 @@ import { QuickList } from './components/QuickList'
 import { LinkDialog } from './components/LinkDialog'
 import { LockScreen } from './components/LockScreen'
 import { Setup } from './components/Setup'
+import { LeaveDialog } from './components/LeaveDialog'
 import { FileDrop } from './components/FileDrop'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
@@ -62,6 +64,8 @@ export default function App() {
   // bumped after a create or delete so the list reloads
   const [listRev, setListRev] = useState(0)
   const [toast, setToast] = useState('')
+  // unsaved edits: every way of moving elsewhere asks before dropping them
+  const leave = useLeaveGuard()
   const [errorLine, setErrorLine] = useState('')
 
   useEffect(() => onAuditError(setErrorLine), [])
@@ -126,8 +130,10 @@ export default function App() {
   const openRef = (r: SecretRef) => {
     const src = app.sources.find((x) => x.backend === r.backend && x.parent === r.parent)
     if (!src) return
-    if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
-    select(r.name)
+    leave.guard(() => {
+      if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
+      select(r.name)
+    })
   }
   openRefRef.current = openRef
   const lockState = useLock(session.kind === 'ready' ? app.settings.lockAfterMinutes : 0)
@@ -156,12 +162,13 @@ export default function App() {
     settings: app.settings,
     saveSettings: app.saveSettings,
     demo: app.demo,
-    onDone: (src) => {
-      app.setActive(src)
-      setSelected(null)
-      setCreating(false)
-      setView('secret')
-    },
+    onDone: (src) =>
+      leave.guard(() => {
+        app.setActive(src)
+        setSelected(null)
+        setCreating(false)
+        setView('secret')
+      }),
   })
   // a new identity may see other secrets: reload the list and close the open one
   useEffect(() => {
@@ -185,19 +192,24 @@ export default function App() {
   const [matrixSort, setMatrixSort] = useState<MatrixSort>(null)
   const shownView = view === 'versions' && !selected ? 'secret' : view
   const select = (name: string) => {
-    setCreating(false)
-    setSelected(name)
-    setView('secret')
+    // the secret already open: nothing is left behind
+    if (name === selected && !creating) return setView('secret')
+    leave.guard(() => {
+      setCreating(false)
+      setSelected(name)
+      setView('secret')
+    })
   }
 
   const matrix = useMemo(() => (active && list.secrets ? matrixOf(list.secrets, active.group) : null), [active, list.secrets])
   const drift = useDrift(active, matrix)
   // a matrix row's name opens the drift view for that service and compares it
-  const openDrift = (service: string) => {
-    setCreating(false)
-    setView('drift')
-    void drift.run(service)
-  }
+  const openDrift = (service: string) =>
+    leave.guard(() => {
+      setCreating(false)
+      setView('drift')
+      void drift.run(service)
+    })
 
   // a file dropped onto the window becomes a draft: the open secret's new value, or a new secret
   const drop = useFileDrop(session.kind === 'ready' && !!active)
@@ -206,12 +218,13 @@ export default function App() {
   const writable = !!active && !readOnlyFor(app.settings, active)
 
   // ⌘K: the open source's secrets (and cached ones of other sources), sources and actions
-  const openSource = (s: (typeof app.sources)[number]) => {
-    if (!active || sourceId(active) !== sourceId(s)) app.setActive(s)
-    setSelected(null)
-    setCreating(false)
-    setView('secret')
-  }
+  const openSource = (s: (typeof app.sources)[number]) =>
+    leave.guard(() => {
+      if (!active || sourceId(active) !== sourceId(s)) app.setActive(s)
+      setSelected(null)
+      setCreating(false)
+      setView('secret')
+    })
   const palette = usePalette(() =>
     paletteItems({
       sources: app.sources,
@@ -219,27 +232,30 @@ export default function App() {
       secrets: list.secrets ?? null,
       favorites: app.favorites,
       recent: app.recent,
-      openSecret: (src, name) => {
-        if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
-        select(name)
-      },
+      openSecret: (src, name) =>
+        leave.guard(() => {
+          if (!active || sourceId(active) !== sourceId(src)) app.setActive(src)
+          select(name)
+        }),
       setActive: openSource,
       actions: paletteActions({
         newSecret:
           active && !readOnlyFor(app.settings, active)
-            ? () => {
-                setSelected(null)
-                setCreateInitial(null)
-                setCreating(true)
-                setView('secret')
-              }
+            ? () =>
+                leave.guard(() => {
+                  setSelected(null)
+                  setCreateInitial(null)
+                  setCreating(true)
+                  setView('secret')
+                })
             : undefined,
         refresh: active ? () => void list.refresh() : undefined,
         views: active ? (['overview', ...(matrix ? ['matrix'] : []), ...(drift.services.length ? ['drift'] : [])] as PaletteView[]) : [],
-        showView: (v) => {
-          setCreating(false)
-          setView(v)
-        },
+        showView: (v) =>
+          leave.guard(() => {
+            setCreating(false)
+            setView(v)
+          }),
         driftServices: drift.services,
         openDrift,
         find: () => runCommand('find'),
@@ -253,7 +269,7 @@ export default function App() {
         setSkin: app.setSkin,
         setTimeZone: app.setTimeZone,
         identities: ids.options.length > 1 ? ids.options.filter((o) => o.key !== ids.current) : [],
-        setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
+        setIdentity: (o) => leave.guard(() => void app.setIdentity(o.serviceAccount, o.quotaProject)),
         lock: lockState.lock,
         settings: settingsScreen.show,
         setup: setup.show,
@@ -346,7 +362,7 @@ export default function App() {
               options={ids.options.map((o) => ({ value: o.key, label: o.label, hint: o.serviceAccount || undefined }))}
               onChange={(key) => {
                 const o = ids.options.find((x) => x.key === key)
-                if (o) void app.setIdentity(o.serviceAccount, o.quotaProject)
+                if (o) leave.guard(() => void app.setIdentity(o.serviceAccount, o.quotaProject))
               }}
             />
           </span>
@@ -444,10 +460,12 @@ export default function App() {
                     active={active}
                     onSelect={(s) => {
                       if (!active || sourceId(active) !== sourceId(s)) {
-                        app.setActive(s)
-                        setSelected(null)
-                        setCreating(false)
-                        setView('secret')
+                        leave.guard(() => {
+                          app.setActive(s)
+                          setSelected(null)
+                          setCreating(false)
+                          setView('secret')
+                        })
                       }
                     }}
                     onAdd={(s) => {
@@ -456,8 +474,13 @@ export default function App() {
                       return err
                     }}
                     onRemove={(s) => {
-                      if (active && sourceId(active) === sourceId(s)) setSelected(null)
-                      app.removeSource(s)
+                      // removing the open source closes what is open in it
+                      if (active && sourceId(active) === sourceId(s))
+                        leave.guard(() => {
+                          setSelected(null)
+                          app.removeSource(s)
+                        })
+                      else app.removeSource(s)
                     }}
                     onSetup={setup.show}
                   />
@@ -469,12 +492,14 @@ export default function App() {
                       selected={selected}
                       onSelect={select}
                       quick={<QuickList favorites={app.favorites} recent={app.recent} watch={app.watch} sources={app.sources} active={active} selected={selected} onOpen={openRef} changes={watch.changes} recentCollapsed={app.recentCollapsed} onRecentCollapsed={app.setRecentCollapsed} onRemoveRecent={app.removeRecent} />}
-                      onCreate={() => {
-                        setSelected(null)
-                        setCreateInitial(null)
-                        setCreating(true)
-                        setView('secret')
-                      }}
+                      onCreate={() =>
+                        leave.guard(() => {
+                          setSelected(null)
+                          setCreateInitial(null)
+                          setCreating(true)
+                          setView('secret')
+                        })
+                      }
                     />
                   )}
                 </div>
@@ -533,6 +558,7 @@ export default function App() {
                           key={`${sourceId(active)}|${createInitial?.id ?? ''}`}
                           source={active}
                           initial={createInitial ?? undefined}
+                          onDirty={leave.setDirty}
                           onCancel={() => {
                             setCreating(false)
                             setCreateInitial(null)
@@ -567,6 +593,7 @@ export default function App() {
                         group={active.group}
                         onToast={setToast}
                         onEditing={setEditing}
+                        onDirty={leave.setDirty}
                         onDeleted={() => {
                           setSelected(null)
                           setListRev((n) => n + 1)
@@ -618,12 +645,13 @@ export default function App() {
           quotaProject: app.identity.quotaProject ?? '',
           switching: app.switching,
           error: app.configError.startsWith("couldn't switch identity") ? app.configError : '',
-          apply: (sa, quota) => void app.setIdentity(sa, quota),
+          apply: (sa, quota) => leave.guard(() => void app.setIdentity(sa, quota)),
         }}
         configPath={app.configPath}
         version={session.kind === 'ready' || session.kind === 'no-credentials' ? session.status.version : ''}
       />
       <Setup s={setup} configPath={app.configPath} />
+      <LeaveDialog g={leave} />
       <LockScreen l={lockState} />
       {linkAsk && (
         <LinkDialog
@@ -644,17 +672,22 @@ export default function App() {
           replaceTarget={selected && writable && !creating ? selected : null}
           createIn={writable ? active.label || active.parent : null}
           onReplace={() => {
-            setDropEdit(drop.dropped)
-            setView('secret')
+            const f = drop.dropped
             drop.clear()
+            leave.guard(() => {
+              setDropEdit(f)
+              setView('secret')
+            })
           }}
           onCreate={() => {
             const f = drop.dropped
-            if (f) setCreateInitial({ id: f.id, name: suggestName(f.name), text: f.text, from: f.name })
-            setSelected(null)
-            setCreating(true)
-            setView('secret')
             drop.clear()
+            leave.guard(() => {
+              if (f) setCreateInitial({ id: f.id, name: suggestName(f.name), text: f.text, from: f.name })
+              setSelected(null)
+              setCreating(true)
+              setView('secret')
+            })
           }}
         />
       )}

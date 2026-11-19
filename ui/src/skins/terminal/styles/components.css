@@ -456,3 +456,4 @@ ul.setup-review li { padding: 2px 0; }
 .setup .spacer { flex: 1; }
 .setup-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--t-line); }
 #root[data-width='narrow'] .setup-grid { grid-template-columns: minmax(0, 1fr); }
+.leave-backdrop { z-index: 65; } /* over the palette, settings and setup, which can lead here */

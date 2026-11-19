@@ -536,6 +536,39 @@
       const same = (await readSecret('payments-dev-env')) === value
       return [refused && noted && after === before + 1 && same, `plain review refused ${refused}, note shown ${noted}, versions ${before} → ${after}, value unchanged ${same}`]
     })
+    await step('unsaved edits: leaving asks first; keep editing keeps the draft, discard leaves; an unchanged editor just goes', async () => {
+      await openSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await wait(400)
+      document.querySelector('.rowbtn[aria-label="orders-dev-env"]').click()
+      await wait(200)
+      const quietLeave = !document.querySelector('[aria-label="discard unsaved changes"]') && norm(document.querySelector('.right').textContent).includes('orders-dev-env')
+      await openSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await wait(400)
+      setField('value of LOG_LEVEL', 'guarded')
+      document.querySelector('.rowbtn[aria-label="orders-dev-env"]').click()
+      await wait(200)
+      const dlg = () => document.querySelector('[aria-label="discard unsaved changes"]')
+      const asked = !!dlg() && norm(dlg().textContent).includes('payments-dev-env')
+      await press(['keep editing'], dlg())
+      const kept = !dlg() && field('value of LOG_LEVEL')?.value === 'guarded'
+      window.berglasUI.run('palette')
+      await wait(200)
+      const pal = document.querySelector('[aria-label="command palette"] input, .palette input')
+      if (pal) {
+        setField(pal, 'orders-dev-env')
+        await wait(150)
+        pal.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+        await wait(200)
+      }
+      const askedFromPalette = !!dlg()
+      await press(['discard changes'], dlg())
+      await wait(300)
+      const left = !dlg() && norm(document.querySelector('.right').textContent).includes('orders-dev-env') && (await readSecret('payments-dev-env'))?.includes('guarded') === false
+      await openSecret('payments-dev-env') // the conflict step works on this one
+      return [quietLeave && asked && kept && askedFromPalette && left, `unchanged editor leaves quietly ${quietLeave}, asked ${asked}, keep keeps the draft ${kept}, ⌘K asks too ${askedFromPalette}, discard leaves and saves nothing ${left}`]
+    })
     await step('conflict: a newer save meanwhile is refused, not overwritten', async () => {
       await press(['edit', 'edit…'])
       await wait(400)

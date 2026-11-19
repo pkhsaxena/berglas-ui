@@ -426,3 +426,4 @@ input[aria-invalid="true"] { border-color: var(--n-bad); }
 .setup-review { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; overflow-wrap: anywhere; }
 .setup-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--n-line-strong); background: var(--n-surface-2); }
 #root[data-width='narrow'] .setup-grid { grid-template-columns: minmax(0, 1fr); }
+.leave-backdrop { z-index: 45; } /* over the palette, settings and setup, which can lead here */

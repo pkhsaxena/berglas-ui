@@ -322,6 +322,9 @@ belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code a
 
 ### edit, review, conflicts
 
+- **unsaved edits:** while the editor or the new-secret form holds changes, opening another
+  secret, source or view (also from ⌘K, a link or a dropped file) asks **discard unsaved
+  changes?** first; **keep editing** is the default.
 - **edit** opens the latest value. `.env` secrets get a key/value editor, where changing a value
   rewrites only that line and keeps comments, `export` prefixes and line endings. Any secret can be
   edited as raw text.

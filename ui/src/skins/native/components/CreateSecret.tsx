@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { refString, type Secret } from '../../../core/api'
 import { CONFIRM_WORD, typedConfirm } from '../../../core/settings'
 import { toneOfSecret } from '../../../core/envtone'
@@ -11,13 +11,21 @@ type Props = {
   source: Source
   onCreated: (s: Secret) => void
   onCancel: () => void
+  /** what the form would lose (null when empty), for the leave guard */
+  onDirty?: (what: string | null) => void
   titleTabs?: ReactNode
   /** prefill from a dropped file */
   initial?: { name: string; text: string; from: string }
 }
 
-export function CreateSecret({ source, onCreated, onCancel, titleTabs, initial }: Props) {
+export function CreateSecret({ source, onCreated, onCancel, onDirty, titleTabs, initial }: Props) {
   const c = useCreate(source, onCreated, initial)
+  const dirty = c.name.trim() !== '' || c.text !== ''
+  useEffect(() => {
+    onDirty?.(dirty ? `the new secret${c.name.trim() ? ` ${c.name.trim()}` : ''}` : null)
+    return () => onDirty?.(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, c.name])
   const [typed, setTyped] = useState('')
   const target = c.ref.name ? refString(c.ref) : refString({ ...c.ref, name: '<name>' })
   const tone = c.ref.name ? toneOfSecret(c.ref.name, source.group) : null

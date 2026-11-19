@@ -26,6 +26,8 @@ type Props = {
   onDeleted: () => void
   /** told when the editor opens and closes, so the view tabs can wait for it */
   onEditing?: (editing: boolean) => void
+  /** what an edit in progress would lose (null when there is nothing unsaved), for the leave guard */
+  onDirty?: (what: string | null) => void
   /** the pinned value, if any, shown beside this secret */
   pinned: Pinned | null
   onPin: (p: Pinned) => void
@@ -44,7 +46,7 @@ type Props = {
   marks?: { favorite: boolean; watched: boolean; onFavorite: () => void; onWatch: () => void; onCopyLink: () => void }
 }
 
-export function SecretDetail({ base, group, onToast, onDeleted, onEditing, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
+export function SecretDetail({ base, group, onToast, onDeleted, onEditing, onDirty, pinned, onPin, showVersions, titleTabs, wideTabs, wideAlt, dropped, onDroppedUsed, marks }: Props) {
   const s = useSecret(base, onToast)
   const { shown, revealed, hide } = s
   const ed = useEditor(base, () => {
@@ -58,6 +60,13 @@ export function SecretDetail({ base, group, onToast, onDeleted, onEditing, pinne
     return () => onEditing?.(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing])
+  // a draft that differs from the loaded value is unsaved work
+  const dirty = editing && ed.phase !== 'loading' && !ed.unchanged
+  useEffect(() => {
+    onDirty?.(dirty ? `your changes to ${base.name}` : null)
+    return () => onDirty?.(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, base.name])
   // the exact version on screen, so the file holds what was revealed
   const shownRef: Ref = { ...base, version: shown ? versionOf(shown) : undefined }
   const x = useExport(shownRef, onToast)
