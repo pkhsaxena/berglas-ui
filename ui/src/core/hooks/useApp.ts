@@ -15,6 +15,9 @@ export type Session =
   | { kind: 'no-credentials'; status: Status } // core up, google adc missing
   | { kind: 'ready'; status: Status }
 
+/** How long removing a source can be undone. */
+export const UNDO_SECONDS = 8
+
 export const errText = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 /**
@@ -135,10 +138,33 @@ export function useApp() {
     return ''
   }
 
+  /** the source just removed and where it stood, while its undo is offered */
+  const [removed, setRemoved] = useState<{ source: Source; index: number } | null>(null)
+  useEffect(() => {
+    if (!removed) return
+    const t = window.setTimeout(() => setRemoved(null), UNDO_SECONDS * 1000)
+    return () => window.clearTimeout(t)
+  }, [removed])
+
+  /** Takes a source off the list (deletes nothing in the cloud); Undo puts it back, settings and all, for a few seconds. */
   const removeSource = (s: Source) => {
+    const index = sources.findIndex((x) => sourceId(x) === sourceId(s))
+    if (index < 0) return
     const list = sources.filter((x) => sourceId(x) !== sourceId(s))
     saveSources(list)
+    setRemoved({ source: sources[index], index })
     if (active && sourceId(active) === sourceId(s)) setActive(list[0] ?? null)
+  }
+
+  /** Puts the last removed source back where it was, with its label, group, kms key and protected names. */
+  const undoRemove = () => {
+    if (!removed) return
+    const { source, index } = removed
+    setRemoved(null)
+    if (sources.some((x) => sourceId(x) === sourceId(source))) return
+    const list = [...sources.slice(0, index), source, ...sources.slice(index)]
+    saveSources(list)
+    setActive(source)
   }
 
   const setTimeZone = (timeZone: TimeZone) => {
@@ -222,5 +248,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, demo, configError, addSource, removeSource, active, setActive }
+  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, demo, configError, addSource, removeSource, removed: removed?.source ?? null, undoRemove, dismissRemoved: () => setRemoved(null), active, setActive }
 }

@@ -25,7 +25,7 @@ import { paletteActions, paletteItems, type PaletteView } from '../../core/palet
 import { readOnlyFor } from '../../core/settings'
 import { runCommand } from '../../core/commands'
 import { SettingsActionsContext, SettingsContext } from '../../core/settings'
-import { sourceId } from '../../core/sources'
+import { sourceId, sourceName } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { stepZoom, ZOOM_STEPS } from '../../core/zoom'
 import { SKINS, skinFor } from '../registry'
@@ -694,6 +694,15 @@ export default function App() {
       {toast && (
         <div className="toast" role="status">
           {toast}
+        </div>
+      )}
+      {app.removed && (
+        <div className="toast undo-bar" role="status">
+          <span>Removed {sourceName(app.removed)} from the list. Nothing was deleted.</span>
+          <button onClick={app.undoRemove}>Undo</button>
+          <button onClick={app.dismissRemoved} aria-label="dismiss">
+            ✕
+          </button>
         </div>
       )}
     </>

@@ -23,7 +23,7 @@ import { paletteActions, paletteItems, type PaletteView } from '../../core/palet
 import { readOnlyFor } from '../../core/settings'
 import { runCommand } from '../../core/commands'
 import { SettingsActionsContext, SettingsContext } from '../../core/settings'
-import { sourceId } from '../../core/sources'
+import { sourceId, sourceName } from '../../core/sources'
 import { type TimeZone, zoneName } from '../../core/time'
 import { CreateSecret } from './components/CreateSecret'
 import { Credit } from './components/Credit'
@@ -710,6 +710,15 @@ export default function App() {
       {toast && (
         <div className="toast" role="status">
           {toast}
+        </div>
+      )}
+      {app.removed && (
+        <div className="toast undo-bar" role="status">
+          <span>removed {sourceName(app.removed)} from the list. nothing was deleted.</span>
+          <button onClick={app.undoRemove}>undo</button>
+          <button onClick={app.dismissRemoved} aria-label="dismiss">
+            ✕
+          </button>
         </div>
       )}
     </>

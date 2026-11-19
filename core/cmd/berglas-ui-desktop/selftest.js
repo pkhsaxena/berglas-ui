@@ -272,9 +272,16 @@
       const row = sourceRow('selftest-bucket')
       return [err && !!row && row.getAttribute('aria-current') === 'true', `error shown ${err}, added ${!!row}, active ${row?.getAttribute('aria-current')}`]
     })
-    await step('remove a source', async () => {
+    await step('remove a source: undo puts it back, then it can be removed for good', async () => {
       await press(['remove selftest-bucket'])
-      return [!sourceRow('selftest-bucket'), 'removed']
+      const gone = !sourceRow('selftest-bucket')
+      const offered = !!document.querySelector('.undo-bar')
+      await press(['undo'], document.querySelector('.undo-bar'))
+      const back = !!sourceRow('selftest-bucket') && (await call('GET', '/api/config')).json.sources.some((x) => x.parent === 'selftest-bucket')
+      await press(['remove selftest-bucket'])
+      await press(['dismiss'], document.querySelector('.undo-bar'))
+      const removed = !sourceRow('selftest-bucket') && !document.querySelector('.undo-bar')
+      return [gone && offered && back && removed, `removed ${gone}, undo offered ${offered}, undo restored and saved ${back}, removed again ${removed}`]
     })
     await step('setup guide: from ⌘K, several sources pasted at once, bad rows held, group and protected names saved in one write', async () => {
       const cfg0 = (await call('GET', '/api/config')).json
