@@ -107,9 +107,18 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     ? diffValues(loaded.text, draft, looksLikeEnv(loaded.text) && looksLikeEnv(draft))
     : null
 
-  const review = () => {
+  /** the draft is exactly the loaded value */
+  const unchanged = !!loaded && draft === loaded.text
+
+  /**
+   * Shows the diff before saving. An unchanged draft is refused unless
+   * `resave` asks to write the same value again as a new version: something
+   * that watches for new versions (a cluster's secret sync, say) then picks
+   * the secret up again. It is reviewed and confirmed like any other save.
+   */
+  const review = (resave = false) => {
     if (!loaded) return
-    if (draft === loaded.text) return setError('nothing changed')
+    if (unchanged && !resave) return setError('nothing changed')
     setError('')
     setPhase('review')
   }
@@ -182,7 +191,10 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     diff,
     start,
     cancel,
-    review,
+    review: () => review(),
+    /** review an unchanged draft, to save the same value as a new version */
+    resave: () => review(true),
+    unchanged,
     backToEdit: () => setPhase('editing'),
     save,
     canReapply,

@@ -468,6 +468,23 @@
       const freed = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean).every((b) => !b.disabled)
       return [waits && freed && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
     })
+    await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {
+      const versions = async () => (await call('GET', '/api/secrets/versions?backend=storage&parent=demo-bucket&name=payments-dev-env')).json?.versions?.length ?? -1
+      const before = await versions()
+      const value = await readSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await wait(400)
+      await press(['review changes'])
+      const refused = norm(document.querySelector('.right').textContent).includes('nothing changed')
+      await press(['save unchanged…'])
+      await wait(200)
+      const noted = norm(document.querySelector('.right').textContent).includes('saving writes the same value again as a new version')
+      await press(['save*'])
+      await wait(600)
+      const after = await versions()
+      const same = (await readSecret('payments-dev-env')) === value
+      return [refused && noted && after === before + 1 && same, `plain review refused ${refused}, note shown ${noted}, versions ${before} → ${after}, value unchanged ${same}`]
+    })
     await step('conflict: a newer save meanwhile is refused, not overwritten', async () => {
       await press(['edit', 'edit…'])
       await wait(400)

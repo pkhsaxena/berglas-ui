@@ -324,6 +324,9 @@ belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code a
   edited as raw text.
 - **review changes** shows the diff from the loaded value to your draft, with warnings for keys
   set more than once and empty values. Nothing is written until you press **save** there.
+- **save unchanged…** (in the editor, when nothing changed) writes the same value again as a new
+  version: whatever watches the secret for new versions, such as a cluster's secret sync, then
+  picks it up again. It has the same review and confirmation as any save.
 - **conflicts:** the save carries the generation (storage) or version (secret manager) you
   loaded. If someone saved in between, the save is refused instead of overwriting their change.
   For `.env` secrets, **reapply my changes to latest** replays only the keys you changed onto the

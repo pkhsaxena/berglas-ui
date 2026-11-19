@@ -228,12 +228,19 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
               <button className="btn primary" onClick={ed.review}>
                 Review changes
               </button>
+              {ed.unchanged && (
+                <button className="btn" onClick={ed.resave} title="Write the same value again as a new version, so whatever watches for new versions picks it up">
+                  Save unchanged…
+                </button>
+              )}
               <button className="btn" onClick={ed.cancel}>
                 Cancel
               </button>
               <ErrorText>{ed.error}</ErrorText>
             </div>
-            <div className="muted small">Nothing is saved until you review the diff and press Save.</div>
+            <div className="muted small">
+              Nothing is saved until you review the diff and press Save.{ed.unchanged && ' Save unchanged writes the same value again as a new version.'}
+            </div>
           </>
         )}
 
@@ -241,6 +248,11 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
           <div className="section">
             <h3>Review</h3>
             <div className="muted small">#{ed.loadedVersion} → a new version. Saving writes exactly this; nothing has been written yet.</div>
+            {ed.unchanged && (
+              <div className="warn-text" style={{ margin: '6px 0' }}>
+                Nothing changed: saving writes the same value again as a new version. Anything that watches for new versions, such as a cluster's secret sync, picks it up again.
+              </div>
+            )}
             {ed.overlaps.length > 0 && (
               <div className="bad-text" style={{ margin: '6px 0' }}>
                 Someone else also changed {ed.overlaps.join(', ')} — your value{ed.overlaps.length > 1 ? 's' : ''} will replace theirs.
