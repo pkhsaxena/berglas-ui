@@ -212,7 +212,7 @@ envOrder: sorted             # .env views sorted by section and key, or file
 readOnly: false              # refuse every write, everywhere
 protect: ["*-prod-*"]        # writes/deletes to matching names need a typed confirmation
 revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
-clipboardClearSeconds: 30    # clear copied values after this; 0 = never
+clipboardClearSeconds: 30    # clear every copy (values, keys, links) after this; 0 = never
 cacheSeconds: 600            # keep secret/version lists (never values) for revisits; 0 = off
 cacheEntries: 500            # at most this many cached lists, least recently used out first
 auditLog: ~/.berglas-ui/audit.log   # one json line per write, export or safety settings change; empty = off
@@ -242,7 +242,7 @@ The ui also keeps `favorites`, `recent` and `watch` here (source and name only).
 | `readOnly` (global or per source) | create, update, delete, grant, revoke and bootstrap answer `403 read_only`; the ui hides them | core |
 | `protect` (global + per source) | `path.Match` globs; a matching name can only be written, deleted or saved to a file with its name in the `X-Berglas-Confirm` header (`428 confirm_required` otherwise). The ui asks you to type it | core |
 | `kmsKey` (per storage source) | default key for new secrets; the ui prefills it and the core fills it in when a create omits it | core |
-| `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; clipboard clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
+| `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; every copy the app makes (values, keys, whole files, links) is cleared after `clipboardClearSeconds`; clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
 | `zoom` | scales the whole ui. Zooming out gives the layout more room, the way browser zoom does: at 67% a 1440px window gets the wide layout (panes side by side) | ui |
 | `cacheSeconds`, `cacheEntries` | lists of secrets and versions (names and times, never values) seen before show at once on a revisit while a fresh copy loads. Each expires `cacheSeconds` after it was fetched; at most `cacheEntries` are kept. Either at 0 turns the cache off | ui |
 | `auditLog` | appends `{time, actor, action, backend, parent, name, version, path, result, error}` per write or export attempt (never values), file mode 0600. A change to a safety setting from the settings screen adds `{action: "settings change", changes: ["readOnly: false → true", …]}`, in the file in use before the change and, if the change moved the log, in the new one. If a line cannot be written, the write has still happened and the ui shows an error | core |

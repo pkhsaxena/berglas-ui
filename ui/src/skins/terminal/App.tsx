@@ -11,7 +11,6 @@ import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
 import { type LinkTarget, onOpenLink } from '../../core/commands'
 import { linkFor } from '../../core/deeplink'
-import { copyPlain } from '../../core/clipboard'
 import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
@@ -571,8 +570,8 @@ export default function App() {
                           onFavorite: () => app.toggleFavorite(base),
                           onWatch: () => app.toggleWatch(base),
                           onCopyLink: () => {
-                            copyPlain(linkFor(base)).then(
-                              () => setToast('link copied'),
+                            copySecret(linkFor(base), app.settings.clipboardClearSeconds, setToast).then(
+                              () => setToast(app.settings.clipboardClearSeconds > 0 ? `link copied · clears in ${app.settings.clipboardClearSeconds}s` : 'link copied'),
                               (e) => setErrorLine(`Couldn't copy the link — ${e instanceof Error ? e.message : String(e)}`),
                             )
                           },

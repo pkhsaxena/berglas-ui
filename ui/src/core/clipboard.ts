@@ -1,6 +1,8 @@
-// Copies secret values and clears them from the clipboard later. Clearing
-// only happens if the clipboard still holds the copied value, so text the
-// user copied afterwards is never wiped. In a browser, reading the clipboard
+// Every copy the app makes goes through here and is cleared from the
+// clipboard after the clipboardClearSeconds setting (0 never clears):
+// values, keys, whole files and links alike. Clearing only happens if the
+// clipboard still holds the copied text, so text the user copied afterwards
+// is never wiped. In a browser, reading the clipboard
 // needs permission; without it the value is left and the caller is told.
 
 /** Where copies go. The browser's clipboard api by default; the desktop app swaps in its own. */
@@ -37,9 +39,4 @@ export async function copySecret(text: string, clearSeconds: number, onNote: (ms
       onNote("couldn't check the clipboard (permission or focus) — the copied value is still there")
     }
   }, clearSeconds * 1000)
-}
-
-/** Copies text that isn't secret (a link, a name): no auto-clear. */
-export async function copyPlain(text: string): Promise<void> {
-  await backend.write(text)
 }

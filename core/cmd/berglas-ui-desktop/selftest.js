@@ -992,7 +992,9 @@
       await wait(300)
       const clip = await (await fetch('/__selftest/clipboard')).text()
       const copied = clip === 'berglas-ui://open?backend=storage&parent=demo-bucket&name=payments-dev-env'
-      return [opened && ignored && asked && notAdded && copied, `opened ${opened}, bad link ignored ${ignored}, unknown source asked ${asked}, not added ${notAdded}, link copied ${copied}`]
+      await wait(3500) // a link is cleared after clipboardClearSeconds like every copy
+      const cleared = (await (await fetch('/__selftest/clipboard')).text()) === ''
+      return [opened && ignored && asked && notAdded && copied && cleared, `opened ${opened}, bad link ignored ${ignored}, unknown source asked ${asked}, not added ${notAdded}, link copied ${copied}, then cleared ${cleared}`]
     })
 
     await step('watch: someone else\'s write is reported and notified; opening clears it', async () => {
