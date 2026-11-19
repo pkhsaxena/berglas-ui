@@ -55,6 +55,9 @@ fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$WORK/berglas-ui" "$APP/Contents/MacOS/berglas-ui"
+# the icon, made from the SVGs next to it: each size drawn from the vector at
+# its exact pixels, with 16, 32 and 64 px drawn on their own pixel grids
+cp "$ROOT/core/cmd/berglas-ui-desktop/icon/berglas-ui.icns" "$APP/Contents/Resources/berglas-ui.icns"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -65,6 +68,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>dev.berglas-ui.desktop</string>
   <key>CFBundleExecutable</key><string>berglas-ui</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>berglas-ui</string>
   <key>CFBundleURLTypes</key>
   <array>
     <dict>

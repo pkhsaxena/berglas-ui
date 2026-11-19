@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <!-- 64 px (also 32 px @2x): the big design's brackets over 16, all on whole
+       pixels, and hand-placed 6x6 pixel asterisks, which a drawn asterisk
+       this small would blur -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#30324a"/>
+      <stop offset="1" stop-color="#191a26"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="52" height="52" rx="11.5" fill="url(#bg)" shape-rendering="geometricPrecision"/>
+  <g fill="#eef0f8">
+    <path d="M12 20H20V24H16V40H20V44H12Z"/>
+    <path d="M52 20H44V24H48V40H44V44H52Z"/>
+  </g>
+  <g fill="#ffb454">
+    <path d="M23 29H25V30H23ZM21 30H22V31H21ZM23 30H25V31H23ZM26 30H27V31H26ZM22 31H26V32H22ZM22 32H26V33H22ZM21 33H22V34H21ZM23 33H25V34H23ZM26 33H27V34H26ZM23 34H25V35H23Z"/>
+    <path d="M31 29H33V30H31ZM29 30H30V31H29ZM31 30H33V31H31ZM34 30H35V31H34ZM30 31H34V32H30ZM30 32H34V33H30ZM29 33H30V34H29ZM31 33H33V34H31ZM34 33H35V34H34ZM31 34H33V35H31Z"/>
+    <path d="M39 29H41V30H39ZM37 30H38V31H37ZM39 30H41V31H39ZM42 30H43V31H42ZM38 31H42V32H38ZM38 32H42V33H38ZM37 33H38V34H37ZM39 33H41V34H39ZM42 33H43V34H42ZM39 34H41V35H39Z"/>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- 16 px: every edge on a whole pixel; three 2 px masking dots -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#30324a"/>
+      <stop offset="1" stop-color="#191a26"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="14" height="14" rx="3" fill="url(#bg)" shape-rendering="geometricPrecision"/>
+  <g fill="#eef0f8">
+    <path d="M2 4H4V5H3V11H4V12H2Z"/>
+    <path d="M14 4H12V5H13V11H12V12H14Z"/>
+  </g>
+  <g fill="#ffb454">
+    <path d="M4 7H6V9H4Z"/>
+    <path d="M7 7H9V9H7Z"/>
+    <path d="M10 7H12V9H10Z"/>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- berglas-ui: [* * *], a masked secret between brackets. macOS icon grid:
+       an 824 px body at 100,100. Bracket edges are multiples of 64, so they
+       fall on whole pixels at every size from 64 px up; 16, 32 and 64 px have
+       their own pixel-grid drawings (icon-16.svg, icon-32.svg, icon-64.svg). -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#30324a"/>
+      <stop offset="1" stop-color="#191a26"/>
+    </linearGradient>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="184" fill="url(#bg)"/>
+  <g fill="#eef0f8">
+    <path d="M192 320H320V384H256V640H320V704H192Z"/>
+    <path d="M832 320H704V384H768V640H704V704H832Z"/>
+  </g>
+  <g fill="none" stroke="#ffb454" stroke-width="28" stroke-linecap="round">
+    <path d="M384 466V558M344.16 489L423.84 535M344.16 535L423.84 489"/>
+    <path d="M512 466V558M472.16 489L551.84 535M472.16 535L551.84 489"/>
+    <path d="M640 466V558M600.16 489L679.84 535M600.16 535L679.84 489"/>
+  </g>
+</svg>
