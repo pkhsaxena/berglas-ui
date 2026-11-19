@@ -21,7 +21,7 @@ comparing one service's keys across its environments. Also: a
   HMAC per key, under a key made fresh each run, so no value reaches the ui. Reveal is a click,
   hides itself after a minute, and copies clear from the clipboard.
 - **typed confirmation:** writes and deletes to protected names (`protect:` globs, e.g.
-  `*-prod-*`) need a typed confirmation (the word `confirm` to save, also to a file; the name itself to delete); the core refuses them otherwise (`428`). Prod secrets sit
+  `*-prod-*`) need a typed confirmation (the word `confirm` to save, also to a file, and to delete; every delete asks for it); the core refuses them otherwise (`428`). Prod secrets sit
   under a red banner.
 - **review before save:** every edit, create and restore shows the diff, with warnings for
   duplicate keys and empty values, and writes nothing until you save. If someone saved in
@@ -339,7 +339,7 @@ belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code a
     before writing. The race window is small but not zero.
 - **restore this version…** (on an old version) opens the editor with that version's value as a
   draft against the latest, and saves it as a new version.
-- **new** (list pane) creates a secret after a review step. **delete…** needs the name typed
+- **new** (list pane) creates a secret after a review step. **delete…** needs the word `confirm` typed
   and removes every version, history included.
   - storage: berglas finds generations by listing the name as a prefix, then deletes this name at
     each one. If another secret's name starts with this one (`api` and `api-key`), that fails

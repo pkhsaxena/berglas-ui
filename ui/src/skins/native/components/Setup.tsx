@@ -199,7 +199,7 @@ function SafetyStep({ s }: { s: SetupState }) {
       <section aria-label="protected names">
         <h3>Protected names</h3>
         <p className="setup-intro">
-          Saving a protected secret, or saving it to a file, asks for the word “confirm” to be typed; deleting one asks for its name. Patterns use * and ?, like *-prod-*. They apply to every source.
+          Saving a protected secret, or saving it to a file, asks for the word “confirm” to be typed (deleting any secret always does). Patterns use * and ?, like *-prod-*. They apply to every source.
         </p>
         {s.protect.length === 0 ? (
           <div className="muted small">None yet.</div>

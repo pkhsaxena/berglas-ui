@@ -578,16 +578,19 @@
       const notCreated = !document.querySelector('.rowbtn[aria-label="selftest-lint-dev-env"]')
       return [dup && empty && createOk && notCreated, `duplicate ${dup}, empty ${empty}, create still allowed ${createOk}, nothing created ${notCreated}`]
     })
-    await step('delete needs the name typed', async () => {
+    await step('delete needs confirm typed (the name no longer unlocks it)', async () => {
       await openSecret('selftest-svc-nonprod-env')
       await press(['delete…'])
       const locked = findButton(['delete permanently'])?.disabled
-      setField('type selftest-svc-nonprod-env to confirm', 'selftest-svc-nonprod-env')
+      setField('type confirm to confirm', 'selftest-svc-nonprod-env')
+      await wait(150)
+      const nameRefused = findButton(['delete permanently'])?.disabled
+      setField('type confirm to confirm', 'Confirm ')
       await wait(150)
       await press(['delete permanently'])
       await wait(600)
       const gone = !document.querySelector('.rowbtn[aria-label="selftest-svc-nonprod-env"]')
-      return [locked && gone, `locked until typed ${locked}, gone ${gone}`]
+      return [locked && nameRefused && gone, `locked until typed ${locked}, name refused ${nameRefused}, gone ${gone}`]
     })
 
     // overview and matrix

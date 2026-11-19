@@ -82,13 +82,13 @@ export function globToRegExp(glob: string): RegExp {
   return new RegExp(`^${re}$`)
 }
 
-/** The word typed to confirm saving a protected secret, or saving one to a file (a delete asks for its name). */
+/** The word typed to confirm saving a protected secret, saving one to a file, and every delete. */
 export const CONFIRM_WORD = 'confirm'
 
 /** True when what was typed is the confirm word; case and spaces around it don't matter. */
 export const typedConfirm = (typed: string) => typed.trim().toLowerCase() === CONFIRM_WORD
 
-/** Saving this secret, also to a file, needs the confirm word typed; deleting it, its name. */
+/** Saving this secret, also to a file, needs the confirm word typed (deleting any secret always does). */
 export function protectedFor(s: Settings, r: Pick<Ref, 'backend' | 'parent' | 'name'>): boolean {
   const pats = [...s.protect, ...(sourceFor(s, r)?.protect ?? [])]
   return pats.some((p) => globToRegExp(p).test(r.name))

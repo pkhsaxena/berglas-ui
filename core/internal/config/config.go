@@ -84,7 +84,7 @@ type Config struct {
 	ReadOnly bool `yaml:"readOnly,omitempty" json:"readOnly"`
 	// Protect lists secret name patterns (path.Match globs, e.g. "*-prod-*")
 	// whose writes and deletes need a typed confirmation in the ui (the word
-	// "confirm" to save, the name to delete).
+	// "confirm" to save; every delete asks for it too).
 	Protect []string `yaml:"protect,omitempty" json:"protect"`
 	// LockAfterMinutes locks the ui after this long without input; 0 (the
 	// default) never locks by itself. In the mac app, unlocking asks for

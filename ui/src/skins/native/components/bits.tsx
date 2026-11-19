@@ -58,7 +58,7 @@ export const LockIcon = ({ size = 14 }: { size?: number }) => (
  * or `word` ("confirm") for saving a protected secret. The parent keeps the
  * typed value and enables its action only when it matches.
  */
-export function ConfirmName({ name, word, value, onChange, why }: { name: string; word?: string; value: string; onChange: (v: string) => void; why: string }) {
+export function ConfirmName({ name, word, action = 'saving', value, onChange, why }: { name: string; word?: string; action?: string; value: string; onChange: (v: string) => void; why: string }) {
   const want = word ?? name
   const ok = word ? value.trim().toLowerCase() === word : value === name
   return (
@@ -66,7 +66,7 @@ export function ConfirmName({ name, word, value, onChange, why }: { name: string
       <div className="warn-text strong">{why}</div>
       <label className="row" style={{ margin: '6px 0' }}>
         <span className="muted">
-          Type <span className="mono strong">{want}</span> to confirm{word && <> saving <span className="mono">{name}</span></>}
+          Type <span className="mono strong">{want}</span> to confirm{word && <> {action} <span className="mono">{name}</span></>}
         </span>
         <input aria-label={`type ${want} to confirm`} value={value} onChange={(e) => onChange(e.target.value)} spellCheck={false} autoComplete="off" style={{ flex: '1 1 24ch' }} />
         <span className={ok ? 'good-text' : 'muted'}>{ok ? '✓' : ''}</span>
@@ -93,7 +93,7 @@ export function EnvBanner({ tone, isProtected, readOnly }: { tone: EnvTone | nul
         <LockIcon />
         Production
         <span style={{ fontWeight: 400 }}>
-          {readOnly ? '· read-only by config' : isProtected ? '· protected — saving asks you to type “confirm”, deleting to type the name' : '· changes here reach production'}
+          {readOnly ? '· read-only by config' : isProtected ? '· protected — saving asks you to type “confirm”' : '· changes here reach production'}
         </span>
       </div>
     )

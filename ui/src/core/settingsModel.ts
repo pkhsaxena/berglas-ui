@@ -90,7 +90,7 @@ export const ITEMS: Item[] = [
     section: 'safety',
     safety: true,
     label: 'Protected names',
-    help: 'Name patterns, separated by commas. Saving a matching secret, also to a file, asks you to type “confirm”; deleting it asks for its name. * matches any run of characters.',
+    help: 'Name patterns, separated by commas. Saving a matching secret, also to a file, asks you to type “confirm” (deleting any secret always does). * matches any run of characters.',
     placeholder: '*-prod-*',
     keywords: 'protect patterns glob prod confirm',
   },

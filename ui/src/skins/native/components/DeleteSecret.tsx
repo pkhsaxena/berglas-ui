@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import type { useDelete } from '../../../core/hooks/useDelete'
+import { CONFIRM_WORD } from '../../../core/settings'
 import { ConfirmName, ErrorText } from './bits'
 
 type Props = { base: Ref; versions: number | null; del: ReturnType<typeof useDelete> }
@@ -18,7 +19,7 @@ export function DeleteSecret({ base, versions, del }: Props) {
         This deletes the secret and {versions === null ? 'all its versions' : `${versions} version${versions === 1 ? '' : 's'}`}, including history. It can't be undone.
       </div>
       <div className="muted small">Anything that reads this secret (deploys, services) will start failing.</div>
-      <ConfirmName name={base.name} value={del.typed} onChange={del.setTyped} why="Deleting is permanent." />
+      <ConfirmName name={base.name} word={CONFIRM_WORD} action="deleting" value={del.typed} onChange={del.setTyped} why="Deleting is permanent." />
       <div className="row">
         <button className="btn danger" onClick={del.remove} disabled={!del.confirmed || del.busy}>
           {del.busy ? 'Deleting…' : 'Delete permanently'}
