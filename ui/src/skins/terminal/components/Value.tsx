@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
+import { envLines, exportLines } from '../../../core/envcopy'
 import { matchesQuery } from '../../../core/envfilter'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import type { Revealed } from '../../../core/hooks/useSecret'
@@ -42,6 +43,8 @@ type Props = {
 export function Value({ value, onCopy, persistent = false, against = null }: Props) {
   const [view, setView] = useState<'env' | 'raw'>('env')
   const [query, setQuery] = useState('')
+  /** keys left out of the last export copy (a shell cannot name them) */
+  const [skipped, setSkipped] = useState<string[]>([])
   const { revealSeconds, envOrder } = useSettings()
 
   if (!value) {
@@ -66,7 +69,14 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
   const pairs = env ? env.filter((l): l is Extract<typeof l, { kind: 'pair' }> => l.kind === 'pair') : []
   const pairCount = pairs.length
   const filtering = query.trim() !== ''
-  const shownCount = filtering ? pairs.filter((p) => matchesQuery(p.key, p.value, query)).length : pairCount
+  const shown = filtering ? pairs.filter((p) => matchesQuery(p.key, p.value, query)) : pairs
+  const shownCount = shown.length
+  // export lines cover what the table shows: every key, or the filtered ones
+  const copyExport = () => {
+    const r = exportLines(shown)
+    setSkipped(r.skipped)
+    if (r.text) onCopy(r.text)
+  }
 
   return (
     <>
@@ -97,6 +107,21 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               {shownCount} of {pairCount} key{pairCount === 1 ? '' : 's'}
             </span>
           )}
+          {mode === 'env' && filtering && shownCount > 0 && (
+            <button className="link small" onClick={() => onCopy(envLines(shown))} title="copy the shown keys as KEY=value lines">
+              copy {shownCount} shown
+            </button>
+          )}
+          {mode === 'env' && shownCount > 0 && (
+            <button className="link small" onClick={copyExport} title={`copy ${filtering ? 'the shown keys' : 'every key'} as export KEY='value' lines for a shell`}>
+              copy as export lines
+            </button>
+          )}
+        </div>
+      )}
+      {mode === 'env' && skipped.length > 0 && (
+        <div className="t-number small">
+          # left out of the export lines: {skipped.join(', ')} (a shell can't name keys with a dot or a dash).
         </div>
       )}
       {mode === 'env' && env && vs && (

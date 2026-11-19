@@ -38,7 +38,7 @@ comparing one service's keys across its environments. Also: a
 
 - one window for buckets (Storage + KMS) and projects (Secret Manager), grouped by service and
   environment, with dev / staging / prod colors
-- reveal, filter and copy `.env` keys; versions, diffs and restore
+- reveal, filter and copy `.env` keys (or the whole file as shell `export` lines); versions, diffs and restore
 - edit key by key with a review step; create, delete, conflicts handled
 - key drift across environments, a service × environment matrix and an overview
 - pin a secret and compare others against it
