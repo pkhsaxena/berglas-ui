@@ -4,9 +4,20 @@
   await new Promise((r) => setTimeout(r, 1500))
   const se = document.scrollingElement
   const cs = (el) => getComputedStyle(el)
+  // an element a clipping ancestor hides (overflow hidden or clip) can't make
+  // the page scroll while that ancestor fits: the credit line slides up from
+  // below its bar, so mid-slide (or with animations paused in a hidden
+  // window) its box reads past the bottom though nothing shows there
+  const clippedInView = (el) => {
+    for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+      const o = cs(a)
+      if (/(hidden|clip)/.test(o.overflowY) || /(hidden|clip)/.test(o.overflow)) return a.getBoundingClientRect().bottom <= innerHeight + 1
+    }
+    return false
+  }
   const measure = (label) => {
     const tall = [...document.querySelectorAll('body *')]
-      .filter((el) => el.getBoundingClientRect().bottom > innerHeight + 1 && !el.closest('.pane > .body, .scroll, .tablewrap'))
+      .filter((el) => el.getBoundingClientRect().bottom > innerHeight + 1 && !el.closest('.pane > .body, .scroll, .tablewrap') && !clippedInView(el))
       .slice(0, 5)
       .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join('.')} bottom ${Math.round(el.getBoundingClientRect().bottom)}`)
     window.scrollTo(0, 99999)
@@ -20,7 +31,15 @@
   }
   const wait = (ms) => new Promise((r) => setTimeout(r, ms))
   const button = (t) => [...document.querySelectorAll('button')].find((b) => b.textContent.trim().toLowerCase() === t && b.getBoundingClientRect().width)
-  const checks = [{ name: 'viewport', ok: true, detail: `${innerWidth}x${innerHeight}` }, ...measure('start')]
+  // where the credit line is, and how far through its slide-in, for when this check is read later
+  const credit = () => {
+    const line = document.querySelector('.credit-line')
+    const bar = line?.parentElement
+    if (!line || !bar) return 'no credit line'
+    const an = line.getAnimations()[0]
+    return `credit bar bottom ${Math.round(bar.getBoundingClientRect().bottom)}, line bottom ${Math.round(line.getBoundingClientRect().bottom)} (${an ? `${an.playState} at ${Math.round(an.currentTime ?? 0)} ms` : 'not animating'}), transform ${cs(line).transform}`
+  }
+  const checks = [{ name: 'viewport', ok: true, detail: `${innerWidth}x${innerHeight}; ${credit()}` }, ...measure('start')]
   document.querySelector('.rowbtn[aria-label="payments-dev-env"]')?.click()
   await wait(600)
   checks.push(...measure('secret open'))
