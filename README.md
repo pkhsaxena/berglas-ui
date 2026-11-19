@@ -44,7 +44,7 @@ comparing one service's keys across its environments. Also: a
 - pin a secret and compare others against it
 - ⌘K command palette, favourites and recents, watch a secret for new versions
 - `berglas-ui://` links, drop a file to use as a value, save to file
-- two skins (terminal and native) and themes including the four Catppuccin flavours
+- two skins (native, the default, and terminal) and themes including the four Catppuccin flavours
 - mac app: native menus, find in page, Touch ID lock, hidden from screen capture
 
 Every feature, and how it is tested, is listed in
@@ -98,7 +98,7 @@ the desktop app is macOS only for now.
 
 ## features in detail
 
-- **skins:** `terminal` (the default) and `native`, both with every feature. `skin:` in the
+- **skins:** `native` (the default) and `terminal`, both with every feature. `skin:` in the
   config picks one; the header's **skin** picker saves the choice and reloads.
 - **themes:** each skin has its own names, saved as `theme:`. terminal: Dracula, GitHub light,
   Gruvbox, Monokai, Nord, Solarized dark and light; native: System (follows the OS), Light, Dark.

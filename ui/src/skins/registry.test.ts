@@ -12,9 +12,9 @@ describe('skinFor', () => {
     expect(skinFor('mac', list).name).toBe('mac')
   })
   it('falls back to the default for unset or unknown names', () => {
-    const list = [fake('mac'), fake('terminal')]
-    expect(skinFor(undefined, list).name).toBe('terminal')
-    expect(skinFor('gone', list).name).toBe('terminal')
+    const list = [fake('terminal'), fake('native')]
+    expect(skinFor(undefined, list).name).toBe('native')
+    expect(skinFor('gone', list).name).toBe('native')
   })
   it('falls back to the first skin if the default is missing', () => {
     expect(skinFor('x', [fake('mac')]).name).toBe('mac')

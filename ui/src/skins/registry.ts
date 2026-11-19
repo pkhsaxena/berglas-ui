@@ -11,11 +11,11 @@ export type Skin = {
   load: () => Promise<{ App: ComponentType }>
 }
 
-export const DEFAULT_SKIN = 'terminal'
+export const DEFAULT_SKIN = 'native'
 
 export const SKINS: Skin[] = [
-  { name: 'terminal', label: 'terminal', load: () => import('./terminal') },
   { name: 'native', label: 'native', load: () => import('./native') },
+  { name: 'terminal', label: 'terminal', load: () => import('./terminal') },
 ]
 
 /** The skin named in the config, or the default one for unset or unknown names. */

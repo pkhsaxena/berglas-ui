@@ -5,7 +5,7 @@ in `ui/src/core`, so the **Core** column says where each behaviour lives: a new 
 it doesn't reimplement it.
 
 **Keep this file current.** Add or change a row in the same commit that adds or changes a
-feature, and apply UI fixes to every skin listed in `registry.ts` (today: `terminal`, `native`).
+feature, and apply UI fixes to every skin listed in `registry.ts` (today: `native`, the default, and `terminal`).
 
 **Verified by**
 - **app** = the in-window self-test (`BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full`, see the README's
@@ -29,7 +29,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 | Dropdowns | Every picker (time, zoom, theme, skin, act as, drift service, add-source backend, new key's section) is the skins' own dropdown, not the platform's: a button opens a popup with a search box; typing keeps options whose name contains the text (any case); ↑↓, Enter picks, Esc or a click outside closes; the popup floats over the page (fixed, zoom-corrected) so pane titles and tables never clip it, and closes if the page scrolls under it | `useCombo` (`filterOptions`), skin `Select.tsx` | app "dropdown: substring search, arrow keys, enter picks, esc closes"; unit `useCombo.test.ts` |
 | Header controls | In this order and with these names in every skin: **time, zoom, theme, skin** | skin `App.tsx` | app "header controls: time, zoom, theme, skin" |
 | Time zone | Local or UTC for every timestamp, saved to the config | `useApp.setTimeZone`, `useStamp` | unit `time.test.ts` |
-| Skin picker | Shown with two or more skins; saves `skin:` and reloads | `useApp.setSkin`, `registry.ts` | unit `registry.test.ts`, go `TestSkinRoundTrips` |
+| Skin picker | Shown with two or more skins; saves `skin:` and reloads. With no `skin:` (or an unknown one) the app opens in `native` | `useApp.setSkin`, `registry.ts` (`DEFAULT_SKIN`) | unit `registry.test.ts`, go `TestSkinRoundTrips` |
 | Theme | Each skin's own names (terminal presets; native System / Light / Dark), plus Catppuccin Latte, Frappé, Macchiato and Mocha in both skins (text colours at 4.5:1; the production banner keeps white text at 4.5:1 or more), labelled "theme" in every skin, saved as `theme:` | `useApp.setTheme` + the skin's `theme.ts` | app "theme picker applies and saves the theme" (that it looks right stays manual) |
 | Zoom | 50–200 % picker in the header; mac app View menu ⌘= ⌘- ⌘0; saved as `zoom:` | `zoom.ts`, `useApp.setZoom`, `commands.ts` | app "zoom out reaches 60% and switches to the wide layout", "actual size resets zoom"; unit `zoom.test.ts`; go `TestZoomIsSavedAndBounded` |
 | Panes keep to their content on resize | A pane in a content-sized row (sources, matrix, the secret over its versions) is measured again after every window resize: the mac app's web view otherwise keeps the height from before the width changed, so the sources pane stayed tall after a narrow window was enlarged | `useLayoutWidth` (`--refit`), skin css | app (layout self-test) "sources pane fits its content after resizing to …" |

@@ -67,7 +67,7 @@ type Config struct {
 	Listen string `yaml:"listen,omitempty" json:"-"`
 	// OpenBrowser opens the ui in the default browser on startup.
 	OpenBrowser bool `yaml:"openBrowser,omitempty" json:"-"`
-	// Skin is the ui design to load ("terminal" when unset or unknown). Each
+	// Skin is the ui design to load ("native" when unset or unknown). Each
 	// skin has its own themes, so theme names may only mean something to one.
 	Skin string `yaml:"skin,omitempty" json:"skin"`
 	// Zoom scales the whole ui, in percent (50 to 200; unset means 100).
@@ -188,7 +188,7 @@ func (f *File) SetWatch(refs []SecretRef) error {
 const template = `# berglas-ui config. Edit by hand or from the ui; comments are kept.
 # listen: 127.0.0.1:0          # address for the core; port 0 picks a free one
 # openBrowser: true            # open the ui when the core starts
-# skin: terminal               # the ui design; the ui lists the skins it has
+# skin: native                 # the ui design; the ui lists the skins it has
 # theme: Dracula
 # zoom: 100                    # scale the whole ui, 50-200 percent
 # timeZone: local              # show times in the system zone, or utc
