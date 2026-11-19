@@ -1,5 +1,5 @@
 // Commands the ui can be told to run from outside the page: the desktop app's
-// menu items (View → Zoom, Find, Go → Settings…) call window.berglasUI.run(name).
+// menu items (View → Zoom, Find, Go → Settings…, Go → Set Up Sources…) call window.berglasUI.run(name).
 // Whoever owns the state registers the handler; a command with no handler
 // does nothing.
 
