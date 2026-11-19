@@ -432,3 +432,12 @@ input[aria-invalid="true"] { border-color: var(--n-bad); }
 .undo-bar button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; padding: 0 2px; text-decoration: underline; }
 .undo-bar button[aria-label="dismiss"] { text-decoration: none; opacity: .7; font-weight: 400; }
 .leave-backdrop { z-index: 45; } /* over the palette, settings and setup, which can lead here */
+
+/* ?: the keyboard shortcut list */
+.shortcut-sheet { width: min(560px, calc(100vw - 32px)); max-height: 80vh; overflow-y: auto; outline: none; }
+.shortcut-sheet h4 { margin: 14px 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--n-section); }
+.shortcut-sheet dl { margin: 0; }
+.shortcut-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 4px 0; border-top: 1px solid var(--n-line); }
+.shortcut-row dt { display: flex; gap: 4px; flex-wrap: wrap; }
+.shortcut-row dd { margin: 0; }
+.shortcut-sheet kbd { font: 12px var(--mono); border: 1px solid var(--n-line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--n-surface-2); }

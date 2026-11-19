@@ -7,6 +7,7 @@ import { usePalette } from '../../core/hooks/usePalette'
 import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
 import { useSetup } from '../../core/hooks/useSetup'
 import { useLeaveGuard } from '../../core/hooks/useLeaveGuard'
+import { useShortcuts } from '../../core/hooks/useShortcuts'
 import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
@@ -45,6 +46,7 @@ import { LinkDialog } from './components/LinkDialog'
 import { LockScreen } from './components/LockScreen'
 import { Setup } from './components/Setup'
 import { LeaveDialog } from './components/LeaveDialog'
+import { ShortcutSheet } from './components/ShortcutSheet'
 import { FileDrop } from './components/FileDrop'
 import { applyTheme, knownTheme, PRESETS } from './theme'
 import { Select } from './components/Select'
@@ -66,6 +68,8 @@ export default function App() {
   const [toast, setToast] = useState('')
   // unsaved edits: every way of moving elsewhere asks before dropping them
   const leave = useLeaveGuard()
+  // ?: the keyboard shortcut list
+  const shortcuts = useShortcuts()
   const [errorLine, setErrorLine] = useState('')
 
   useEffect(() => onAuditError(setErrorLine), [])
@@ -278,6 +282,7 @@ export default function App() {
         lock: lockState.lock,
         settings: settingsScreen.show,
         setup: setup.show,
+        shortcuts: shortcuts.show,
         checkWatched: app.watch.length ? () => void watch.checkNow() : undefined,
       }),
     }),
@@ -667,6 +672,7 @@ export default function App() {
       />
       <Setup s={setup} configPath={app.configPath} />
       <LeaveDialog g={leave} />
+      <ShortcutSheet s={shortcuts} />
       <LockScreen l={lockState} />
       {linkAsk && (
         <LinkDialog

@@ -576,6 +576,28 @@
       await openSecret('payments-dev-env') // the conflict step works on this one
       return [quietLeave && asked && kept && askedFromPalette && left, `unchanged editor leaves quietly ${quietLeave}, asked ${asked}, keep keeps the draft ${kept}, ⌘K asks too ${askedFromPalette}, discard leaves and saves nothing ${left}`]
     })
+    await step('shortcuts: ? opens the list (not while typing), Esc closes; ⌘K and the Go menu open it', async () => {
+      const sheet = () => document.querySelector('[aria-label="keyboard shortcuts"]')
+      const f = field('filter secrets') || document.querySelector('input.list-filter, .secrets-pane input[type=search]')
+      if (f) {
+        f.focus()
+        f.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))
+        await wait(100)
+      }
+      const notWhileTyping = !sheet()
+      f?.blur()
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))
+      await wait(150)
+      const opened = !!sheet() && norm(sheet().textContent).includes('go to a secret, source or action')
+      sheet()?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      await wait(100)
+      const closed = !sheet()
+      window.berglasUI.run('shortcuts')
+      await wait(150)
+      const fromMenu = !!sheet()
+      await press(['done'], sheet())
+      return [notWhileTyping && opened && closed && fromMenu, `not while typing ${notWhileTyping}${f ? '' : ' (no field found)'}, ? opens ${opened}, esc closes ${closed}, menu opens ${fromMenu}`]
+    })
     await step('conflict: a newer save meanwhile is refused, not overwritten', async () => {
       await press(['edit', 'edit…'])
       await wait(400)

@@ -370,6 +370,7 @@ func appMenu(sh *shell) *menu.Menu {
 	// Wails' app menu is a fixed system menu too, so Settings… (⌘,) sits here
 	goMenu.AddText("Settings…", keys.CmdOrCtrl(","), run("settings"))
 	goMenu.AddText("Set Up Sources…", nil, run("setup"))
+	goMenu.AddText("Keyboard Shortcuts", nil, run("shortcuts"))
 	goMenu.AddSeparator()
 	goMenu.AddText("Lock", keys.Combo("l", keys.CmdOrCtrlKey, keys.ShiftKey), run("lock"))
 	view := m.AddSubmenu("View")

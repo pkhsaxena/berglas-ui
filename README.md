@@ -42,7 +42,7 @@ comparing one service's keys across its environments. Also: a
 - edit key by key with a review step; create, delete, conflicts handled
 - key drift across environments, a service × environment matrix and an overview
 - pin a secret and compare others against it
-- ⌘K command palette, favourites and recents, watch a secret for new versions
+- ⌘K command palette, `?` for every shortcut, favourites and recents, watch a secret for new versions
 - `berglas-ui://` links, drop a file to use as a value, save to file
 - a setup guide on first run: several sources at once, their name groups and protected names
 - two skins (native, the default, and terminal) and themes including the four Catppuccin flavours
@@ -263,7 +263,7 @@ Finder. Building it: [releases](#releases).
   clipboard back. `mailto:` and `http(s)` links open in your mail app or browser; other schemes
   are refused.
 - **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Set Up Sources…; Lock ⇧⌘L); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
+  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Set Up Sources…; Keyboard Shortcuts; Lock ⇧⌘L); View (zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
   reload ⌘R, full screen); Window.
 - **lock:** Go → Lock, **Lock now** in ⌘K, or `lockAfterMinutes`. Unlocking asks for Touch ID
   (or the login password). An open editor keeps its draft under the lock.
