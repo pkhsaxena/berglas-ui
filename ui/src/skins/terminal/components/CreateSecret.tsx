@@ -95,6 +95,7 @@ export function CreateSecret({ source, onCreated, onCancel, onDirty, titleTabs, 
             <div className="t-keyword" style={{ marginTop: 6 }}>
               review
             </div>
+            {initial && <div className="muted small"># from dropped file {initial.from}; nothing is created until you press create</div>}
             <EnvWarnings warnings={c.warnings} />
             <div className="kv">
               <span className="label">name</span>

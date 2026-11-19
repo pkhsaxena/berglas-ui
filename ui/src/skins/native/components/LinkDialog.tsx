@@ -3,7 +3,7 @@ import type { LinkTarget } from '../../../core/commands'
 /** A berglas-ui:// link to a source that isn't in the config: add it, or not. */
 export function LinkDialog({ target, onAdd, onCancel }: { target: LinkTarget; onAdd: () => void; onCancel: () => void }) {
   return (
-    <div className="palette-backdrop" data-find-ignore onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+    <div className="palette-backdrop dialog-backdrop" data-find-ignore onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="drop-dialog" role="dialog" aria-label="open link">
         <h3>Open {target.name}?</h3>
         <div>

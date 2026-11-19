@@ -4,7 +4,7 @@ import type { LeaveGuard } from '../../../core/hooks/useLeaveGuard'
 export function LeaveDialog({ g }: { g: LeaveGuard }) {
   if (!g.asking) return null
   return (
-    <div className="palette-backdrop leave-backdrop" data-find-ignore onMouseDown={(e) => e.target === e.currentTarget && g.keep()}>
+    <div className="palette-backdrop dialog-backdrop leave-backdrop" data-find-ignore onMouseDown={(e) => e.target === e.currentTarget && g.keep()}>
       <div
         className="drop-dialog"
         role="alertdialog"

@@ -25,25 +25,29 @@ export const KMS_KEY = /^projects\/[^/]+\/locations\/[^/]+\/keyRings\/[^/]+\/cry
  * Creates a secret in one source: edit → review → save. The review is the
  * confirmation step; protected names also need the confirm word typed.
  */
-/** `initial` prefills the name and value, e.g. from a dropped file. */
+/**
+ * `initial` prefills the name and value, e.g. from a dropped file. A prefill
+ * that is ready to create opens on the review screen; one that isn't (no
+ * name yet, no KMS key) opens the form, saying what is missing.
+ */
 export function useCreate(source: Source, onCreated: (s: Secret) => void, initial?: { name: string; text: string }) {
   const settings = useSettings()
-  const [phase, setPhase] = useState<'editing' | 'review' | 'saving'>('editing')
+  const problemOf = (n: string, t: string, k: string) =>
+    nameProblem(source.backend, n.trim()) ||
+    (t === '' ? 'the value is empty' : '') ||
+    (source.backend === 'storage' && !KMS_KEY.test(k.trim()) ? 'kms key must look like projects/…/locations/…/keyRings/…/cryptoKeys/…' : '')
+  const initialProblem = initial ? problemOf(initial.name, initial.text, kmsKeyFor(settings, source)) : ''
+  const [phase, setPhase] = useState<'editing' | 'review' | 'saving'>(initial && !initialProblem ? 'review' : 'editing')
   const [name, setName] = useState(initial?.name ?? '')
   const [text, setText] = useState(initial?.text ?? '')
   const [kmsKey, setKmsKey] = useState(() => kmsKeyFor(settings, source))
-  const [error, setError] = useState('')
+  const [error, setError] = useState(initialProblem)
 
   const ref = { backend: source.backend, parent: source.parent, name: name.trim() }
   const isProtected = protectedFor(settings, ref)
 
   const review = () => {
-    const problem =
-      nameProblem(source.backend, ref.name) ||
-      (text === '' ? 'the value is empty' : '') ||
-      (source.backend === 'storage' && !KMS_KEY.test(kmsKey.trim())
-        ? 'kms key must look like projects/…/locations/…/keyRings/…/cryptoKeys/…'
-        : '')
+    const problem = problemOf(name, text, kmsKey)
     setError(problem)
     if (!problem) setPhase('review')
   }

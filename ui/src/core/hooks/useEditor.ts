@@ -37,7 +37,10 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
 
   /**
    * Loads the latest value. With `restore`, the draft starts as that older
-   * version's value; with `file`, as a dropped file's text.
+   * version's value; with `file`, as a dropped file's text, and the editor
+   * opens on the review screen (the diff is the first thing a drop shows).
+   * A file that matches the latest value opens in the editor instead, saying
+   * so: there is nothing to review unless it is saved unchanged on purpose.
    */
   const start = async (restore?: string, file?: { name: string; text: string }) => {
     setPhase('loading')
@@ -58,7 +61,11 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       setRestoredFrom(restore ?? '')
       setFromFile(file?.name ?? '')
       setMode(looksLikeEnv(text) ? 'env' : 'raw')
-      setPhase('editing')
+      if (file && text !== latest.value.text) setPhase('review')
+      else {
+        setPhase('editing')
+        if (file) setError(`${file.name} is the same as the current value: nothing changed`)
+      }
     } catch (e) {
       fail(e)
       setPhase('idle')

@@ -13,7 +13,9 @@ import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
 import { type LinkTarget, onOpenLink } from '../../core/commands'
 import { linkFor } from '../../core/deeplink'
-import { type DroppedFile, suggestName, useFileDrop } from '../../core/hooks/useFileDrop'
+import { type DroppedFile, useFileDrop } from '../../core/hooks/useFileDrop'
+import { useDropPicker } from '../../core/hooks/useDropPicker'
+import { nameProblem } from '../../core/hooks/useCreate'
 import { pinnedId, usePinned } from '../../core/hooks/usePinned'
 import { useSecretList } from '../../core/hooks/useSecretList'
 import { identityOptions } from '../../core/identity'
@@ -220,11 +222,36 @@ export default function App() {
       void drift.run(service)
     })
 
-  // a file dropped onto the window becomes a draft: the open secret's new value, or a new secret
+  // a file dropped onto the window becomes a draft: any secret's new value, or a new secret
   const drop = useFileDrop(session.kind === 'ready' && !!active)
   const [dropEdit, setDropEdit] = useState<DroppedFile | null>(null)
   const [createInitial, setCreateInitial] = useState<{ id: number; name: string; text: string; from: string } | null>(null)
   const writable = !!active && !readOnlyFor(app.settings, active)
+  const secretNames = useMemo(() => (list.secrets ?? []).map((s) => s.name), [list.secrets])
+  // after a drop: search the open source for the secret to replace, or name a new one; either opens on its review screen
+  const picker = useDropPicker({
+    dropped: drop.dropped,
+    names: secretNames,
+    open: creating ? null : selected,
+    writable,
+    nameProblem: (n) => (active ? nameProblem(active.backend, n) : ''),
+    onCancel: drop.clear,
+    onChoose: (c, f) => {
+      drop.clear()
+      leave.guard(() => {
+        if (c.kind === 'replace') {
+          setCreating(false)
+          setSelected(c.name)
+          setDropEdit(f)
+        } else {
+          setCreateInitial({ id: f.id, name: c.name, text: f.text, from: f.name })
+          setSelected(null)
+          setCreating(true)
+        }
+        setView('secret')
+      })
+    },
+  })
 
   // ⌘K: the open source's secrets (and cached ones of other sources), sources and actions
   const openSource = (s: (typeof app.sources)[number]) =>
@@ -688,29 +715,7 @@ export default function App() {
         />
       )}
       {session.kind === 'ready' && active && (
-        <FileDrop
-          drop={drop}
-          replaceTarget={selected && writable && !creating ? selected : null}
-          createIn={writable ? active.label || active.parent : null}
-          onReplace={() => {
-            const f = drop.dropped
-            drop.clear()
-            leave.guard(() => {
-              setDropEdit(f)
-              setView('secret')
-            })
-          }}
-          onCreate={() => {
-            const f = drop.dropped
-            drop.clear()
-            leave.guard(() => {
-              if (f) setCreateInitial({ id: f.id, name: suggestName(f.name), text: f.text, from: f.name })
-              setSelected(null)
-              setCreating(true)
-              setView('secret')
-            })
-          }}
-        />
+        <FileDrop drop={drop} picker={picker} sourceName={active.label || active.parent} group={active.group} writable={writable} />
       )}
 
       {toast && (

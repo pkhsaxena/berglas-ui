@@ -174,8 +174,11 @@ the app asks first. **Keep editing** is the default.
 Click **+** above the list (or **New secret** in ⌘K), fill in a name and a value, review, and
 create. For a bucket, the KMS key can be filled in for you if you set one for that source.
 
-**Drop a file** onto the window to use its contents: either as the new value of the open secret,
-or as a new secret named after the file. You still review before anything is saved.
+**Drop a file** onto the window to use its contents. A box asks where it goes: the open secret is
+offered first, and you can search for any other secret in the source. **New secret** sits just
+under the search box (named after the file, or whatever you type; ⌘Enter picks it). You then land on the review screen showing exactly
+what will change. Nothing is saved until you click **Save** (or **Create**), and **Back to edit**
+lets you adjust it first.
 
 ### Deleting
 

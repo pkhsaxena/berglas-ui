@@ -76,6 +76,7 @@ export function CreateSecret({ source, onCreated, onCancel, onDirty, titleTabs, 
         ) : (
           <>
             <h3 style={{ margin: '0 0 6px', fontSize: 13 }}>Review</h3>
+            {initial && <div className="muted small">From the dropped file {initial.from}. Nothing is created until you press Create.</div>}
             <EnvWarnings warnings={c.warnings} />
             <div className="kv">
               <span>Name</span>

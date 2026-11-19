@@ -795,26 +795,115 @@
       await wait(400)
       return hint
     }
-    await step('drop a file: replace the open value, or start a new secret; binary refused; nothing saved', async () => {
+    await step('drop a file: a centred dialog searches for the secret, new secret pinned on top; each choice opens on its review screen; binary refused; nothing saved', async () => {
+      const dialogEl = () => document.querySelector('.drop-dialog')
+      const list = () => document.getElementById('drop-choices')
+      const options = () => [...list().querySelectorAll('[role=option]')].map((o) => norm(o.textContent))
+      const newRow = () => document.querySelector('.drop-dialog .drop-new [role=option]')
+      const selected = () => norm(dialogEl().querySelector('[role=option][aria-selected="true"]')?.textContent)
+      const search = () => field('search secrets for the dropped file')
+      const key = (k, mods = {}) => search().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, ...mods }))
+      const reviewing = () => !!findButton(['save', 'save to production', 'save to *', 'save to production*']) && !!findButton(['back to edit']) && !findButton(['review changes'])
       await openSecret('orders-dev-env')
       const before = await readSecret('orders-dev-env')
+      const staging = await readSecret('orders-staging-env')
+
+      // centred in the window, the search focused, the open secret offered first and selected
       const hint = await dropFile(['API_URL=https://dropped.example\nNEW_KEY=1\n'], 'orders-dev.env')
-      const dialog = norm(document.querySelector('.drop-dialog')?.textContent)
-      await press(['replace the value of orders-dev-env…'])
-      await wait(400)
-      const editorNote = norm(document.body.innerText).includes('dropped file orders-dev.env')
+      const r = dialogEl().getBoundingClientRect()
+      const centred = Math.abs(r.top + r.height / 2 - window.innerHeight / 2) < 4 && Math.abs(r.left + r.width / 2 - window.innerWidth / 2) < 4
+      const dialog = norm(dialogEl().textContent)
+      const focused = document.activeElement === search()
+      const first = options()[0] ?? ''
+      const openFirst = first.includes('orders-dev-env') && first.includes('open') && selected() === first
+
+      // the new secret sits pinned between the search box and the list, outside the part that scrolls
+      const nr = newRow()
+      const pinned =
+        !!nr && norm(nr.textContent).includes('new secret orders-dev') && !list().contains(nr) &&
+        nr.getBoundingClientRect().top > search().getBoundingClientRect().bottom - 1 &&
+        nr.getBoundingClientRect().bottom <= list().getBoundingClientRect().top + 1 &&
+        !options().some((o) => o.includes('new secret'))
+      list().scrollTop = list().scrollHeight
+      await wait(100)
+      const stillShown = vis(newRow()) && newRow().getBoundingClientRect().bottom <= list().getBoundingClientRect().top + 1
+      list().scrollTop = 0
+
+      // every row ends in a button that says what it leads to: a review, never a write
+      const rowButtons = [...list().querySelectorAll('[role=option]')].every((o) => norm(o.querySelector('button')?.textContent) === 'review changes')
+      const newButton = norm(nr?.querySelector('button')?.textContent) === 'review new secret'
+
+      // ↑ from the first secret reaches the new secret; ↓ goes back
+      key('ArrowUp')
+      await wait(100)
+      const upToNew = newRow()?.getAttribute('aria-selected') === 'true'
+      key('ArrowDown')
+      await wait(100)
+      const downBack = selected() === first
+
+      // the search narrows the list; the new secret follows what is typed
+      setField(search(), 'stag')
+      await wait(150)
+      const narrowed = options().length > 0 && options().every((o) => o.includes('stag')) && norm(newRow()?.textContent).includes('new secret stag')
+      // a name that exists is not offered as new; Enter on a secret that isn't open opens it on the review screen
+      setField(search(), 'orders-staging-env')
+      await wait(150)
+      const noDuplicate = !newRow()
+      key('Enter')
+      await wait(900)
+      const otherOpened = !!document.querySelector('.rowbtn[aria-label="orders-staging-env"][aria-current="true"]')
+      const otherReview = reviewing() && norm(document.body.innerText).includes('dropped file orders-dev.env')
+      await press(['cancel'])
+
+      // the open secret's Review changes button, straight to its review screen
+      await openSecret('orders-dev-env')
+      await dropFile(['API_URL=https://dropped.example\nNEW_KEY=1\n'], 'orders-dev.env')
+      list().querySelector('[role=option] button').click()
+      await wait(900)
+      const buttonReview = reviewing()
+      await press(['back to edit'])
       const draft = [...document.querySelectorAll('input')].some((i) => i.value === 'https://dropped.example')
       await press(['cancel'])
-      await dropFile(['TOKEN=abc\n'], 'billing-staging.env')
-      await press(['new secret in*'])
-      await wait(300)
-      const prefilled = field('secret name')?.value === 'billing-staging' && field('secret value')?.value === 'TOKEN=abc\n'
+
+      // the same value as now: the editor says nothing changed instead of a review
+      await dropFile([before], 'same.env')
+      key('Enter')
+      await wait(900)
+      const sameNote = norm(document.body.innerText).includes('same.env is the same as the current value') && !!findButton(['review changes'])
       await press(['cancel'])
+
+      // a bad name is explained where the new secret would be; ⌘Enter picks the new secret wherever the selection is
+      await dropFile(['TOKEN=abc\n'], 'billing-staging.env')
+      setField(search(), 'has space')
+      await wait(150)
+      const badName = !newRow() && norm(dialogEl().querySelector('.drop-new')?.textContent).includes("can't create")
+      setField(search(), '')
+      await wait(150)
+      const notSelected = newRow()?.getAttribute('aria-selected') !== 'true'
+      key('Enter', { metaKey: true })
+      await wait(700)
+      // the demo bucket has no KMS key configured, so the form opens first, saying so, with the name and value filled in
+      const kmsAsked = field('secret name')?.value === 'billing-staging' && field('secret value')?.value === 'TOKEN=abc\n' && norm(document.body.innerText).includes('kms key must look like')
+      setField('kms key', 'projects/demo-project/locations/global/keyRings/demo/cryptoKeys/demo')
+      await press(['review'])
+      const createReview = notSelected && kmsAsked && !!findButton(['create*']) && !!findButton(['back to edit']) && norm(document.body.innerText).includes('dropped file billing-staging.env')
+      await press(['cancel'])
+
+      // no secret matches: the new secret is the selection, so Enter takes it
+      await dropFile(['X=1\n'], 'zz.env')
+      setField(search(), 'zzz-unused')
+      await wait(150)
+      const onlyNew = options().length === 0 && newRow()?.getAttribute('aria-selected') === 'true'
+      key('Escape')
+      await wait(200)
+      const escClosed = !dialogEl()
+
       await dropFile([new Uint8Array([0xff, 0x00, 0xfe])], 'blob.bin')
-      const refused = norm(document.querySelector('.drop-dialog')?.textContent).includes('not text')
+      const refused = norm(dialogEl()?.textContent).includes('not text')
       await press(['ok'])
-      const unchanged = (await readSecret('orders-dev-env')) === before
-      return [hint && dialog.includes('2 keys') && editorNote && draft && prefilled && refused && unchanged, `drop hint ${hint}, dialog "${dialog.slice(0, 40)}…", editor note ${editorNote}, draft ${draft}, new prefilled ${prefilled}, binary refused ${refused}, value unchanged ${unchanged}`]
+      const unchanged = (await readSecret('orders-dev-env')) === before && (await readSecret('orders-staging-env')) === staging && (await readSecret('billing-staging')) === null && (await readSecret('zzz-unused')) === null
+      const checks = { 'drop hint': hint, centred, '2 keys': dialog.includes('2 keys'), focused, 'open first and selected': openFirst, 'new secret pinned above the list': pinned, 'still shown when the list scrolls': stillShown, 'review changes buttons': rowButtons, 'review new secret button': newButton, '↑ reaches new secret': upToNew, '↓ goes back': downBack, 'search narrows': narrowed, 'exact name not offered as new': noDuplicate, 'other secret opened': otherOpened, 'on review': otherReview, 'button opens review': buttonReview, 'back to edit keeps the draft': draft, 'same value says so': sameNote, 'bad name explained': badName, '⌘enter: new secret on review': createReview, 'no match selects new secret': onlyNew, 'esc closes': escClosed, 'binary refused': refused, 'nothing written': unchanged }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
 
     await step('save to file: confirmation first, mode 600, protected needs confirm typed', async () => {

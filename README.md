@@ -140,9 +140,9 @@ the desktop app is macOS only for now.
 - **links:** **copy link** on a secret gives `berglas-ui://open?backend=…&parent=…&name=…`, which
   opens the mac app at that secret. It holds no value and only navigates; a source you haven't
   added is asked about first.
-- **drop a file** onto the window to use it as a value: replace the open secret's value (the
-  editor opens with the file as the draft) or start a new secret named after the file. Nothing is
-  written until the usual review and save.
+- **drop a file** onto the window to use it as a value: a dialog searches the open source for
+  the secret to replace (the open one first), or names a new secret (after the file, or what you
+  type). Either opens straight on the review screen; nothing is written until you save.
 - **save to file:** after a reveal, **save to file…** writes that version as plain text after a
   confirmation (and the word `confirm` typed for protected secrets). In the mac app the core asks where
   with a Save dialog, writes mode 600 and logs an `export` line (path, no value); in a browser it
