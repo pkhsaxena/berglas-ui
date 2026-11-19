@@ -13,6 +13,8 @@ type Props = {
   /** returns an error message, or '' on success */
   onAdd: (s: Source) => string
   onRemove: (s: Source) => void
+  /** opens the setup guide: several sources at once, with groups and protected names */
+  onSetup?: () => void
 }
 
 const BucketIcon = () => (
@@ -28,7 +30,7 @@ const VaultIcon = () => (
   </svg>
 )
 
-export function Sources({ sources, configPath, saveError, active, onSelect, onAdd, onRemove }: Props) {
+export function Sources({ sources, configPath, saveError, active, onSelect, onAdd, onRemove, onSetup }: Props) {
   const [backend, setBackend] = useState<Backend>('storage')
   const [parent, setParent] = useState('')
   const [err, setErr] = useState('')
@@ -91,6 +93,11 @@ export function Sources({ sources, configPath, saveError, active, onSelect, onAd
             </button>
             <ErrorText>{err}</ErrorText>
           </form>
+        )}
+        {(adding || sources.length === 0) && onSetup && (
+          <button className="link small" onClick={onSetup} style={{ margin: '2px 8px', textAlign: 'left' }}>
+            Add several at once, with groups and protected names…
+          </button>
         )}
         <ErrorText>{saveError && `Couldn't save the config — ${saveError}`}</ErrorText>
         {configPath && (

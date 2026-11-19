@@ -5,6 +5,7 @@ import { useApp } from '../../core/hooks/useApp'
 import { useDrift } from '../../core/hooks/useDrift'
 import { usePalette } from '../../core/hooks/usePalette'
 import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
+import { useSetup } from '../../core/hooks/useSetup'
 import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
@@ -37,6 +38,7 @@ import { Palette } from './components/Palette'
 import { QuickList } from './components/QuickList'
 import { LinkDialog } from './components/LinkDialog'
 import { LockScreen } from './components/LockScreen'
+import { Setup } from './components/Setup'
 import { FileDrop } from './components/FileDrop'
 import { type MatrixSort, MatrixPane, OverviewPane } from './components/Overview'
 import { PinnedPane } from './components/PinnedPane'
@@ -148,6 +150,20 @@ export default function App() {
     saveSettings: app.saveSettings,
     onToast: setToast,
   })
+  // a fresh install (no sources) opens the setup guide; ⌘K and the sources pane open it later
+  const setup = useSetup({
+    enabled: session.kind === 'ready',
+    sources: app.sources,
+    settings: app.settings,
+    saveSettings: app.saveSettings,
+    demo: app.demo,
+    onDone: (src) => {
+      app.setActive(src)
+      setSelected(null)
+      setCreating(false)
+      setView('secret')
+    },
+  })
   // a new identity may see other secrets: reload the list and close the open one
   useEffect(() => {
     if (app.identityRev === 0) return
@@ -241,6 +257,7 @@ export default function App() {
         setIdentity: (o) => void app.setIdentity(o.serviceAccount, o.quotaProject),
         lock: lockState.lock,
         settings: settingsScreen.show,
+        setup: setup.show,
         checkWatched: app.watch.length ? () => void watch.checkNow() : undefined,
       }),
     }),
@@ -443,6 +460,7 @@ export default function App() {
                       if (active && sourceId(active) === sourceId(s)) setSelected(null)
                       app.removeSource(s)
                     }}
+                    onSetup={setup.show}
                   />
                   {active && (
                     <SecretList
@@ -606,6 +624,7 @@ export default function App() {
         configPath={app.configPath}
         version={session.kind === 'ready' || session.kind === 'no-credentials' ? session.status.version : ''}
       />
+      <Setup s={setup} configPath={app.configPath} />
       <LockScreen l={lockState} />
       {linkAsk && (
         <LinkDialog

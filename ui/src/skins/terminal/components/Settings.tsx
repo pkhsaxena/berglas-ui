@@ -102,7 +102,7 @@ function Row({ id, label, help, notes, error, children }: { id: string; label: R
   )
 }
 
-function Switch({ on, label, onChange, disabled }: { on: boolean; label: string; onChange: (on: boolean) => void; disabled?: boolean }) {
+export function Switch({ on, label, onChange, disabled }: { on: boolean; label: string; onChange: (on: boolean) => void; disabled?: boolean }) {
   return (
     <button type="button" role="switch" aria-checked={on} aria-label={label} className="switch" disabled={disabled} onClick={() => onChange(!on)}>
       {on ? '[x] on' : '[ ] off'}

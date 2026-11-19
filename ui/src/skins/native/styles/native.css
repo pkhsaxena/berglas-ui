@@ -400,3 +400,29 @@ input[aria-invalid="true"] { border-color: var(--n-bad); }
 #root[data-width='narrow'] .set-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
 #root[data-width='narrow'] .set-control { justify-content: flex-start; }
 @media (prefers-reduced-motion: reduce) { .switch, .switch-knob { transition: none; } }
+
+/* setup guide: a fresh install's sources, groups and protected names, in three steps */
+.setup .settings-head { flex-wrap: wrap; }
+.setup-steps { display: flex; gap: 14px; margin: 0; padding: 0; list-style: none; color: var(--n-muted); font-size: 12.5px; }
+.setup-steps li[aria-current="step"] { color: var(--n-fg); font-weight: 600; }
+.setup-steps li.done { color: var(--n-good); }
+.setup-num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; font-size: 11px; margin-right: 2px; }
+.setup-body { padding-top: 12px; }
+.setup-body section + section { margin-top: 18px; }
+.setup-intro { margin: 0 0 12px; color: var(--n-fg-2); max-width: 72ch; }
+.setup-row { border: 1px solid var(--n-line); border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.setup-row > .row { margin: 0; flex-wrap: wrap; }
+.setup-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; align-items: baseline; margin-top: 2px; }
+.setup-grid > label, .setup-grid > span { color: var(--n-fg-2); font-size: 12.5px; }
+.setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
+.setup-grid input { width: 100%; }
+.setup-paste { margin-top: 12px; }
+.setup-paste summary { cursor: pointer; color: var(--n-accent); }
+.setup-paste textarea { width: 100%; font: 12.5px/1.6 var(--mono); margin-top: 6px; }
+.setup-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.setup-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--n-line-strong); border-radius: 7px; padding: 1px 2px 1px 9px; background: var(--n-surface-2); }
+.setup-suggest { flex-wrap: wrap; }
+.setup-review { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 6px; overflow-wrap: anywhere; }
+.setup-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--n-line-strong); background: var(--n-surface-2); }
+#root[data-width='narrow'] .setup-grid { grid-template-columns: minmax(0, 1fr); }

@@ -30,6 +30,8 @@ export function useApp() {
   const [sources, setSources] = useState<Source[]>([])
   const [configPath, setConfigPath] = useState('')
   const [configError, setConfigError] = useState('')
+  /** the config is a demo's throwaway file: nothing it names should reach real files */
+  const [demo, setDemo] = useState(false)
   const [active, setActive] = useState<Source | null>(null)
   const [base, setBase] = useState<Omit<Settings, 'sources'>>(DEFAULT_SETTINGS)
   const settings: Settings = useMemo(() => ({ ...base, sources }), [base, sources])
@@ -42,6 +44,7 @@ export function useApp() {
     setSources(sources)
     // skins print "saved in …"; a demo's temp path means nothing to anyone
     setConfigPath(throwaway ? 'a throwaway demo config, deleted on exit' : path)
+    setDemo(!!throwaway)
     setBase(rest)
     // the open source keeps its place, with its settings as they now are
     setActive((a) => {
@@ -219,5 +222,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, configError, addSource, removeSource, active, setActive }
+  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, demo, configError, addSource, removeSource, active, setActive }
 }

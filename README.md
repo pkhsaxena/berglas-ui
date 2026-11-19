@@ -44,6 +44,7 @@ comparing one service's keys across its environments. Also: a
 - pin a secret and compare others against it
 - ⌘K command palette, favourites and recents, watch a secret for new versions
 - `berglas-ui://` links, drop a file to use as a value, save to file
+- a setup guide on first run: several sources at once, their name groups and protected names
 - two skins (native, the default, and terminal) and themes including the four Catppuccin flavours
 - mac app: native menus, find in page, Touch ID lock, hidden from screen capture
 
@@ -67,7 +68,9 @@ gcloud auth application-default login
 cd core && go run ./cmd/berglas-ui -open
 ```
 
-and add a bucket or project under **sources**. Needs Go (see `core/go.mod`) and Node. For the
+and the setup guide opens: add your buckets and projects (several at once, or paste a list),
+check each one is reachable, pick how their names group and which names are protected, then save.
+Skip it to add sources one at a time under **sources**. Needs Go (see `core/go.mod`) and Node. For the
 mac app, see [releases](#releases).
 
 ```

@@ -263,6 +263,44 @@
       await press(['remove selftest-bucket'])
       return [!sourceRow('selftest-bucket'), 'removed']
     })
+    await step('setup guide: from ⌘K, several sources pasted at once, bad rows held, group and protected names saved in one write', async () => {
+      const cfg0 = (await call('GET', '/api/config')).json
+      window.berglasUI.run('setup')
+      await wait(300)
+      const dlg = () => document.querySelector('[aria-label="set up berglas-ui"]')
+      const opened = !!dlg()
+      dlg().querySelector('details.setup-paste').open = true
+      await wait(100)
+      setField('paste sources', 'berglas://demo-bucket\nsetup-bucket-a, sm://setup-project-b')
+      await press(['add these'], dlg())
+      const pasted = norm(dlg().textContent).includes('added 2 · 1 already listed')
+      await wait(900) // each row is listed once typing stops
+      const listed = norm(dlg().textContent).includes('reachable')
+      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], 'no-placeholder')
+      await wait(100)
+      const nextBtn = () => findButton(['next'], dlg())
+      const held = nextBtn()?.disabled === true && norm(dlg().textContent).includes('needs a {placeholder}')
+      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], '{service}-{env}')
+      await wait(100)
+      await press(['next'], dlg())
+      setField('protected name pattern', 'setup-*')
+      await press(['add'], dlg())
+      await press(['next'], dlg())
+      const review = norm(dlg().textContent)
+      const reviewed = review.includes('2 sources to add') && review.includes('setup-bucket-a') && review.includes('grouped by {service}-{env}') && review.includes('setup-*')
+      await press(['save and open*'], dlg())
+      await wait(600)
+      const cfg = (await call('GET', '/api/config')).json
+      const a = cfg.sources.find((x) => x.parent === 'setup-bucket-a')
+      const b = cfg.sources.find((x) => x.parent === 'setup-project-b')
+      const saved = !dlg() && a?.group === '{service}-{env}' && b?.backend === 'sm' && cfg.protect.includes('setup-*') && !cfg.auditLog
+      const opens = sourceRow('setup-bucket-a')?.getAttribute('aria-current') === 'true'
+      // put the demo back as it was for the steps after this one
+      await press(['remove setup-bucket-a'])
+      await press(['remove setup-project-b'])
+      await call('POST', '/api/config', { protect: cfg0.protect, lockAfterMinutes: cfg0.lockAfterMinutes ?? 0 })
+      return [opened && pasted && listed && held && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, bad group holds next ${held}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
+    })
     await step('pick a source switches the list', async () => {
       sourceRow('demo-project').click()
       await wait(900)

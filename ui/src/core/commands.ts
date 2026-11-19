@@ -3,7 +3,7 @@
 // Whoever owns the state registers the handler; a command with no handler
 // does nothing.
 
-export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette' | 'lock' | 'watchChanged' | 'settings'
+export type Command = 'zoomIn' | 'zoomOut' | 'zoomReset' | 'find' | 'findNext' | 'findPrev' | 'palette' | 'lock' | 'watchChanged' | 'settings' | 'setup'
 
 // a command runs its handler of the highest priority, the newest among
 // equals; removing that one hands the command back to the next. The settings

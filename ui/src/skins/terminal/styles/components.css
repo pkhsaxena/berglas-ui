@@ -427,3 +427,32 @@ input[aria-invalid="true"] { border-color: var(--t-error); }
 #root[data-width='narrow'] .set-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 #root[data-width='narrow'] .set-control { justify-content: flex-start; }
 .settings button.primary:disabled { opacity: .45; }
+
+/* setup guide: a fresh install's sources, groups and protected names, in three steps */
+.setup .settings-head { flex-wrap: wrap; }
+.setup-steps { display: flex; gap: 2ch; margin: 0; padding: 0; list-style: none; color: var(--t-comment); }
+.setup-steps li[aria-current="step"] { color: var(--t-string); }
+.setup-steps li.done { color: var(--t-function); }
+.setup-body { padding-top: 8px; }
+.setup-body section + section { margin-top: 14px; }
+.setup-intro { margin: 0 0 10px; max-width: 80ch; }
+.setup-row { border: 1px dashed var(--t-line); padding: 8px 10px; margin: 0 0 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.setup-row > .row { margin: 0; flex-wrap: wrap; }
+.setup-row input.setup-name, input.setup-name { flex: 1 1 24ch; min-width: 0; }
+.setup-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 2ch; align-items: baseline; }
+.setup-grid > label, .setup-grid > span { color: var(--t-comment); }
+.setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
+.setup-grid input { width: 100%; }
+.setup-paste { margin-top: 10px; }
+.setup-paste summary { cursor: pointer; color: var(--t-prompt); }
+.setup-paste textarea { width: 100%; margin-top: 4px; }
+.setup-chips { display: flex; flex-wrap: wrap; gap: 1ch; margin: 4px 0 6px; }
+ul.setup-chips li.setup-chip { display: inline-flex; align-items: center; gap: 1ch; border: 1px solid var(--t-line); padding: 0 0 0 1ch; }
+.setup-chip button { border: 0; }
+.setup-suggest { flex-wrap: wrap; }
+.setup-review { display: flex; flex-direction: column; gap: 2px; margin: 4px 0; overflow-wrap: anywhere; }
+ul.setup-review li { padding: 2px 0; }
+.setup .spacer { flex: 1; }
+.setup-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--t-line); }
+#root[data-width='narrow'] .setup-grid { grid-template-columns: minmax(0, 1fr); }
