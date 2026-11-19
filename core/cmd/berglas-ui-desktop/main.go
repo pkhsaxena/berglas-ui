@@ -51,6 +51,12 @@ var selftestStatusJS string
 //go:embed selftest-layout.js
 var selftestLayoutJS string
 
+// selftestGuardJS runs before each self-test script: it keeps a person's
+// clicks, keys and drags out of the window while the test drives it.
+//
+//go:embed selftest-guard.js
+var selftestGuardJS string
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
@@ -309,7 +315,9 @@ func run() error {
 			if testJS == "" {
 				return
 			}
-			wruntime.WindowExecJS(ctx, testJS)
+			// the test drives the window; a person's input would only throw it off
+			wruntime.WindowSetTitle(ctx, "berglas-ui — self-test running (input is ignored; ⌘Q quits)")
+			wruntime.WindowExecJS(ctx, selftestGuardJS+"\n"+testJS)
 			go func() {
 				time.Sleep(300 * time.Second)
 				fmt.Println("SELFTEST timeout: no report from the web view")
@@ -354,10 +362,19 @@ func appMenu(sh *shell) *menu.Menu {
 	m.Append(menu.AppMenu())
 	m.Append(menu.EditMenu())
 	// zoom and find run in the page (core/commands.ts), which owns their state
-	run := func(cmd string) func(*menu.CallbackData) {
-		return func(*menu.CallbackData) {
-			wruntime.WindowExecJS(sh.ctx, "window.berglasUI && window.berglasUI.run('"+cmd+"')")
+	// during a self-test the window takes no input (selftest-guard.js), and
+	// these items stay out of its way too; Quit, in the app menu, still works
+	user := func(fn func(*menu.CallbackData)) func(*menu.CallbackData) {
+		return func(cd *menu.CallbackData) {
+			if sh.saveDir == "" {
+				fn(cd)
+			}
 		}
+	}
+	run := func(cmd string) func(*menu.CallbackData) {
+		return user(func(*menu.CallbackData) {
+			wruntime.WindowExecJS(sh.ctx, "window.berglasUI && window.berglasUI.run('"+cmd+"')")
+		})
 	}
 	// Wails' Edit menu is a fixed system menu, so find gets its own
 	find := m.AddSubmenu("Find")
@@ -378,14 +395,14 @@ func appMenu(sh *shell) *menu.Menu {
 	view.AddText("Zoom Out", keys.CmdOrCtrl("-"), run("zoomOut"))
 	view.AddText("Actual Size", keys.CmdOrCtrl("0"), run("zoomReset"))
 	view.AddSeparator()
-	view.AddText("Reload", keys.CmdOrCtrl("r"), func(*menu.CallbackData) { wruntime.WindowReloadApp(sh.ctx) })
-	view.AddText("Toggle Full Screen", keys.Combo("f", keys.CmdOrCtrlKey, keys.ControlKey), func(*menu.CallbackData) {
+	view.AddText("Reload", keys.CmdOrCtrl("r"), user(func(*menu.CallbackData) { wruntime.WindowReloadApp(sh.ctx) }))
+	view.AddText("Toggle Full Screen", keys.Combo("f", keys.CmdOrCtrlKey, keys.ControlKey), user(func(*menu.CallbackData) {
 		if wruntime.WindowIsFullscreen(sh.ctx) {
 			wruntime.WindowUnfullscreen(sh.ctx)
 		} else {
 			wruntime.WindowFullscreen(sh.ctx)
 		}
-	})
+	}))
 	m.Append(menu.WindowMenu())
 	return m
 }
