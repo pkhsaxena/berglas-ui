@@ -645,13 +645,22 @@
       vf.dispatchEvent(enter)
       const noBreak = enter.defaultPrevented && !vf.value.includes('\n')
 
+      // keys added during the edit are listed last, sorted by key whatever order they were added in
+      for (const k of ['ZZ_SELFTEST', 'AA_SELFTEST']) {
+        setField('new key', k)
+        setField('new value', '1')
+        await press(['add key'])
+      }
+      const tail = [...document.querySelectorAll('.right tbody tr')].slice(-2).map((r) => r.querySelector('input.key-input')?.value)
+      const newSorted = JSON.stringify(tail) === JSON.stringify(['AA_SELFTEST', 'ZZ_SELFTEST'])
+
       // the review shows the rename; cancel, so nothing is written
       await press(['review changes'])
       const review = norm(document.querySelector('.right').textContent)
       const reviewed = review.includes('log_lvl') && review.includes('log_level')
       await press(['cancel'])
       const unchanged = (await readSecret('payments-dev-env')) === before
-      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps': wraps, 'enter adds no line break': noBreak, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps': wraps, 'enter adds no line break': noBreak, 'new keys sorted': newSorted, 'review shows the rename': reviewed, 'nothing written': unchanged }
       return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {

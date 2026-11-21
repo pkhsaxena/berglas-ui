@@ -2,6 +2,7 @@
 // when both sides are .env files.
 import { diffLines } from 'diff'
 import { parseEnv, removeKey, setKey } from './envfile'
+import { compareKeys } from './envsort'
 
 export type DiffLine = { kind: 'add' | 'del' | 'same'; text: string }
 
@@ -121,7 +122,7 @@ export function diffValues(a: string, b: string, bothEnv: boolean): Diff {
 export type Match = {
   /** per key of the draft: same / changed (after = reference value) / removed (not in reference) */
   byKey: Map<string, KeyChange>
-  /** keys only the reference has, with its values */
+  /** keys only the reference has, with its values, sorted by key */
   missing: { key: string; value: string }[]
   /** keys whose values differ, counting those that differ only by quotes */
   differ: number
@@ -155,6 +156,7 @@ export function matchAgainst(draft: string, reference: string): Match {
       if (c.kind === 'removed') extra++
     }
   }
+  missing.sort((a, b) => compareKeys(a.key, b.key))
   const sameKeys = extra === 0 && missing.length === 0
   return {
     byKey,

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues, reapplyEnv } from '../diff'
 import { lintEnv } from '../envlint'
+import { compareKeys } from '../envsort'
 import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, renameLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
@@ -34,7 +35,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const [restoredFrom, setRestoredFrom] = useState('')
   /** the dropped file's name, when the draft came from one */
   const [fromFile, setFromFile] = useState('')
-  /** keys added during this edit, in the order they were added (the editor lists them last) */
+  /** keys added during this edit (the editor lists them last, sorted) */
   const [added, setAdded] = useState<string[]>([])
 
   const fail = (e: unknown) => setError(errText(e))
@@ -239,8 +240,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     /** review an unchanged draft, to save the same value as a new version */
     resave: () => review(true),
     unchanged,
-    /** keys added during this edit that the draft still has, in the order they were added */
-    addedKeys: added.filter((k) => pairKeys(draft).includes(k)),
+    /** keys added during this edit that the draft still has, sorted by key */
+    addedKeys: added.filter((k) => pairKeys(draft).includes(k)).sort(compareKeys),
     /** whether a key in the draft is not in the loaded version */
     isNewKey: (key: string) => !!loaded && !loadedKeys.has(key),
     backToEdit: () => setPhase('editing'),

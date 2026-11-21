@@ -157,8 +157,8 @@ The **Versions** tab lists every saved version, newest first.
 2. Change what you need. For `.env` secrets you can edit values one by one, rename a key (click
    its name, type, press Enter; Esc puts it back), **Remove** a key, or **Add key** (into a
    section of your choice). Keys that weren't in the secret before are tinted and tagged
-   **new**, and the ones you add are listed last, under **New keys**, so you can find them
-   (saving still puts each one where you chose). Long values wrap onto more lines instead of
+   **new**, and the ones you add are listed last, under **New keys**, in A–Z order, so you can
+   find them (saving still puts each one where you chose). Long values wrap onto more lines instead of
    being cut off. Switch to **Raw** to edit the text directly.
 3. Click **Review changes**. You'll see exactly what will change, with warnings for keys set
    twice or left empty.

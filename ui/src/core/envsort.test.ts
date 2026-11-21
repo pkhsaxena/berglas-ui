@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { sortEnv } from './envsort'
+import { compareKeys, sortEnv } from './envsort'
 
 const keys = (s: ReturnType<typeof sortEnv>['sections'][number]) => s.items.map((i) => i.line.key)
 
@@ -48,4 +48,8 @@ test('headerless blocks merge into one group; duplicate keys keep file order', (
   const s = sortEnv('B=1\nA=1\n\nA=2\nC=3\n')
   expect(s.sections).toHaveLength(1)
   expect(s.sections[0].items.map((i) => `${i.line.key}=${i.line.value}`)).toEqual(['A=1', 'A=2', 'B=1', 'C=3'])
+})
+
+test('compareKeys ignores case and puts numbers in number order', () => {
+  expect(['KEY_10', 'b', 'KEY_2', 'A'].sort(compareKeys)).toEqual(['A', 'b', 'KEY_2', 'KEY_10'])
 })
