@@ -344,12 +344,19 @@
       const pasted = norm(dlg().textContent).includes('added 2 · 1 already listed')
       await waitFor(() => norm(dlg().textContent).includes('reachable'), 3000) // each row is checked once typing stops
       const listed = norm(dlg().textContent).includes('reachable')
-      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], 'no-placeholder')
+      // Group names by is the app's own dropdown (no browser datalist): no grouping, the presets, or a pattern of one's own
+      const groupPick = () => dlg().querySelector('[aria-label="source 1 group names by"]')
+      const groupOpts = groupPick() ? (await optionsOf(groupPick())).map((o) => o.label) : []
+      const picker = groupPick()?.getAttribute('role') === 'combobox' && !dlg().querySelector('datalist, input[list]') && groupOpts.some((l) => l.includes('no grouping')) && groupOpts.some((l) => l.includes('{service}-{env}-env')) && groupOpts.some((l) => l.includes('custom pattern'))
+      await choose(groupPick(), '\u0001custom')
+      await idle()
+      setField('source 1 group pattern', 'no-placeholder')
       await idle()
       const nextBtn = () => findButton(['next'], dlg())
       const held = nextBtn()?.disabled === true && norm(dlg().textContent).includes('needs a {placeholder}')
-      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], '{service}-{env}')
+      await choose(groupPick(), '{service}-{env}')
       await idle()
+      const presetPicked = !field('source 1 group pattern') && groupPick()?.dataset.value === '{service}-{env}'
       await press(['next'], dlg())
       setField('protected name pattern', 'setup-*')
       await press(['add'], dlg())
@@ -367,7 +374,7 @@
       await press(['remove setup-bucket-a'])
       await press(['remove setup-project-b'])
       await call('POST', '/api/config', { protect: cfg0.protect, lockAfterMinutes: cfg0.lockAfterMinutes ?? 0 })
-      return [opened && pasted && listed && held && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, bad group holds next ${held}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
+      return [opened && pasted && listed && picker && held && presetPicked && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, group picker is the app's dropdown ${picker}, bad group holds next ${held}, preset picked ${presetPicked}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
     })
     await step('pick a source switches the list', async () => {
       sourceRow('demo-project').click()

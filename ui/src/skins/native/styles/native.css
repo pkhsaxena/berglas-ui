@@ -454,6 +454,9 @@ input[aria-invalid="true"] { border-color: var(--n-bad); }
 .setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
 .setup-grid input { width: 100%; }
+/* Group names by: the app's dropdown, and a field beside it for a pattern of one's own */
+.group-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.setup-grid .group-pick > input { flex: 1 1 22ch; width: auto; }
 .setup-paste { margin-top: 12px; }
 .setup-paste summary { cursor: pointer; color: var(--n-accent); }
 .setup-paste textarea { width: 100%; font: 12.5px/1.6 var(--mono); margin-top: 6px; }

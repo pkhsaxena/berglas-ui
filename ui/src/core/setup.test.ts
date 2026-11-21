@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupFit, parseSourceLines, protectCount, protectError, rowErrors, type SetupRow, suggestGroup, suggestProtect, toSource } from './setup'
+import { CUSTOM_GROUP, GROUP_PRESETS, groupChoice, groupFit, groupOptions, parseSourceLines, protectCount, protectError, rowErrors, type SetupRow, suggestGroup, suggestProtect, toSource } from './setup'
 
 const row = (over: Partial<SetupRow> = {}): SetupRow => ({ key: 0, backend: 'storage', parent: 'a-bucket', label: '', group: '', kmsKey: '', readOnly: false, ...over })
 
@@ -73,5 +73,24 @@ describe('protect suggestions', () => {
     expect(protectError('*-prod-*')).toBe('')
     expect(protectError('[abc')).toMatch(/unclosed/)
     expect(protectError(' ')).toBe('enter a pattern')
+  })
+})
+
+describe('group picker', () => {
+  const names = ['orders-dev-env', 'orders-prod-env', 'billing-dev-env', 'billing-prod-env']
+  it('offers no grouping, the presets with how they fit, and a pattern of your own', () => {
+    const o = groupOptions(names)
+    expect(o.map((x) => x.value)).toEqual(['', ...GROUP_PRESETS, CUSTOM_GROUP])
+    expect(o.find((x) => x.value === '{service}-{env}-env')?.hint).toBe('2 groups · 4 of 4 names')
+    expect(o.find((x) => x.value === '{service}/{env}')?.hint).toBe('no names fit')
+  })
+  it('leaves the fit out until the names are listed', () => {
+    expect(groupOptions([]).find((x) => x.value === '{service}-{env}')?.hint).toBeUndefined()
+  })
+  it('shows a preset as itself, nothing as no grouping, anything else (or a picked Custom) as custom', () => {
+    expect(groupChoice('{service}-{env}', false)).toBe('{service}-{env}')
+    expect(groupChoice('  ', false)).toBe('')
+    expect(groupChoice('{team}.{env}', false)).toBe(CUSTOM_GROUP)
+    expect(groupChoice('', true)).toBe(CUSTOM_GROUP)
   })
 })
