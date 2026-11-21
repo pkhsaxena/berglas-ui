@@ -1,4 +1,5 @@
-import { type ChangeEvent, type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { type ChangeEvent, type KeyboardEvent, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { autoPair as pairEdit } from '../autopair'
 import type { ComboOption } from './useCombo'
 
 /**
@@ -18,10 +19,11 @@ export function suggestShown(options: ComboOption[], value: string): ComboOption
  * is typed is the value; the list (each suggestion with a hint) opens when
  * the field is clicked, typed in, or on ↓, and narrows as it is typed in.
  * ↑↓ move, Enter or a click fills the field with a suggestion (still free to
- * edit), Esc closes the list and keeps the text. Holds no markup; a skin
- * renders it (see the skins' SuggestInput).
+ * edit), Esc closes the list and keeps the text. With `autoPair`, brackets
+ * close themselves (see autopair.ts). Holds no markup; a skin renders it
+ * (see the skins' SuggestInput).
  */
-export function useSuggest({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: ComboOption[] }) {
+export function useSuggest({ value, onChange, options, autoPair }: { value: string; onChange: (value: string) => void; options: ComboOption[]; autoPair?: Record<string, string> }) {
   const [open, setOpen] = useState(false)
   const [index, setIndex] = useState(-1)
   // where the list goes, in viewport pixels: under the field and at least as wide (the list is
@@ -30,6 +32,13 @@ export function useSuggest({ value, onChange, options }: { value: string; onChan
   const rootRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
+  // where the caret goes once a bracket edit has rendered
+  const caret = useRef<number | null>(null)
+  useLayoutEffect(() => {
+    if (caret.current === null || !inputRef.current) return
+    inputRef.current.setSelectionRange(caret.current, caret.current)
+    caret.current = null
+  }, [value])
   const shown = useMemo(() => suggestShown(options, value), [options, value])
   const visible = open && shown.length > 0
 
@@ -90,6 +99,21 @@ export function useSuggest({ value, onChange, options }: { value: string; onChan
       // a click on a suggestion keeps the focus (its mousedown is prevented), so leaving the field means leaving the list
       onBlur: close,
       onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+        if (autoPair && !e.metaKey && !e.ctrlKey && !e.altKey && !e.nativeEvent.isComposing) {
+          const el = e.currentTarget
+          const edit = pairEdit(el.value, el.selectionStart ?? el.value.length, el.selectionEnd ?? el.value.length, e.key, autoPair)
+          if (edit) {
+            e.preventDefault()
+            if (edit.value === el.value) el.setSelectionRange(edit.caret, edit.caret) // stepped over a closing bracket
+            else {
+              caret.current = edit.caret
+              onChange(edit.value)
+              setIndex(-1)
+              if (!open) show()
+            }
+            return
+          }
+        }
         const n = shown.length
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault()

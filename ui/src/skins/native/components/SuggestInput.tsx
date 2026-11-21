@@ -11,11 +11,13 @@ type Props = {
   id?: string
   placeholder?: string
   className?: string
+  /** brackets that close themselves as they are typed (see autopair.ts) */
+  autoPair?: Record<string, string>
 }
 
 /** A text field with suggestions under it, in the dropdowns' style (see useSuggest). */
-export function SuggestInput({ value, onChange, options, ariaLabel, id, placeholder, className }: Props) {
-  const s = useSuggest({ value, onChange, options })
+export function SuggestInput({ value, onChange, options, ariaLabel, id, placeholder, className, autoPair }: Props) {
+  const s = useSuggest({ value, onChange, options, autoPair })
   const popRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   // s.pos is in viewport pixels; under the app's css zoom a fixed box's offsets are scaled, so measure where it landed and rescale once

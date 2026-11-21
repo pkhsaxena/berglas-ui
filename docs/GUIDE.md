@@ -67,8 +67,8 @@ three steps:
    Each one is checked as you type: you'll see **✓ Reachable** and how many secrets it holds, or
    why it couldn't be read. The guide also suggests how the secret names group (for example
    `{service}-{env}-env`, which groups `orders-dev-env` and `orders-prod-env` under *orders*).
-   Type any pattern in **Group names by**, or click it to pick a common one: each suggestion says
-   how well it fits your names.
+   Type any pattern in **Group names by** (a `{` closes itself), or click it to pick a common one:
+   each suggestion says how well it fits your names.
 2. **Safety**: choose which secret names are **protected** (for example `*-prod-*`). The guide
    suggests patterns based on your names and shows how many secrets each would cover. You can
    also choose to lock the app when you're away, and keep an audit log.

@@ -1,6 +1,7 @@
 import type { Backend } from '../../../core/api'
 import { DEFAULT_AUDIT_LOG, LOCK_CHOICES, type Setup as SetupState, type SetupStep } from '../../../core/hooks/useSetup'
 import { groupFit, groupSuggestions, type SetupRow } from '../../../core/setup'
+import { BRACES } from '../../../core/autopair'
 import { ErrorText } from './bits'
 import { Select } from './Select'
 import { SuggestInput } from './SuggestInput'
@@ -139,6 +140,7 @@ function SourcesStep({ s }: { s: SetupState }) {
                 value={r.group}
                 onChange={(v) => s.update(r.key, { group: v })}
                 options={groupSuggestions(s.namesOf(r))}
+                autoPair={BRACES}
               />
               <GroupLine s={s} r={r} />
             </div>
