@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues, reapplyEnv } from '../diff'
 import { lintEnv } from '../envlint'
-import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, setKey, setLineValue } from '../envfile'
+import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, renameLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
 
@@ -106,6 +106,17 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       tryEdit(() => (afterLine === undefined ? setKey(draft, k, value) : insertKeyAfter(draft, afterLine, k, value)))
       return ''
     },
+    /**
+     * Renames the key on line `i`. Returns why not (an invalid name, or one
+     * another line already sets), or '' when renamed.
+     */
+    renameKey: (i: number, key: string): string => {
+      const k = key.trim()
+      if (!isValidKey(k)) return 'keys are letters, digits, _ . - and cannot start with a digit'
+      if (parseEnv(draft).some((l, j) => j !== i && l.kind === 'pair' && l.key === k)) return `${k} already exists`
+      tryEdit(() => renameLine(draft, i, k))
+      return ''
+    },
     /** Sets several keys at once (rewrites existing ones, appends new ones). */
     setKeys: (pairs: { key: string; value: string }[]) => tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft)),
   }
@@ -113,6 +124,9 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const diff: Diff | null = loaded && (phase === 'review' || phase === 'saving' || phase === 'conflict')
     ? diffValues(loaded.text, draft, looksLikeEnv(loaded.text) && looksLikeEnv(draft))
     : null
+
+  /** keys the loaded version has; any other key in the draft is new (added, copied from the pin, or renamed) */
+  const loadedKeys = new Set(loaded ? parseEnv(loaded.text).flatMap((l) => (l.kind === 'pair' ? [l.key] : [])) : [])
 
   /** the draft is exactly the loaded value */
   const unchanged = !!loaded && draft === loaded.text
@@ -202,6 +216,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     /** review an unchanged draft, to save the same value as a new version */
     resave: () => review(true),
     unchanged,
+    /** whether a key in the draft is not in the loaded version */
+    isNewKey: (key: string) => !!loaded && !loadedKeys.has(key),
     backToEdit: () => setPhase('editing'),
     save,
     canReapply,

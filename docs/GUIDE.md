@@ -151,8 +151,10 @@ The **Versions** tab lists every saved version, newest first.
 ### Editing
 
 1. Click **Edit…** (on production secrets it says **Edit production…**).
-2. Change what you need. For `.env` secrets you can edit values one by one, **Remove** a key, or
-   **Add key** (into a section of your choice). Switch to **Raw** to edit the text directly.
+2. Change what you need. For `.env` secrets you can edit values one by one, rename a key (click
+   its name, type, press Enter; Esc puts it back), **Remove** a key, or **Add key** (into a
+   section of your choice). Keys that weren't in the secret before are tinted and tagged
+   **new**. Switch to **Raw** to edit the text directly.
 3. Click **Review changes**. You'll see exactly what will change, with warnings for keys set
    twice or left empty.
 4. Click **Save**. Nothing is written until you do.

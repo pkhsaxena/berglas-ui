@@ -574,6 +574,56 @@
       const freed = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean).every((b) => !b.disabled)
       return [waits && freed && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
     })
+    await step('edit: rename a key in place (Enter applies, Esc puts it back, bad and taken names refused), renamed key marked new; nothing saved', async () => {
+      await openSecret('payments-dev-env')
+      const before = await readSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await idle()
+      const keyField = (k) => field(`name of ${k}`)
+      const key = (el, k) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }))
+      const rowOf = (el) => el?.closest('tr')
+      const errorIn = (el) => norm(rowOf(el)?.querySelector('.key-error')?.textContent)
+      const editable = !!keyField('LOG_LEVEL') && !rowOf(keyField('LOG_LEVEL')).classList.contains('env-new')
+
+      // Enter applies; the renamed key is new to this secret, so it is marked
+      setField(keyField('LOG_LEVEL'), 'LOG_LVL')
+      key(keyField('LOG_LEVEL'), 'Enter')
+      await idle()
+      const renamed = !!keyField('LOG_LVL') && !keyField('LOG_LEVEL')
+      const marked = !!rowOf(keyField('LOG_LVL'))?.classList.contains('env-new') && norm(rowOf(keyField('LOG_LVL'))?.textContent).includes('new')
+
+      // Esc puts the name back
+      setField(keyField('LOG_LVL'), 'SOMETHING_ELSE')
+      key(keyField('LOG_LVL'), 'Escape')
+      await idle()
+      const escBack = keyField('LOG_LVL')?.value === 'LOG_LVL' && !keyField('SOMETHING_ELSE')
+
+      // a bad name is refused with the reason; leaving the field brings the old name back
+      setField(keyField('LOG_LVL'), '1BAD')
+      key(keyField('LOG_LVL'), 'Enter')
+      await idle()
+      const badRefused = keyField('LOG_LVL')?.value === '1BAD' && keyField('LOG_LVL')?.getAttribute('aria-invalid') === 'true' && errorIn(keyField('LOG_LVL')).includes('cannot start with a digit')
+      keyField('LOG_LVL').dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      await idle()
+      const blurBack = keyField('LOG_LVL')?.value === 'LOG_LVL'
+
+      // a name another line already sets is refused
+      setField(keyField('LOG_LVL'), 'DATABASE_URL')
+      key(keyField('LOG_LVL'), 'Enter')
+      await idle()
+      const takenRefused = errorIn(keyField('LOG_LVL')).includes('already exists') && !!keyField('DATABASE_URL') && !!keyField('LOG_LVL')
+      key(keyField('LOG_LVL'), 'Escape')
+      await idle()
+
+      // the review shows the rename; cancel, so nothing is written
+      await press(['review changes'])
+      const review = norm(document.querySelector('.right').textContent)
+      const reviewed = review.includes('log_lvl') && review.includes('log_level')
+      await press(['cancel'])
+      const unchanged = (await readSecret('payments-dev-env')) === before
+      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
+    })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {
       const versions = async () => (await call('GET', '/api/secrets/versions?backend=storage&parent=demo-bucket&name=payments-dev-env')).json?.versions?.length ?? -1
       const before = await versions()

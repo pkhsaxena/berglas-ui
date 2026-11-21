@@ -3,6 +3,7 @@ import { type Ref, refString } from '../../../core/api'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
+import { useKeyInput } from '../../../core/hooks/useKeyInput'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { type Section, sortEnv } from '../../../core/envsort'
 import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
@@ -12,9 +13,22 @@ import { EnvBanner, EnvTag } from './EnvMarks'
 import { DiffView } from './DiffView'
 import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
-import { KeyText } from './KeyText'
 import { PaneTitle } from './PaneTitle'
 import { Select } from './Select'
+
+// a key name, editable in place (see useKeyInput); keys the loaded version doesn't have are marked new
+function KeyInput({ k, rename, isNew }: { k: string; rename: (key: string) => string; isNew: boolean }) {
+  const { inputProps, error } = useKeyInput(k, rename)
+  return (
+    <>
+      <span className="key-edit">
+        <input className="key-input" aria-label={`name of ${k}`} {...inputProps} />
+        {isNew && <span className="new-badge"># new</span>}
+      </span>
+      {error && <div className="t-error small key-error"># {error}</div>}
+    </>
+  )
+}
 
 // a section's id in the picker: its header line, or '-' for the no-section group
 const sectionValue = (x: Section) => (x.header[0]?.raw ?? '-')
@@ -158,9 +172,9 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                       order={envOrder}
                       cols={vs ? 4 : 3}
                       renderPair={(l, i) => (
-                        <tr key={i}>
+                        <tr key={i} className={ed.isNewKey(l.key) ? 'env-new' : undefined}>
                           <td className="t-keyword env-key">
-                            <KeyText k={l.key} />
+                            <KeyInput k={l.key} rename={(key) => ed.edits.renameKey(i, key)} isNew={ed.isNewKey(l.key)} />
                           </td>
                           <td style={{ width: '100%' }}>
                             <input
