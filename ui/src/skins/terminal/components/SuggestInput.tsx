@@ -9,6 +9,7 @@ type Props = {
   /** names the field and its list (screen readers, the self-test) */
   ariaLabel: string
   id?: string
+  /** shown while the field is empty; Tab fills it in */
   placeholder?: string
   className?: string
   /** brackets that close themselves as they are typed (see autopair.ts) */
@@ -17,7 +18,7 @@ type Props = {
 
 /** A text field with suggestions under it, in the dropdowns' style (see useSuggest). */
 export function SuggestInput({ value, onChange, options, ariaLabel, id, placeholder, className, autoPair }: Props) {
-  const s = useSuggest({ value, onChange, options, autoPair })
+  const s = useSuggest({ value, onChange, options, autoPair, placeholder })
   const popRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   // s.pos is in viewport pixels; under the app's css zoom a fixed box's offsets are scaled, so measure where it landed and rescale once

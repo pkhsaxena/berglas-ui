@@ -20,10 +20,11 @@ export function suggestShown(options: ComboOption[], value: string): ComboOption
  * the field is clicked, typed in, or on ↓, and narrows as it is typed in.
  * ↑↓ move, Enter or a click fills the field with a suggestion (still free to
  * edit), Esc closes the list and keeps the text. With `autoPair`, brackets
- * close themselves (see autopair.ts). Holds no markup; a skin renders it
+ * close themselves (see autopair.ts). Tab in an empty field fills it with
+ * the `placeholder` (the cursor stays, so a second Tab moves on). Holds no markup; a skin renders it
  * (see the skins' SuggestInput).
  */
-export function useSuggest({ value, onChange, options, autoPair }: { value: string; onChange: (value: string) => void; options: ComboOption[]; autoPair?: Record<string, string> }) {
+export function useSuggest({ value, onChange, options, autoPair, placeholder }: { value: string; onChange: (value: string) => void; options: ComboOption[]; autoPair?: Record<string, string>; placeholder?: string }) {
   const [open, setOpen] = useState(false)
   const [index, setIndex] = useState(-1)
   // where the list goes, in viewport pixels: under the field and at least as wide (the list is
@@ -132,7 +133,15 @@ export function useSuggest({ value, onChange, options, autoPair }: { value: stri
             e.stopPropagation() // the list, not the dialog around it
             close()
           }
-        } else if (e.key === 'Tab') close()
+        } else if (e.key === 'Tab') {
+          // an empty field takes its placeholder; otherwise Tab moves on as usual
+          if (placeholder && !e.currentTarget.value && !e.shiftKey) {
+            e.preventDefault()
+            caret.current = placeholder.length
+            onChange(placeholder)
+          }
+          close()
+        }
       },
       spellCheck: false,
       autoComplete: 'off',
