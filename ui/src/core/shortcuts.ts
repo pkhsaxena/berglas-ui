@@ -1,6 +1,7 @@
 // The keyboard shortcuts the app has, for the cheat sheet that `?` opens.
 // Keep in step with the handlers: usePalette (⌘K), useSettingsScreen (⌘, and
 // ⌘F inside settings), the skins' `/` and Esc handlers, useShortcuts (`?`),
+// useSidebar (⌘B),
 // and the mac app's menus in core/cmd/berglas-ui-desktop/main.go.
 
 export type Shortcut = { keys: string[]; what: string }
@@ -18,7 +19,8 @@ export function shortcutGroups(mod = modKey()): ShortcutGroup[] {
       items: [
         { keys: [`${mod}K`], what: 'Go to a secret, source or action' },
         { keys: [`${mod},`], what: 'Settings (again to close)' },
-        { keys: ['/'], what: 'Filter the secret list' },
+        { keys: ['/'], what: 'Filter the secret list (shows the side bar)' },
+        { keys: [`${mod}B`], what: 'Hide or show the side bar' },
         { keys: ['?'], what: 'This list of shortcuts' },
         { keys: ['Esc'], what: 'Close a dialog, clear a filter, hide a revealed value' },
       ],

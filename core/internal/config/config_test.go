@@ -215,3 +215,25 @@ func TestApplyIsAllOrNothing(t *testing.T) {
 }
 
 func ptr[T any](v T) *T { return &v }
+
+func TestSidebarCollapsedRoundTrip(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	f, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Get().Settings().SidebarCollapsed {
+		t.Fatal("the side bar starts open")
+	}
+	yes := true
+	if err := f.Apply(Patch{SidebarCollapsed: &yes}); err != nil {
+		t.Fatal(err)
+	}
+	again, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !again.Get().Settings().SidebarCollapsed {
+		t.Fatalf("sidebarCollapsed not kept: %+v", again.Get().Settings())
+	}
+}

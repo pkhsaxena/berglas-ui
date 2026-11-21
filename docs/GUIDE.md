@@ -87,6 +87,9 @@ You can skip the guide and add sources one at a time instead. To bring it back l
 - **The main area** (right): the open secret, with tabs for **Versions**, **Overview**,
   **Matrix** and **Drift**.
 - **The header**: time zone, zoom, theme, skin, and **Settings**.
+- **Hide the side bar** with the button at the left of the header, or **⌘B**, to give the secret
+  the whole window. The same button or **⌘B** brings it back, and **/** shows it and puts you in
+  the filter. The app remembers your choice.
 
 The app comes in two looks, **native** (the default) and **terminal**, each with several themes.
 Switch with **Skin** and **Theme** in the header.
@@ -288,6 +291,7 @@ Press **?** at any time to see them all. The main ones:
 | ⌘K | Jump to a secret, source or action |
 | ⌘, | Settings |
 | / | Filter the secret list |
+| ⌘B | Hide or show the side bar |
 | ? | Show all shortcuts |
 | Esc | Close a dialog, clear a filter, hide a revealed value |
 | ↑ ↓, Enter | Move and pick in lists and menus |

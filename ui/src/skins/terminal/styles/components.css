@@ -59,6 +59,11 @@ main {
 .layout > .left { grid-area: left; }
 .layout > .main-area { grid-area: main; }
 .layout > .side-col { grid-area: side; display: none; }
+/* the side bar hidden (header button, ⌘B): the other columns take its room; the wide and narrow blocks below repeat this for their grids */
+.layout.side-hidden > .left { display: none; }
+.layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+.side-toggle { border: 0; padding: 0 4px 0 0; background: none; color: var(--t-comment); cursor: pointer; }
+.side-toggle:hover { color: var(--t-fg); background: none; }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
 /* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
 .left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); }
@@ -126,10 +131,14 @@ main {
   .layout.comparing > .side-col { display: none; }
   /* pinned | secret | versions */
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+  .layout.side-hidden.has-side { grid-template-columns: minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "side main"; }
+  .layout.side-hidden.has-side.comparing { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
 }
 
 #root[data-width='narrow'] {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
+  .layout.side-hidden { grid-template-areas: "main"; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left > .list-pane { height: min(60vh, 560px); }
   /* the page scrolls here, so other panes take their natural height */

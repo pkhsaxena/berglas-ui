@@ -129,6 +129,11 @@ main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: colum
   grid-template-rows: minmax(0, 1fr); grid-template-areas: "left main";
 }
 .layout > .left { grid-area: left; } .layout > .main-area { grid-area: main; } .layout > .side-col { grid-area: side; display: none; }
+/* the side bar hidden (header button, ⌘B): the other columns take its room; the wide and narrow blocks below repeat this for their grids */
+.layout.side-hidden > .left { display: none; }
+.layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+.side-toggle { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--n-muted); cursor: pointer; }
+.side-toggle:hover { background: var(--n-accent-soft); color: var(--n-fg); }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 12px; }
 /* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
 .left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); background: var(--n-sidebar); border-right: 1px solid var(--n-line); padding: 12px 8px; gap: 6px; }
@@ -181,9 +186,13 @@ main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: colum
   .layout.has-side.comparing { grid-template-columns: minmax(280px, 1fr) minmax(0, 4.9fr); grid-template-areas: "left main"; }
   .layout.comparing > .side-col { display: none; }
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+  .layout.side-hidden.has-side { grid-template-columns: minmax(0, 1.5fr) minmax(0, 3.4fr); grid-template-areas: "side main"; }
+  .layout.side-hidden.has-side.comparing { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
 }
 #root[data-width='narrow'] {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
+  .layout.side-hidden { grid-template-areas: "main"; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left { border-right: 0; border-bottom: 1px solid var(--n-line); }
   .left > .list-pane { height: min(60vh, 560px); }

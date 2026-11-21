@@ -220,6 +220,12 @@ export function useApp() {
     setConfigError('')
     api.setConfig({ recentCollapsed }).catch((e) => setConfigError(`couldn't save the recent list's state — ${errText(e)}`))
   }
+  /** Hides or shows the side bar (sources and the secret list), and saves the choice. */
+  const setSidebarCollapsed = (sidebarCollapsed: boolean) => {
+    setBase((b) => ({ ...b, sidebarCollapsed }))
+    setConfigError('')
+    api.setConfig({ sidebarCollapsed }).catch((e) => setConfigError(`couldn't save the side bar's state — ${errText(e)}`))
+  }
   /** Records an opened secret at the front of the recent list (skipped when it already is first). */
   const noteRecent = (r: Pick<Ref, 'backend' | 'parent' | 'name'>) => {
     const first = base.recent[0]
@@ -248,5 +254,5 @@ export function useApp() {
       .catch((e) => setConfigError(`couldn't switch skin — ${errText(e)}`))
   }
 
-  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, demo, configError, addSource, removeSource, removed: removed?.source ?? null, undoRemove, dismissRemoved: () => setRemoved(null), active, setActive }
+  return { session, retry, saveSettings, favorites: base.favorites, recent: base.recent, watch: base.watch, toggleFavorite, toggleWatch, noteRecent, removeRecent, recentCollapsed: base.recentCollapsed, setRecentCollapsed, sidebarCollapsed: base.sidebarCollapsed, setSidebarCollapsed, identity: base.credentials, setIdentity, identityRev, switching, zoom: base.zoom, setZoom, skin, setSkin, theme, setTheme, setTimeZone, setEnvOrder, settings, sources, configPath, demo, configError, addSource, removeSource, removed: removed?.source ?? null, undoRemove, dismissRemoved: () => setRemoved(null), active, setActive }
 }

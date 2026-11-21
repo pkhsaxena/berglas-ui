@@ -704,6 +704,36 @@
       await openSecret('payments-dev-env') // the conflict step works on this one
       return [quietLeave && asked && kept && askedFromPalette && left, `unchanged editor leaves quietly ${quietLeave}, asked ${asked}, keep keeps the draft ${kept}, ⌘K asks too ${askedFromPalette}, discard leaves and saves nothing ${left}`]
     })
+    await step('side bar: the header button and ⌘B hide and show it, saved; / brings it back', async () => {
+      const left = () => document.querySelector('.layout > .left')
+      const shown = () => vis(left())
+      const mainW = () => document.querySelector('.layout > .main-area').getBoundingClientRect().width
+      const saved = async () => (await call('GET', '/api/config')).json?.sidebarCollapsed
+      const toggle = () => document.querySelector('header .side-toggle')
+      const startW = mainW()
+      const atStart = shown() && toggle()?.getAttribute('aria-label') === 'hide side bar' && (await saved()) === false
+
+      // the header button hides it; the main area takes the room; the choice is saved
+      toggle().click()
+      await idle()
+      const hidden = !shown() && mainW() > startW + 100 && toggle()?.getAttribute('aria-label') === 'show side bar' && (await saved()) === true
+
+      // ⌘B (Ctrl+B) shows it again
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', metaKey: true, bubbles: true, cancelable: true }))
+      await idle()
+      const byKey = shown() && (await saved()) === false
+
+      // the command (⌘K's Hide side bar, the View menu) hides it; / shows it and puts the cursor in the filter
+      window.berglasUI.run('sidebar')
+      await idle()
+      const byCommand = !shown()
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }))
+      await idle()
+      const slash = shown() && !!document.activeElement?.closest('.left') && document.activeElement.tagName === 'INPUT' && (await saved()) === false
+      document.activeElement?.blur()
+      const checks = { 'shown at first': atStart, 'header button hides it, saved': hidden, '⌘B shows it, saved': byKey, 'command hides it': byCommand, '/ shows it and focuses the filter': slash }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
+    })
     await step('shortcuts: ? opens the list (not while typing), Esc closes; ⌘K and the Go menu open it', async () => {
       const sheet = () => document.querySelector('[aria-label="keyboard shortcuts"]')
       const f = field('filter secrets') || document.querySelector('input.list-filter, .secrets-pane input[type=search]')
