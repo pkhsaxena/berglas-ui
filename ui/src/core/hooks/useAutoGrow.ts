@@ -7,10 +7,11 @@ function fit(el: HTMLTextAreaElement) {
 }
 
 /**
- * A textarea that grows with its text instead of scrolling or cutting it
- * off, for the editor's values: a long value wraps onto more lines and the
- * field gets taller. It fits again when the value changes and when the
- * field's width does (a resized window, a zoom, the side bar hidden).
+ * A textarea that grows with its text instead of cutting it off, for the
+ * editor's values: a long value wraps onto more lines and the field gets
+ * taller, up to the skin's max-height (3 lines), past which the value
+ * scrolls inside the field. It fits again when the value changes and when
+ * the field's width does (a resized window, a zoom, the side bar hidden).
  */
 export function useAutoGrow(value: string) {
   const ref = useRef<HTMLTextAreaElement>(null)

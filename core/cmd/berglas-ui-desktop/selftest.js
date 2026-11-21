@@ -635,12 +635,18 @@
       key(keyField('LOG_LVL'), 'Escape')
       await idle()
 
-      // a long value wraps onto more lines instead of being cut off; Enter adds no line break
+      // a long value wraps onto more lines instead of being cut off, up to 3 lines, then scrolls inside; Enter adds no line break
       const vf = field('value of DATABASE_URL')
-      const h1 = vf?.offsetHeight ?? 0
-      setField(vf, 'x'.repeat(240) + 'END')
+      const css = getComputedStyle(vf)
+      const lineH = parseFloat(css.lineHeight)
+      const frame = vf.offsetHeight - vf.clientHeight + parseFloat(css.paddingTop) + parseFloat(css.paddingBottom)
+      setField(vf, 'x'.repeat(60))
       await idle()
-      const wraps = vf.offsetHeight > h1 && vf.scrollHeight <= vf.clientHeight + 1 && vf.scrollWidth <= vf.clientWidth + 1
+      const h1 = vf.offsetHeight
+      setField(vf, 'x'.repeat(600) + 'END')
+      await idle()
+      const capped = vf.offsetHeight <= 3 * lineH + frame + 1 && vf.offsetHeight >= 3 * lineH + frame - 1
+      const wraps = vf.offsetHeight > h1 && capped && vf.scrollHeight > vf.clientHeight && css.overflowY === 'auto' && vf.scrollWidth <= vf.clientWidth + 1
       const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
       vf.dispatchEvent(enter)
       const noBreak = enter.defaultPrevented && !vf.value.includes('\n')
@@ -660,7 +666,7 @@
       const reviewed = review.includes('log_lvl') && review.includes('log_level')
       await press(['cancel'])
       const unchanged = (await readSecret('payments-dev-env')) === before
-      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps': wraps, 'enter adds no line break': noBreak, 'new keys sorted': newSorted, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps, capped at 3 lines': wraps, 'enter adds no line break': noBreak, 'new keys sorted': newSorted, 'review shows the rename': reviewed, 'nothing written': unchanged }
       return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {
