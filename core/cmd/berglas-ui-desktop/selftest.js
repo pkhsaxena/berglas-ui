@@ -635,13 +635,23 @@
       key(keyField('LOG_LVL'), 'Escape')
       await idle()
 
+      // a long value wraps onto more lines instead of being cut off; Enter adds no line break
+      const vf = field('value of DATABASE_URL')
+      const h1 = vf?.offsetHeight ?? 0
+      setField(vf, 'x'.repeat(240) + 'END')
+      await idle()
+      const wraps = vf.offsetHeight > h1 && vf.scrollHeight <= vf.clientHeight + 1 && vf.scrollWidth <= vf.clientWidth + 1
+      const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      vf.dispatchEvent(enter)
+      const noBreak = enter.defaultPrevented && !vf.value.includes('\n')
+
       // the review shows the rename; cancel, so nothing is written
       await press(['review changes'])
       const review = norm(document.querySelector('.right').textContent)
       const reviewed = review.includes('log_lvl') && review.includes('log_level')
       await press(['cancel'])
       const unchanged = (await readSecret('payments-dev-env')) === before
-      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps': wraps, 'enter adds no line break': noBreak, 'review shows the rename': reviewed, 'nothing written': unchanged }
       return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {
@@ -980,7 +990,7 @@
       await idle()
       const buttonReview = reviewing()
       await press(['back to edit'])
-      const draft = [...document.querySelectorAll('input')].some((i) => i.value === 'https://dropped.example')
+      const draft = [...document.querySelectorAll('input, textarea')].some((i) => i.value === 'https://dropped.example')
       await press(['cancel'])
 
       // the same value as now: the editor says nothing changed instead of a review

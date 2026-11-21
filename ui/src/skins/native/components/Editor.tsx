@@ -6,6 +6,7 @@ import { type Section, sortEnv } from '../../../core/envsort'
 import type { EnvTone } from '../../../core/envtone'
 import type { useEditor } from '../../../core/hooks/useEditor'
 import { useKeyInput } from '../../../core/hooks/useKeyInput'
+import { useAutoGrow } from '../../../core/hooks/useAutoGrow'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
 import { ConfirmName, EnvBadge, EnvBanner, EnvPair, ErrorText, PaneHead } from './bits'
@@ -13,6 +14,24 @@ import { DiffView } from './DiffView'
 import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
 import { Select } from './Select'
+
+// a value, wrapping onto more lines as it grows instead of being cut off (see useAutoGrow); Enter adds no line break, since values can't span lines
+function ValueField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const ref = useAutoGrow(value)
+  return (
+    <textarea
+      ref={ref}
+      className="value-field"
+      rows={1}
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+      spellCheck={false}
+      autoComplete="off"
+    />
+  )
+}
 
 // a key name, editable in place (see useKeyInput); keys the loaded version doesn't have are marked new
 function KeyInput({ k, rename, isNew }: { k: string; rename: (key: string) => string; isNew: boolean }) {
@@ -178,7 +197,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
                             <KeyInput k={l.key} rename={(key) => ed.edits.renameKey(i, key)} isNew={ed.isNewKey(l.key)} />
                           </td>
                           <td className="input-cell" style={{ width: '100%' }}>
-                            <input aria-label={`value of ${l.key}`} value={l.value} onChange={(e) => ed.edits.setLineValue(i, e.target.value)} spellCheck={false} autoComplete="off" />
+                            <ValueField label={`value of ${l.key}`} value={l.value} onChange={(v) => ed.edits.setLineValue(i, v)} />
                           </td>
                           {vs && <td className="marks">{pinMark(vs.byKey.get(l.key), i)}</td>}
                           <td>
