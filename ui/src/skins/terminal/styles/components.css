@@ -476,9 +476,10 @@ input[aria-invalid="true"] { border-color: var(--t-error); }
 .setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
 .setup-grid input { width: 100%; }
-/* Group names by: the app's dropdown, and a field beside it for a pattern of one's own */
-.group-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.setup-grid .group-pick > input { flex: 1 1 22ch; width: auto; }
+/* a text field with suggestions under it (SuggestInput; the list is the dropdowns' .combo-pop) */
+.suggest { display: inline-flex; min-width: 0; }
+.setup-grid .suggest { display: flex; }
+.suggest-pop ul { padding-top: 2px; }
 .setup-paste { margin-top: 10px; }
 .setup-paste summary { cursor: pointer; color: var(--t-prompt); }
 .setup-paste textarea { width: 100%; margin-top: 4px; }

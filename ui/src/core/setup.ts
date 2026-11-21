@@ -104,33 +104,18 @@ export function groupFit(pattern: string, names: string[]): GroupFit {
   return { pattern, matched, total: names.length, groups: [...groups].sort(), envs: [...envs].sort() }
 }
 
-/** The setup guide's group picker value for "a pattern of my own". */
-export const CUSTOM_GROUP = '\u0001custom'
-
 /**
- * The setup guide's "Group names by" choices: no grouping, each preset (with
- * how it would group this source's names, once they are listed), and a
- * pattern of the user's own.
+ * The setup guide's suggestions under "Group names by": no grouping, and
+ * each preset with how it would group this source's names, once they are
+ * listed. The field itself takes any pattern.
  */
-export function groupOptions(names: string[]): { value: string; label: string; hint?: string }[] {
+export function groupSuggestions(names: string[]): { value: string; label: string; hint?: string }[] {
   const fit = (p: string) => {
     if (!names.length) return undefined
     const f = groupFit(p, names)
     return f.groups.length ? `${f.groups.length} group${f.groups.length === 1 ? '' : 's'} · ${f.matched} of ${f.total} names` : 'no names fit'
   }
-  return [
-    { value: '', label: 'No grouping', hint: 'one flat list' },
-    ...GROUP_PRESETS.map((p) => ({ value: p, label: p, hint: fit(p) })),
-    { value: CUSTOM_GROUP, label: 'Custom pattern…', hint: 'type your own' },
-  ]
-}
-
-/** What the picker shows for a row: its preset, '' for none, CUSTOM_GROUP for any other pattern (or once the user picked Custom). */
-export function groupChoice(group: string, custom: boolean): string {
-  const g = group.trim()
-  if (custom) return CUSTOM_GROUP
-  if (g === '') return ''
-  return (GROUP_PRESETS as readonly string[]).includes(g) ? g : CUSTOM_GROUP
+  return [{ value: '', label: 'No grouping', hint: 'one flat list' }, ...GROUP_PRESETS.map((p) => ({ value: p, label: p, hint: fit(p) }))]
 }
 
 /**

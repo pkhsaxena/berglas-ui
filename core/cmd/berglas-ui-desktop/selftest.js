@@ -344,19 +344,46 @@
       const pasted = norm(dlg().textContent).includes('added 2 · 1 already listed')
       await waitFor(() => norm(dlg().textContent).includes('reachable'), 3000) // each row is checked once typing stops
       const listed = norm(dlg().textContent).includes('reachable')
-      // Group names by is the app's own dropdown (no browser datalist): no grouping, the presets, or a pattern of one's own
-      const groupPick = () => dlg().querySelector('[aria-label="source 1 group names by"]')
-      const groupOpts = groupPick() ? (await optionsOf(groupPick())).map((o) => o.label) : []
-      const picker = groupPick()?.getAttribute('role') === 'combobox' && !dlg().querySelector('datalist, input[list]') && groupOpts.some((l) => l.includes('no grouping')) && groupOpts.some((l) => l.includes('{service}-{env}-env')) && groupOpts.some((l) => l.includes('custom pattern'))
-      await choose(groupPick(), '\u0001custom')
+      // Group names by is a text field with suggestions under it in the dropdowns' style (no browser datalist)
+      const groupField = () => dlg().querySelector('[aria-label="source 1 group names by"]')
+      const sugList = () => document.getElementById(groupField().getAttribute('aria-controls'))
+      const sugLabels = () => [...(sugList()?.querySelectorAll('[role=option]') ?? [])].map((o) => norm(o.textContent))
+      const gkey = (k) => groupField().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }))
+      const isField = groupField()?.tagName === 'INPUT' && groupField().getAttribute('role') === 'combobox' && !dlg().querySelector('datalist, input[list]')
+      setField(groupField(), '')
+      groupField().click()
       await idle()
-      setField('source 1 group pattern', 'no-placeholder')
+      const offered = sugLabels().some((l) => l.includes('no grouping')) && sugLabels().some((l) => l.includes('{service}-{env}-env'))
+      // typing narrows the list; a pattern nothing matches hides it, and is kept as typed
+      setField(groupField(), '_')
       await idle()
+      const narrowed = sugLabels().length === 1 && sugLabels()[0].includes('{service}_{env}')
+      setField(groupField(), 'no-placeholder')
+      await idle()
+      const ownKept = groupField().value === 'no-placeholder' && groupField().getAttribute('aria-expanded') === 'false'
       const nextBtn = () => findButton(['next'], dlg())
       const held = nextBtn()?.disabled === true && norm(dlg().textContent).includes('needs a {placeholder}')
-      await choose(groupPick(), '{service}-{env}')
+      // ↓ ↓ Enter fills the field with the second suggestion; Esc closes the list but keeps the text and the dialog
+      setField(groupField(), '')
       await idle()
-      const presetPicked = !field('source 1 group pattern') && groupPick()?.dataset.value === '{service}-{env}'
+      gkey('ArrowDown')
+      gkey('ArrowDown')
+      await idle()
+      gkey('Enter')
+      await idle()
+      const byKeys = groupField().value === '{service}-{env}-env' && groupField().getAttribute('aria-expanded') === 'false'
+      groupField().click()
+      await idle()
+      gkey('Escape')
+      await idle()
+      const escKeeps = !!dlg() && groupField().value === '{service}-{env}-env' && groupField().getAttribute('aria-expanded') === 'false'
+      // a click on a suggestion fills it too
+      groupField().click()
+      await idle()
+      sugList()?.querySelector('[data-value="{service}-{env}"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await idle()
+      const presetPicked = groupField().value === '{service}-{env}'
+      const picker = isField && offered && narrowed && ownKept && byKeys && escKeeps
       await press(['next'], dlg())
       setField('protected name pattern', 'setup-*')
       await press(['add'], dlg())
@@ -374,7 +401,7 @@
       await press(['remove setup-bucket-a'])
       await press(['remove setup-project-b'])
       await call('POST', '/api/config', { protect: cfg0.protect, lockAfterMinutes: cfg0.lockAfterMinutes ?? 0 })
-      return [opened && pasted && listed && picker && held && presetPicked && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, group picker is the app's dropdown ${picker}, bad group holds next ${held}, preset picked ${presetPicked}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
+      return [opened && pasted && listed && picker && held && presetPicked && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, group field with suggestions (offered, narrows, own pattern kept, ↓↓ Enter, Esc keeps) ${isField}/${offered}/${narrowed}/${ownKept}/${byKeys}/${escKeeps}, bad group holds next ${held}, preset picked ${presetPicked}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
     })
     await step('pick a source switches the list', async () => {
       sourceRow('demo-project').click()

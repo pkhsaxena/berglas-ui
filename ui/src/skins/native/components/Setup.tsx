@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import type { Backend } from '../../../core/api'
 import { DEFAULT_AUDIT_LOG, LOCK_CHOICES, type Setup as SetupState, type SetupStep } from '../../../core/hooks/useSetup'
-import { CUSTOM_GROUP, groupChoice, groupFit, groupOptions, type SetupRow } from '../../../core/setup'
+import { groupFit, groupSuggestions, type SetupRow } from '../../../core/setup'
 import { ErrorText } from './bits'
 import { Select } from './Select'
+import { SuggestInput } from './SuggestInput'
 import { Switch } from './Settings'
 
 const STEPS: { id: SetupStep; title: string }[] = [
@@ -103,13 +103,6 @@ function GroupLine({ s, r }: { s: SetupState; r: SetupRow }) {
 }
 
 function SourcesStep({ s }: { s: SetupState }) {
-  // rows where the user picked Custom pattern…, so the field stays open while it is empty or matches a preset
-  const [custom, setCustom] = useState<Record<string, boolean>>({})
-  const pickGroup = (r: SetupRow, v: string) => {
-    const own = v === CUSTOM_GROUP
-    setCustom((c) => ({ ...c, [r.key]: own }))
-    if (!own) s.update(r.key, { group: v })
-  }
   return (
     <>
       <p className="setup-intro">
@@ -139,21 +132,14 @@ function SourcesStep({ s }: { s: SetupState }) {
           <div className="setup-grid">
             <label htmlFor={`setup-group-${r.key}`}>Group names by</label>
             <div>
-              <span className="group-pick">
-                <Select ariaLabel={`source ${i + 1} group names by`} value={groupChoice(r.group, !!custom[r.key])} options={groupOptions(s.namesOf(r))} onChange={(v) => pickGroup(r, v)} />
-                {groupChoice(r.group, !!custom[r.key]) === CUSTOM_GROUP && (
-                  <input
-                    id={`setup-group-${r.key}`}
-                    aria-label={`source ${i + 1} group pattern`}
-                    placeholder="{service}-{env}-env"
-                    value={r.group}
-                    onChange={(e) => s.update(r.key, { group: e.target.value })}
-                    autoComplete="off"
-                    spellCheck={false}
-                    autoFocus={!!custom[r.key]}
-                  />
-                )}
-              </span>
+              <SuggestInput
+                id={`setup-group-${r.key}`}
+                ariaLabel={`source ${i + 1} group names by`}
+                placeholder="{service}-{env}-env"
+                value={r.group}
+                onChange={(v) => s.update(r.key, { group: v })}
+                options={groupSuggestions(s.namesOf(r))}
+              />
               <GroupLine s={s} r={r} />
             </div>
             {r.backend === 'storage' && (
