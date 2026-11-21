@@ -177,9 +177,12 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
           <div className="t-keyword">only in pinned {pinName}</div>
           <ul className="clean">
             {vs.missing.filter((m) => matchesQuery(m.key, m.value, query)).map((m) => (
-              <li key={m.key} className="kv">
-                <span className="t-keyword">{m.key}</span>
-                <span className="t-string">{m.value}</span>
+              <li key={m.key}>
+                <span style={{ overflowWrap: 'anywhere' }}>
+                  <span className="t-keyword">{m.key}</span>
+                  <span className="t-comment">=</span>
+                  <span className="t-string">{m.value}</span>
+                </span>
               </li>
             ))}
           </ul>

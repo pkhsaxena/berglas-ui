@@ -194,6 +194,11 @@ input.key-input[aria-invalid] { border-color: var(--t-error); }
 tr.env-new > td { background: color-mix(in srgb, var(--t-function) 12%, transparent); }
 tr.env-new > td:first-child { box-shadow: inset 2px 0 var(--t-function); }
 .new-badge { color: var(--t-function); white-space: nowrap; }
+/* only in pinned, in the editor: KEY=value on the left (wrapping when long), its Add on the right; Add all over that column */
+.pin-missing-head { margin: 0; justify-content: space-between; }
+.pin-missing li { display: flex; align-items: baseline; gap: 12px; }
+.pin-missing li > :first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pin-missing li > button { flex: none; margin-left: auto; }
 /* a section header comment in a sorted .env table */
 td.section-head { padding-top: 10px; }
 /* .env key cells: as narrow as the key, but at most ~28 characters or 40% of the table; longer

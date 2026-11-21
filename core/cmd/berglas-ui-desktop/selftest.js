@@ -497,7 +497,20 @@
         await idle()
         if (used > 20) break
       }
+      // only in pinned: each KEY=value with the key, the = and the value in their own colours
+      const onlyPinned = [...document.querySelectorAll('.right .section')].find((x) => norm(x.textContent).startsWith('only in pinned'))
+      const missing = [...(onlyPinned?.querySelectorAll('li') ?? [])]
+      const coloured =
+        missing.length > 0 &&
+        missing.every((li) => {
+          const [k, eq, v] = li.querySelectorAll('span > span')
+          return !!(k && eq && v) && eq.textContent === '=' && getComputedStyle(k).color !== getComputedStyle(v).color && getComputedStyle(eq).color !== getComputedStyle(k).color
+        })
+      const newBefore = document.querySelectorAll('.right tr.env-new').length
       await press(['add all*'])
+      // the added keys are new to this secret, so their rows are marked
+      const newRows = [...document.querySelectorAll('.right tr.env-new')]
+      const addedMarked = newBefore === 0 && newRows.length === missing.length && newRows.every((r) => norm(r.textContent).includes('new'))
       const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
       await press(['review changes'])
       // not just 'save*': the pinned pane, still on screen, has its own "save to file…"
@@ -513,7 +526,7 @@
       await idle()
       const v = (await readSecret('payments-prod-env')) || ''
       await press(['unpin'])
-      return [used > 0 && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
+      return [used > 0 && coloured && addedMarked && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, only-in-pinned coloured ${coloured} (${missing.length}), added keys marked new ${addedMarked} (${newRows.length}), matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
     })
     await step('pin without revealing; compare shows only the diff; pinned pane like a secret pane', async () => {
       const masked = (sel) => !!pane(sel)?.querySelector('[aria-label="value hidden"]')

@@ -20,6 +20,17 @@ export function PaneHead({ title, tabs, wideTabs, actions }: { title: ReactNode;
 }
 
 /** A .env key that may wrap after "_", "." or "-" (see td.env-key in the css). */
+/** KEY=value coloured like the keys table: the key as a key, the = dimmed, the value as a value. */
+export function EnvPair({ k, v }: { k: string; v: string }) {
+  return (
+    <span className="env-pair">
+      <span className="env-pair-key">{k}</span>
+      <span className="env-pair-eq">=</span>
+      <span className="env-pair-val">{v}</span>
+    </span>
+  )
+}
+
 export function KeyText({ k }: { k: string }) {
   const parts = k.split(/(?<=[_.-])/)
   return (

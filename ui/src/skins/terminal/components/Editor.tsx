@@ -199,17 +199,19 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                 </div>
                 {vs && vs.missing.length > 0 && (
                   <div className="section">
-                    <div className="row" style={{ margin: 0 }}>
+                    <div className="row pin-missing-head">
                       <span className="t-keyword">only in pinned</span>
                       <button className="link" onClick={() => ed.edits.setKeys(vs.missing)}>
                         add all {vs.missing.length}
                       </button>
                     </div>
-                    <ul className="clean">
+                    <ul className="clean pin-missing">
                       {vs.missing.map((m) => (
-                        <li key={m.key} className="kv">
+                        <li key={m.key}>
                           <span>
-                            <span className="t-keyword">{m.key}</span> <span className="t-string">{m.value}</span>
+                            <span className="t-keyword">{m.key}</span>
+                            <span className="t-comment">=</span>
+                            <span className="t-string">{m.value}</span>
                           </span>
                           <button className="link" onClick={() => ed.edits.setKeys([m])} aria-label={`add ${m.key} from pinned`}>
                             add

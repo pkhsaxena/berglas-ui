@@ -8,7 +8,7 @@ import type { useEditor } from '../../../core/hooks/useEditor'
 import { useKeyInput } from '../../../core/hooks/useKeyInput'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
-import { ConfirmName, EnvBadge, EnvBanner, ErrorText, PaneHead } from './bits'
+import { ConfirmName, EnvBadge, EnvBanner, EnvPair, ErrorText, PaneHead } from './bits'
 import { DiffView } from './DiffView'
 import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
@@ -192,19 +192,17 @@ export function Editor({ base, ed, pinned, titleTabs, tone }: Props) {
                 </div>
                 {vs && vs.missing.length > 0 && (
                   <div className="section">
-                    <div className="row" style={{ margin: 0 }}>
+                    <div className="row pin-missing-head">
                       <h3 style={{ margin: 0 }}>Only in pinned</h3>
                       <button className="link" onClick={() => ed.edits.setKeys(vs.missing)}>
                         Add all {vs.missing.length}
                       </button>
                     </div>
-                    <ul className="clean">
+                    <ul className="clean pin-missing">
                       {vs.missing.map((m) => (
-                        <li key={m.key} className="kv">
-                          <span className="mono">
-                            {m.key}={m.value}
-                          </span>
-                          <button className="link" style={{ justifySelf: 'start' }} onClick={() => ed.edits.setKeys([m])} aria-label={`add ${m.key} from pinned`}>
+                        <li key={m.key}>
+                          <EnvPair k={m.key} v={m.value} />
+                          <button className="link" onClick={() => ed.edits.setKeys([m])} aria-label={`add ${m.key} from pinned`}>
                             Add
                           </button>
                         </li>
