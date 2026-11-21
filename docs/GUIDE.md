@@ -252,7 +252,7 @@ Open it from the **Drift** tab, or **Compare keys** on a matrix row.
 - **Read-only**: a source, or the whole app, can refuse all changes.
 - **Review before every save**, and saves never overwrite someone else's newer change.
 - **Drift never shows values**: it compares keys without decrypting anything into view.
-- **Lock (Mac app)**: lock the app from **Go → Lock** (⇧⌘L), or have it lock itself after a while
+- **Lock (Mac app)**: lock the app with **⌘L** (or **Go → Lock**), or have it lock itself after a while
   without use. Unlocking asks for Touch ID or your password. A half-finished edit is kept.
 - **Hidden from screen sharing (Mac app)**: the window doesn't appear in screenshots, recordings
   or screen shares, unless you allow it in Settings.
@@ -296,7 +296,7 @@ Press **?** at any time to see them all. The main ones:
 | Esc | Close a dialog, clear a filter, hide a revealed value |
 | ↑ ↓, Enter | Move and pick in lists and menus |
 | ⌘F, ⌘G | Find in the window, next match (Mac app) |
-| ⇧⌘L | Lock (Mac app) |
+| ⌘L | Lock (Mac app) |
 | ⌘= ⌘− ⌘0 | Zoom in, out, actual size (Mac app) |
 
 On Windows and Linux, use Ctrl instead of ⌘.

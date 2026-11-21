@@ -389,7 +389,7 @@ func appMenu(sh *shell) *menu.Menu {
 	goMenu.AddText("Set Up Sources…", nil, run("setup"))
 	goMenu.AddText("Keyboard Shortcuts", nil, run("shortcuts"))
 	goMenu.AddSeparator()
-	goMenu.AddText("Lock", keys.Combo("l", keys.CmdOrCtrlKey, keys.ShiftKey), run("lock"))
+	goMenu.AddText("Lock", keys.CmdOrCtrl("l"), run("lock"))
 	view := m.AddSubmenu("View")
 	// the side bar: sources and the secret list (core/hooks/useSidebar.ts)
 	view.AddText("Hide or Show Side Bar", keys.CmdOrCtrl("b"), run("sidebar"))

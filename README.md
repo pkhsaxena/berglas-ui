@@ -265,7 +265,7 @@ Finder. Building it: [releases](#releases).
   clipboard back. `mailto:` and `http(s)` links open in your mail app or browser; other schemes
   are refused.
 - **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Set Up Sources…; Keyboard Shortcuts; Lock ⇧⌘L); View (hide or show the side bar ⌘B; zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
+  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Set Up Sources…; Keyboard Shortcuts; Lock ⌘L); View (hide or show the side bar ⌘B; zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
   reload ⌘R, full screen); Window.
 - **lock:** Go → Lock, **Lock now** in ⌘K, or `lockAfterMinutes`. Unlocking asks for Touch ID
   (or the login password). An open editor keeps its draft under the lock.

@@ -1119,7 +1119,14 @@
       await idle()
       const after = Number((await fetch('/__selftest/authed').then((r) => r.text())) || 0)
       const unlocked = !document.querySelector('.lock-screen') && getComputedStyle(document.querySelector('header')).visibility === 'visible'
-      return [screen && hidden && after === before + 1 && unlocked, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}`]
+      // ⌘L (Ctrl+L) locks from the page as well
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', metaKey: true, bubbles: true, cancelable: true }))
+      await idle()
+      const byKey = vis(document.querySelector('.lock-screen'))
+      if (byKey) await press(['unlock with touch id…', 'unlock'])
+      await idle()
+      const unlockedAgain = !document.querySelector('.lock-screen')
+      return [screen && hidden && after === before + 1 && unlocked && byKey && unlockedAgain, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}, ⌘L locks ${byKey}, unlocked again ${unlockedAgain}`]
     })
 
     await step('settings: ⌘, opens it; search; an ordinary setting saves at once; safety settings save together after one confirmation', async () => {

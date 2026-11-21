@@ -9,7 +9,7 @@ describe('shortcuts', () => {
   it('lists the palette, settings, filter and this sheet, and marks menu-only keys', () => {
     const g = shortcutGroups('⌘')
     const keys = g.flatMap((x) => x.items.flatMap((i) => i.keys))
-    for (const k of ['⌘K', '⌘,', '/', '?', 'Esc', '⇧⌘L', '⌘B']) expect(keys).toContain(k)
-    expect(g.find((x) => x.items.some((i) => i.keys.includes('⇧⌘L')))?.desktopOnly).toBe(true)
+    for (const k of ['⌘K', '⌘,', '/', '?', 'Esc', '⌘L', '⌘B']) expect(keys).toContain(k)
+    expect(g.find((x) => x.items.some((i) => i.keys.includes('⌘L')))?.desktopOnly).toBe(true)
   })
 })
