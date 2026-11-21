@@ -170,6 +170,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                     <EnvRows
                       text={ed.draft}
                       order={envOrder}
+                      tail={ed.addedKeys}
                       cols={vs ? 4 : 3}
                       renderPair={(l, i) => (
                         <tr key={i} className={ed.isNewKey(l.key) ? 'env-new' : undefined}>

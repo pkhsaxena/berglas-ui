@@ -511,6 +511,10 @@
       // the added keys are new to this secret, so their rows are marked
       const newRows = [...document.querySelectorAll('.right tr.env-new')]
       const addedMarked = newBefore === 0 && newRows.length === missing.length && newRows.every((r) => norm(r.textContent).includes('new'))
+      // and listed last, in the order they were added
+      const missingKeys = missing.map((li) => li.querySelector('span > span')?.textContent)
+      const lastKeys = [...document.querySelectorAll('.right tbody tr')].slice(-missingKeys.length).map((r) => r.querySelector('input.key-input')?.value)
+      const addedLast = missingKeys.length > 0 && JSON.stringify(lastKeys) === JSON.stringify(missingKeys)
       const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
       await press(['review changes'])
       // not just 'save*': the pinned pane, still on screen, has its own "save to file…"
@@ -526,7 +530,7 @@
       await idle()
       const v = (await readSecret('payments-prod-env')) || ''
       await press(['unpin'])
-      return [used > 0 && coloured && addedMarked && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, only-in-pinned coloured ${coloured} (${missing.length}), added keys marked new ${addedMarked} (${newRows.length}), matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
+      return [used > 0 && coloured && addedMarked && addedLast && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, only-in-pinned coloured ${coloured} (${missing.length}), added keys marked new ${addedMarked} (${newRows.length}), listed last ${addedLast}, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
     })
     await step('pin without revealing; compare shows only the diff; pinned pane like a secret pane', async () => {
       const masked = (sel) => !!pane(sel)?.querySelector('[aria-label="value hidden"]')
@@ -580,12 +584,15 @@
       const secOpts = sec ? await optionsOf(sec) : []
       if (secOpts.length > 1) await choose(field('section for the new key'), secOpts[1].value)
       await press(['add key'])
+      // the added key leaves its section in the table and is listed last, under New keys
+      const rows = [...document.querySelectorAll('.right tbody tr')]
+      const addedLast = rows.at(-1)?.querySelector('input.key-input')?.value === 'SELFTEST_FLAG' && norm(rows.at(-2)?.textContent) === (norm(rows.at(-2)?.textContent).startsWith('#') ? '# new keys' : 'new keys')
       await press(['review changes'])
       await press(['save*'])
       await idle()
       const v = (await readSecret('payments-dev-env')) || ''
       const freed = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean).every((b) => !b.disabled)
-      return [waits && freed && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
+      return [waits && freed && addedLast && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, added key listed last ${addedLast}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
     })
     await step('edit: rename a key in place (Enter applies, Esc puts it back, bad and taken names refused), renamed key marked new; nothing saved', async () => {
       await openSecret('payments-dev-env')
