@@ -51,6 +51,22 @@
   document.querySelector('.rowbtn[aria-label="payments-prod-env"]')?.click()
   await wait(600)
   checks.push(...measure('pinned + other open'))
+  // the side bar hidden (⌘B): the main area takes its room and the page still fits, at normal size and zoomed out
+  const sideGone = (label) => {
+    const left = document.querySelector('.layout > .left')
+    const main = document.querySelector('.layout > .main-area')
+    const x = Math.round(main?.getBoundingClientRect().left ?? -1)
+    return { name: `${label}: the main area takes the side bar's room`, ok: !!left && getComputedStyle(left).display === 'none' && x >= 0 && x < 40, detail: `side bar ${left ? getComputedStyle(left).display : 'missing'}, main area starts at x ${x}` }
+  }
+  window.berglasUI.run('sidebar')
+  await wait(400)
+  checks.push(sideGone('side bar hidden'), ...measure('side bar hidden'))
+  for (let i = 0; i < 5; i++) window.berglasUI.run('zoomOut')
+  await wait(500)
+  checks.push(sideGone('side bar hidden, zoomed out'), ...measure('side bar hidden, zoomed out'))
+  window.berglasUI.run('zoomReset')
+  window.berglasUI.run('sidebar')
+  await wait(400)
   checks.push({ name: 'html/body overflow and overscroll', ok: true, detail: `html ${cs(document.documentElement).overflow}/${cs(document.documentElement).overscrollBehavior}, body ${cs(document.body).overflow}/${cs(document.body).overscrollBehavior}` })
   // a pane in a fit-content row keeps to its content when the window changes
   // width: narrow wraps the sources pane's text taller, and enlarging the

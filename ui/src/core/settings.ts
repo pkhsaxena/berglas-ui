@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   favorites: [],
   recent: [],
   recentCollapsed: false,
+  sidebarCollapsed: false,
   watch: [],
   watchMinutes: 5,
   allowScreenCapture: false,

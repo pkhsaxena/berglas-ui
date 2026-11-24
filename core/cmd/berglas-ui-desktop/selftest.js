@@ -344,12 +344,46 @@
       const pasted = norm(dlg().textContent).includes('added 2 · 1 already listed')
       await waitFor(() => norm(dlg().textContent).includes('reachable'), 3000) // each row is checked once typing stops
       const listed = norm(dlg().textContent).includes('reachable')
-      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], 'no-placeholder')
+      // Group names by is a text field with suggestions under it in the dropdowns' style (no browser datalist)
+      const groupField = () => dlg().querySelector('[aria-label="source 1 group names by"]')
+      const sugList = () => document.getElementById(groupField().getAttribute('aria-controls'))
+      const sugLabels = () => [...(sugList()?.querySelectorAll('[role=option]') ?? [])].map((o) => norm(o.textContent))
+      const gkey = (k) => groupField().dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }))
+      const isField = groupField()?.tagName === 'INPUT' && groupField().getAttribute('role') === 'combobox' && !dlg().querySelector('datalist, input[list]')
+      setField(groupField(), '')
+      groupField().click()
       await idle()
+      const offered = sugLabels().some((l) => l.includes('no grouping')) && sugLabels().some((l) => l.includes('{service}-{env}-env'))
+      // typing narrows the list; a pattern nothing matches hides it, and is kept as typed
+      setField(groupField(), '_')
+      await idle()
+      const narrowed = sugLabels().length === 1 && sugLabels()[0].includes('{service}_{env}')
+      setField(groupField(), 'no-placeholder')
+      await idle()
+      const ownKept = groupField().value === 'no-placeholder' && groupField().getAttribute('aria-expanded') === 'false'
       const nextBtn = () => findButton(['next'], dlg())
       const held = nextBtn()?.disabled === true && norm(dlg().textContent).includes('needs a {placeholder}')
-      setField(dlg().querySelectorAll('input[list="setup-groups"]')[0], '{service}-{env}')
+      // ↓ ↓ Enter fills the field with the second suggestion; Esc closes the list but keeps the text and the dialog
+      setField(groupField(), '')
       await idle()
+      gkey('ArrowDown')
+      gkey('ArrowDown')
+      await idle()
+      gkey('Enter')
+      await idle()
+      const byKeys = groupField().value === '{service}-{env}-env' && groupField().getAttribute('aria-expanded') === 'false'
+      groupField().click()
+      await idle()
+      gkey('Escape')
+      await idle()
+      const escKeeps = !!dlg() && groupField().value === '{service}-{env}-env' && groupField().getAttribute('aria-expanded') === 'false'
+      // a click on a suggestion fills it too
+      groupField().click()
+      await idle()
+      sugList()?.querySelector('[data-value="{service}-{env}"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await idle()
+      const presetPicked = groupField().value === '{service}-{env}'
+      const picker = isField && offered && narrowed && ownKept && byKeys && escKeeps
       await press(['next'], dlg())
       setField('protected name pattern', 'setup-*')
       await press(['add'], dlg())
@@ -367,7 +401,7 @@
       await press(['remove setup-bucket-a'])
       await press(['remove setup-project-b'])
       await call('POST', '/api/config', { protect: cfg0.protect, lockAfterMinutes: cfg0.lockAfterMinutes ?? 0 })
-      return [opened && pasted && listed && held && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, bad group holds next ${held}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
+      return [opened && pasted && listed && picker && held && presetPicked && reviewed && saved && opens, `opened ${opened}, pasted ${pasted}, listed ${listed}, group field with suggestions (offered, narrows, own pattern kept, ↓↓ Enter, Esc keeps) ${isField}/${offered}/${narrowed}/${ownKept}/${byKeys}/${escKeeps}, bad group holds next ${held}, preset picked ${presetPicked}, review ${reviewed}, saved ${saved}, opened the first ${opens}`]
     })
     await step('pick a source switches the list', async () => {
       sourceRow('demo-project').click()
@@ -497,7 +531,24 @@
         await idle()
         if (used > 20) break
       }
+      // only in pinned: each KEY=value with the key, the = and the value in their own colours
+      const onlyPinned = [...document.querySelectorAll('.right .section')].find((x) => norm(x.textContent).startsWith('only in pinned'))
+      const missing = [...(onlyPinned?.querySelectorAll('li') ?? [])]
+      const coloured =
+        missing.length > 0 &&
+        missing.every((li) => {
+          const [k, eq, v] = li.querySelectorAll('span > span')
+          return !!(k && eq && v) && eq.textContent === '=' && getComputedStyle(k).color !== getComputedStyle(v).color && getComputedStyle(eq).color !== getComputedStyle(k).color
+        })
+      const newBefore = document.querySelectorAll('.right tr.env-new').length
       await press(['add all*'])
+      // the added keys are new to this secret, so their rows are marked
+      const newRows = [...document.querySelectorAll('.right tr.env-new')]
+      const addedMarked = newBefore === 0 && newRows.length === missing.length && newRows.every((r) => norm(r.textContent).includes('new'))
+      // and listed last, in the order they were added
+      const missingKeys = missing.map((li) => li.querySelector('span > span')?.textContent)
+      const lastKeys = [...document.querySelectorAll('.right tbody tr')].slice(-missingKeys.length).map((r) => r.querySelector('input.key-input')?.value)
+      const addedLast = missingKeys.length > 0 && JSON.stringify(lastKeys) === JSON.stringify(missingKeys)
       const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
       await press(['review changes'])
       // not just 'save*': the pinned pane, still on screen, has its own "save to file…"
@@ -513,7 +564,7 @@
       await idle()
       const v = (await readSecret('payments-prod-env')) || ''
       await press(['unpin'])
-      return [used > 0 && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
+      return [used > 0 && coloured && addedMarked && addedLast && matches && lockedBefore && unlocked && v.includes('FEATURE_REFUNDS') && v.includes('WEBHOOK_SECRET'), `used pinned ${used}×, only-in-pinned coloured ${coloured} (${missing.length}), added keys marked new ${addedMarked} (${newRows.length}), listed last ${addedLast}, matches ${matches}, save locked ${lockedBefore} then ${unlocked ? 'unlocked' : 'locked'}, saved keys ${v.includes('FEATURE_REFUNDS')}`]
     })
     await step('pin without revealing; compare shows only the diff; pinned pane like a secret pane', async () => {
       const masked = (sel) => !!pane(sel)?.querySelector('[aria-label="value hidden"]')
@@ -567,12 +618,90 @@
       const secOpts = sec ? await optionsOf(sec) : []
       if (secOpts.length > 1) await choose(field('section for the new key'), secOpts[1].value)
       await press(['add key'])
+      // the added key leaves its section in the table and is listed last, under New keys
+      const rows = [...document.querySelectorAll('.right tbody tr')]
+      const addedLast = rows.at(-1)?.querySelector('input.key-input')?.value === 'SELFTEST_FLAG' && norm(rows.at(-2)?.textContent) === (norm(rows.at(-2)?.textContent).startsWith('#') ? '# new keys' : 'new keys')
       await press(['review changes'])
       await press(['save*'])
       await idle()
       const v = (await readSecret('payments-dev-env')) || ''
       const freed = ['versions', 'overview', 'matrix', 'drift'].map(tab).filter(Boolean).every((b) => !b.disabled)
-      return [waits && freed && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
+      return [waits && freed && addedLast && v.includes('LOG_LEVEL=warn') && v.includes('SELFTEST_FLAG=1') && !v.includes('WEBHOOK_SECRET'), `other tabs disabled while editing ${waits}, enabled after ${freed}, added key listed last ${addedLast}, keys ${v.split('\n').filter(Boolean).map((l) => l.split('=')[0]).join(',')}`]
+    })
+    await step('edit: rename a key in place (Enter applies, Esc puts it back, bad and taken names refused), renamed key marked new; nothing saved', async () => {
+      await openSecret('payments-dev-env')
+      const before = await readSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await idle()
+      const keyField = (k) => field(`name of ${k}`)
+      const key = (el, k) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }))
+      const rowOf = (el) => el?.closest('tr')
+      const errorIn = (el) => norm(rowOf(el)?.querySelector('.key-error')?.textContent)
+      const editable = !!keyField('LOG_LEVEL') && !rowOf(keyField('LOG_LEVEL')).classList.contains('env-new')
+
+      // Enter applies; the renamed key is new to this secret, so it is marked
+      setField(keyField('LOG_LEVEL'), 'LOG_LVL')
+      key(keyField('LOG_LEVEL'), 'Enter')
+      await idle()
+      const renamed = !!keyField('LOG_LVL') && !keyField('LOG_LEVEL')
+      const marked = !!rowOf(keyField('LOG_LVL'))?.classList.contains('env-new') && norm(rowOf(keyField('LOG_LVL'))?.textContent).includes('new')
+
+      // Esc puts the name back
+      setField(keyField('LOG_LVL'), 'SOMETHING_ELSE')
+      key(keyField('LOG_LVL'), 'Escape')
+      await idle()
+      const escBack = keyField('LOG_LVL')?.value === 'LOG_LVL' && !keyField('SOMETHING_ELSE')
+
+      // a bad name is refused with the reason; leaving the field brings the old name back
+      setField(keyField('LOG_LVL'), '1BAD')
+      key(keyField('LOG_LVL'), 'Enter')
+      await idle()
+      const badRefused = keyField('LOG_LVL')?.value === '1BAD' && keyField('LOG_LVL')?.getAttribute('aria-invalid') === 'true' && errorIn(keyField('LOG_LVL')).includes('cannot start with a digit')
+      keyField('LOG_LVL').dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      await idle()
+      const blurBack = keyField('LOG_LVL')?.value === 'LOG_LVL'
+
+      // a name another line already sets is refused
+      setField(keyField('LOG_LVL'), 'DATABASE_URL')
+      key(keyField('LOG_LVL'), 'Enter')
+      await idle()
+      const takenRefused = errorIn(keyField('LOG_LVL')).includes('already exists') && !!keyField('DATABASE_URL') && !!keyField('LOG_LVL')
+      key(keyField('LOG_LVL'), 'Escape')
+      await idle()
+
+      // a long value wraps onto more lines instead of being cut off, up to 3 lines, then scrolls inside; Enter adds no line break
+      const vf = field('value of DATABASE_URL')
+      const css = getComputedStyle(vf)
+      const lineH = parseFloat(css.lineHeight)
+      const frame = vf.offsetHeight - vf.clientHeight + parseFloat(css.paddingTop) + parseFloat(css.paddingBottom)
+      setField(vf, 'x'.repeat(60))
+      await idle()
+      const h1 = vf.offsetHeight
+      setField(vf, 'x'.repeat(600) + 'END')
+      await idle()
+      const capped = vf.offsetHeight <= 3 * lineH + frame + 1 && vf.offsetHeight >= 3 * lineH + frame - 1
+      const wraps = vf.offsetHeight > h1 && capped && vf.scrollHeight > vf.clientHeight && css.overflowY === 'auto' && vf.scrollWidth <= vf.clientWidth + 1
+      const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+      vf.dispatchEvent(enter)
+      const noBreak = enter.defaultPrevented && !vf.value.includes('\n')
+
+      // keys added during the edit are listed last, sorted by key whatever order they were added in
+      for (const k of ['ZZ_SELFTEST', 'AA_SELFTEST']) {
+        setField('new key', k)
+        setField('new value', '1')
+        await press(['add key'])
+      }
+      const tail = [...document.querySelectorAll('.right tbody tr')].slice(-2).map((r) => r.querySelector('input.key-input')?.value)
+      const newSorted = JSON.stringify(tail) === JSON.stringify(['AA_SELFTEST', 'ZZ_SELFTEST'])
+
+      // the review shows the rename; cancel, so nothing is written
+      await press(['review changes'])
+      const review = norm(document.querySelector('.right').textContent)
+      const reviewed = review.includes('log_lvl') && review.includes('log_level')
+      await press(['cancel'])
+      const unchanged = (await readSecret('payments-dev-env')) === before
+      const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps, capped at 3 lines': wraps, 'enter adds no line break': noBreak, 'new keys sorted': newSorted, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {
       const versions = async () => (await call('GET', '/api/secrets/versions?backend=storage&parent=demo-bucket&name=payments-dev-env')).json?.versions?.length ?? -1
@@ -623,6 +752,36 @@
       const left = !dlg() && norm(document.querySelector('.right').textContent).includes('orders-dev-env') && (await readSecret('payments-dev-env'))?.includes('guarded') === false
       await openSecret('payments-dev-env') // the conflict step works on this one
       return [quietLeave && asked && kept && askedFromPalette && left, `unchanged editor leaves quietly ${quietLeave}, asked ${asked}, keep keeps the draft ${kept}, ⌘K asks too ${askedFromPalette}, discard leaves and saves nothing ${left}`]
+    })
+    await step('side bar: the header button and ⌘B hide and show it, saved; / brings it back', async () => {
+      const left = () => document.querySelector('.layout > .left')
+      const shown = () => vis(left())
+      const mainW = () => document.querySelector('.layout > .main-area').getBoundingClientRect().width
+      const saved = async () => (await call('GET', '/api/config')).json?.sidebarCollapsed
+      const toggle = () => document.querySelector('header .side-toggle')
+      const startW = mainW()
+      const atStart = shown() && toggle()?.getAttribute('aria-label') === 'hide side bar' && (await saved()) === false
+
+      // the header button hides it; the main area takes the room; the choice is saved
+      toggle().click()
+      await idle()
+      const hidden = !shown() && mainW() > startW + 100 && toggle()?.getAttribute('aria-label') === 'show side bar' && (await saved()) === true
+
+      // ⌘B (Ctrl+B) shows it again
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', metaKey: true, bubbles: true, cancelable: true }))
+      await idle()
+      const byKey = shown() && (await saved()) === false
+
+      // the command (⌘K's Hide side bar, the View menu) hides it; / shows it and puts the cursor in the filter
+      window.berglasUI.run('sidebar')
+      await idle()
+      const byCommand = !shown()
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }))
+      await idle()
+      const slash = shown() && !!document.activeElement?.closest('.left') && document.activeElement.tagName === 'INPUT' && (await saved()) === false
+      document.activeElement?.blur()
+      const checks = { 'shown at first': atStart, 'header button hides it, saved': hidden, '⌘B shows it, saved': byKey, 'command hides it': byCommand, '/ shows it and focuses the filter': slash }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('shortcuts: ? opens the list (not while typing), Esc closes; ⌘K and the Go menu open it', async () => {
       const sheet = () => document.querySelector('[aria-label="keyboard shortcuts"]')
@@ -910,7 +1069,7 @@
       await idle()
       const buttonReview = reviewing()
       await press(['back to edit'])
-      const draft = [...document.querySelectorAll('input')].some((i) => i.value === 'https://dropped.example')
+      const draft = [...document.querySelectorAll('input, textarea')].some((i) => i.value === 'https://dropped.example')
       await press(['cancel'])
 
       // the same value as now: the editor says nothing changed instead of a review
@@ -1009,7 +1168,14 @@
       await idle()
       const after = Number((await fetch('/__selftest/authed').then((r) => r.text())) || 0)
       const unlocked = !document.querySelector('.lock-screen') && getComputedStyle(document.querySelector('header')).visibility === 'visible'
-      return [screen && hidden && after === before + 1 && unlocked, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}`]
+      // ⌘L (Ctrl+L) locks from the page as well
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'l', metaKey: true, bubbles: true, cancelable: true }))
+      await idle()
+      const byKey = vis(document.querySelector('.lock-screen'))
+      if (byKey) await press(['unlock with touch id…', 'unlock'])
+      await idle()
+      const unlockedAgain = !document.querySelector('.lock-screen')
+      return [screen && hidden && after === before + 1 && unlocked && byKey && unlockedAgain, `lock screen ${screen}, page hidden ${hidden}, touch id asked ${after - before}x, unlocked ${unlocked}, ⌘L locks ${byKey}, unlocked again ${unlockedAgain}`]
     })
 
     await step('settings: ⌘, opens it; search; an ordinary setting saves at once; safety settings save together after one confirmation', async () => {

@@ -15,6 +15,8 @@ import { type LinkTarget, onOpenLink } from '../../core/commands'
 import { linkFor } from '../../core/deeplink'
 import { type DroppedFile, useFileDrop } from '../../core/hooks/useFileDrop'
 import { useDropPicker } from '../../core/hooks/useDropPicker'
+import { useSidebar } from '../../core/hooks/useSidebar'
+import { modKey } from '../../core/shortcuts'
 import { nameProblem } from '../../core/hooks/useCreate'
 import { useFind } from '../../core/hooks/useFind'
 import { useLayoutWidth } from '../../core/hooks/useLayoutWidth'
@@ -78,17 +80,23 @@ export default function App() {
   const filterRef = useRef<HTMLInputElement>(null)
   const theme = knownTheme(app.theme)
   const { setEnvOrder } = app
+  const sidebar = useSidebar(app.sidebarCollapsed, app.setSidebarCollapsed)
+  const sidebarRef = useRef(sidebar)
+  sidebarRef.current = sidebar
   const actions = useMemo(() => ({ setEnvOrder }), [setEnvOrder])
 
   useEffect(() => applyTheme(theme), [theme])
 
-  // `/` focuses the secret filter unless the user is typing somewhere
+  // `/` focuses the secret filter unless the user is typing somewhere (showing the side bar first if it is hidden)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable]')) return
       if (e.key === '/' && filterRef.current) {
         e.preventDefault()
-        filterRef.current.focus()
+        if (sidebarRef.current.collapsed) {
+          sidebarRef.current.show()
+          window.setTimeout(() => filterRef.current?.focus(), 0)
+        } else filterRef.current.focus()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -152,12 +160,14 @@ export default function App() {
     theme,
     zoom: app.zoom,
     recentCollapsed: app.recentCollapsed,
+    sidebarCollapsed: app.sidebarCollapsed,
     setSkin: app.setSkin,
     setTheme: app.setTheme,
     setZoom: app.setZoom,
     setTimeZone: app.setTimeZone,
     setEnvOrder: app.setEnvOrder,
     setRecentCollapsed: app.setRecentCollapsed,
+    setSidebarCollapsed: app.setSidebarCollapsed,
     saveSettings: app.saveSettings,
     onToast: setToast,
   })
@@ -305,6 +315,7 @@ export default function App() {
         settings: settingsScreen.show,
         setup: setup.show,
         shortcuts: shortcuts.show,
+        sidebar: { collapsed: sidebar.collapsed, toggle: sidebar.toggle },
         checkWatched: app.watch.length ? () => void watch.checkNow() : undefined,
       }),
     }),
@@ -373,6 +384,15 @@ export default function App() {
   return (
     <>
       <header className="toolbar">
+        {session.kind === 'ready' && (
+          <button className="side-toggle" onClick={sidebar.toggle} aria-label={sidebar.collapsed ? 'show side bar' : 'hide side bar'} aria-pressed={!sidebar.collapsed} title={`${sidebar.collapsed ? 'Show' : 'Hide'} the side bar (${modKey()}B)`}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+              <path d="M6 2.5v11" />
+              {!sidebar.collapsed && <path d="M2.8 5h2M2.8 7h2M2.8 9h2" />}
+            </svg>
+          </button>
+        )}
         <span className="app">berglas-ui</span>
         {session.kind === 'ready' &&
           (session.status.demo ? (
@@ -483,7 +503,7 @@ export default function App() {
             )}
 
             {session.kind === 'ready' && (
-              <div className={`layout${active ? ' has-side' : ''}${comparingPin ? ' comparing' : ''}`}>
+              <div className={`layout${active ? ' has-side' : ''}${comparingPin ? ' comparing' : ''}${sidebar.collapsed ? ' side-hidden' : ''}`}>
                 <div className="left">
                   <Sources
                     sources={app.sources}

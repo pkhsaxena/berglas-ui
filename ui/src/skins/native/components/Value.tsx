@@ -5,7 +5,7 @@ import { matchesQuery } from '../../../core/envfilter'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import type { Revealed } from '../../../core/hooks/useSecret'
 import { useSettings } from '../../../core/settings'
-import { KeyText } from './bits'
+import { EnvPair, KeyText } from './bits'
 import { EnvRows, OrderToggle } from './EnvRows'
 
 // how one revealed key compares with the pinned secret
@@ -173,9 +173,8 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
             {vs.missing
               .filter((m) => matchesQuery(m.key, m.value, query))
               .map((m) => (
-                <li key={m.key} className="kv">
-                  <span className="mono">{m.key}</span>
-                  <span className="mono">{m.value}</span>
+                <li key={m.key}>
+                  <EnvPair k={m.key} v={m.value} />
                 </li>
               ))}
           </ul>

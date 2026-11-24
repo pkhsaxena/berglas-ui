@@ -121,6 +121,8 @@ type Config struct {
 	Recent    []SecretRef `yaml:"recent,omitempty" json:"recent"`
 	// RecentCollapsed folds the ui's recent list to its heading.
 	RecentCollapsed bool `yaml:"recentCollapsed,omitempty" json:"recentCollapsed"`
+	// SidebarCollapsed hides the ui's side bar (sources and the secret list).
+	SidebarCollapsed bool `yaml:"sidebarCollapsed,omitempty" json:"sidebarCollapsed"`
 	// Watch lists secrets the mac app checks for new versions every
 	// WatchMinutes (default 5), with a notification when one appears.
 	Watch        []SecretRef `yaml:"watch,omitempty" json:"watch"`
@@ -453,6 +455,7 @@ type Patch struct {
 	Favorites             *[]SecretRef `json:"favorites"`
 	Recent                *[]SecretRef `json:"recent"`
 	RecentCollapsed       *bool        `json:"recentCollapsed"`
+	SidebarCollapsed      *bool        `json:"sidebarCollapsed"`
 	Watch                 *[]SecretRef `json:"watch"`
 	WatchMinutes          *int         `json:"watchMinutes"`
 }
@@ -544,6 +547,9 @@ func (p Patch) changes() []change {
 	}
 	if v := p.RecentCollapsed; v != nil {
 		add("recentCollapsed", *v, func(c *Config) { c.RecentCollapsed = *v })
+	}
+	if v := p.SidebarCollapsed; v != nil {
+		add("sidebarCollapsed", *v, func(c *Config) { c.SidebarCollapsed = *v })
 	}
 	if v := p.WatchMinutes; v != nil {
 		add("watchMinutes", *v, func(c *Config) { c.WatchMinutes = *v })

@@ -31,6 +31,7 @@ export type FieldValues = {
   timeZone: TimeZone
   envOrder: EnvOrder
   recentCollapsed: boolean
+  sidebarCollapsed: boolean
   readOnly: boolean
   protect: string[]
   lockAfterMinutes: number
@@ -82,6 +83,7 @@ export const ITEMS: Item[] = [
   { key: 'timeZone', kind: 'choice', section: 'appearance', label: 'Time zone', help: 'Show times in this computer’s zone or in UTC.', keywords: 'clock utc local dates' },
   { key: 'envOrder', kind: 'choice', section: 'appearance', label: '.env order', help: 'Show .env secrets sorted by section and key, or as the file has them. The stored file is never reordered.', keywords: 'sort keys file order' },
   { key: 'recentCollapsed', kind: 'toggle', section: 'appearance', label: 'Fold the recent list', help: 'Show only the Recent heading above the secret list.', keywords: 'collapse recents' },
+  { key: 'sidebarCollapsed', kind: 'toggle', section: 'appearance', label: 'Hide the side bar', help: 'Give the secret the whole window; the sources and the secret list come back with the side bar button or ⌘B.', keywords: 'collapse sidebar sources list panel' },
 
   { key: 'readOnly', kind: 'toggle', section: 'safety', safety: true, label: 'Read-only', help: 'Refuse every write, in every source. The core enforces it.', keywords: 'readonly writes lock edit' },
   {

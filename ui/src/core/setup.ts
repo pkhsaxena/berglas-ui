@@ -105,6 +105,20 @@ export function groupFit(pattern: string, names: string[]): GroupFit {
 }
 
 /**
+ * The setup guide's suggestions under "Group names by": no grouping, and
+ * each preset with how it would group this source's names, once they are
+ * listed. The field itself takes any pattern.
+ */
+export function groupSuggestions(names: string[]): { value: string; label: string; hint?: string }[] {
+  const fit = (p: string) => {
+    if (!names.length) return undefined
+    const f = groupFit(p, names)
+    return f.groups.length ? `${f.groups.length} group${f.groups.length === 1 ? '' : 's'} · ${f.matched} of ${f.total} names` : 'no names fit'
+  }
+  return [{ value: '', label: 'No grouping', hint: 'one flat list' }, ...GROUP_PRESETS.map((p) => ({ value: p, label: p, hint: fit(p) }))]
+}
+
+/**
  * The first preset (most specific first) that fits these names: it groups
  * at least half of them into more than one group, and some value of its
  * second placeholder turns up in more than one group, the way "dev" does in

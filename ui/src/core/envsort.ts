@@ -33,6 +33,9 @@ export type SortedEnv = { fileComments: Note[]; sections: Section[] }
 
 const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true })
 
+/** How keys are ordered everywhere a list is sorted: any case, numbers in number order (KEY_2 before KEY_10). */
+export const compareKeys = (a: string, b: string) => collator.compare(a, b)
+
 const isComment = (raw: string) => raw.trimStart().startsWith('#')
 
 /** "# Server " → "Server" */

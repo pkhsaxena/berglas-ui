@@ -129,6 +129,11 @@ main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: colum
   grid-template-rows: minmax(0, 1fr); grid-template-areas: "left main";
 }
 .layout > .left { grid-area: left; } .layout > .main-area { grid-area: main; } .layout > .side-col { grid-area: side; display: none; }
+/* the side bar hidden (header button, ⌘B): the other columns take its room; the wide and narrow blocks below repeat this for their grids */
+.layout.side-hidden > .left { display: none; }
+.layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+.side-toggle { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--n-muted); cursor: pointer; }
+.side-toggle:hover { background: var(--n-accent-soft); color: var(--n-fg); }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 12px; }
 /* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
 .left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); background: var(--n-sidebar); border-right: 1px solid var(--n-line); padding: 12px 8px; gap: 6px; }
@@ -181,9 +186,13 @@ main { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: colum
   .layout.has-side.comparing { grid-template-columns: minmax(280px, 1fr) minmax(0, 4.9fr); grid-template-areas: "left main"; }
   .layout.comparing > .side-col { display: none; }
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+  .layout.side-hidden.has-side { grid-template-columns: minmax(0, 1.5fr) minmax(0, 3.4fr); grid-template-areas: "side main"; }
+  .layout.side-hidden.has-side.comparing { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
 }
 #root[data-width='narrow'] {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
+  .layout.side-hidden { grid-template-areas: "main"; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left { border-right: 0; border-bottom: 1px solid var(--n-line); }
   .left > .list-pane { height: min(60vh, 560px); }
@@ -259,6 +268,26 @@ button.th-sort { border: 0; background: none; padding: 0; color: inherit; font: 
 .drift-problem { font-weight: 400; white-space: normal; max-width: 22ch; }
 .matrix td .link[aria-current="true"] { font-weight: 700; text-decoration: underline; }
 .input-cell input { width: 100%; font-family: var(--mono); font-size: 12.5px; }
+/* the editor's values: wrap and grow instead of being cut off (useAutoGrow sets the height), up to 3 lines; a longer value scrolls inside (border-box: 3 lines + 8px padding + 2px border) */
+textarea.value-field { display: block; width: 100%; resize: none; overflow-y: auto; overflow-x: hidden; max-height: calc(3 * 1.5em + 10px); padding: 4px 8px; border-radius: 6px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the editor: key names edit in place; keys the loaded version doesn't have are marked new */
+.key-edit { display: inline-flex; align-items: center; gap: 6px; }
+td.env-key input.key-input { width: auto; min-width: 0; font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--n-key); }
+.key-error { font-family: var(--sans, inherit); font-weight: 400; white-space: normal; max-width: 34ch; margin-top: 2px; }
+tr.env-new > td { background: color-mix(in srgb, var(--n-good) 9%, transparent); }
+tr.env-new > td:first-child { box-shadow: inset 3px 0 var(--n-good); }
+.new-badge { font-family: var(--sans, inherit); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--n-good); }
+/* KEY=value outside the table (only in pinned), coloured like the table */
+.env-pair { font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
+.env-pair-key { color: var(--n-key); font-weight: 600; }
+.env-pair-eq { color: var(--n-muted); }
+.env-pair-val { color: var(--n-fg); }
+/* only in pinned, in the editor: KEY=value on the left (wrapping when long), its Add on the right; Add all over that column */
+.pin-missing-head { margin: 0; justify-content: space-between; }
+.pin-missing li { display: flex; align-items: baseline; gap: 12px; padding: 6px 0; }
+.pin-missing li + li { border-top: 1px solid var(--n-line); }
+.pin-missing li > :first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pin-missing li > button { flex: none; margin-left: auto; }
 .diff-lines { font: 12.5px/1.6 var(--mono); border: 1px solid var(--n-line); border-radius: 8px; overflow-x: auto; margin: 6px 0 0; padding: 4px 0; white-space: pre; }
 .diff-lines .add { background: color-mix(in srgb, var(--n-good) 14%, transparent); color: var(--n-good); padding: 0 10px; }
 .diff-lines .del { background: color-mix(in srgb, var(--n-bad) 12%, transparent); color: var(--n-bad); padding: 0 10px; }
@@ -425,6 +454,10 @@ input[aria-invalid="true"] { border-color: var(--n-bad); }
 .setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
 .setup-grid input { width: 100%; }
+/* a text field with suggestions under it (SuggestInput; the list is the dropdowns' .combo-pop) */
+.suggest { display: inline-flex; min-width: 0; }
+.setup-grid .suggest { display: flex; }
+.suggest-pop ul { padding-top: 2px; }
 .setup-paste { margin-top: 12px; }
 .setup-paste summary { cursor: pointer; color: var(--n-accent); }
 .setup-paste textarea { width: 100%; font: 12.5px/1.6 var(--mono); margin-top: 6px; }

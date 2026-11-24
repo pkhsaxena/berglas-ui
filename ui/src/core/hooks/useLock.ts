@@ -26,6 +26,19 @@ export function useLock(minutes: number) {
 
   useEffect(() => onCommand('lock', lock), [lock])
 
+  // ⌘L (Ctrl+L) locks. The mac app's Go → Lock has the same key and takes it
+  // first; this is for the browser version, where the browser may keep ⌘L for
+  // its address bar.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'l' || !(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return
+      e.preventDefault()
+      lock()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lock])
+
   useEffect(() => {
     if (locked) document.documentElement.dataset.locked = ''
     else delete document.documentElement.dataset.locked

@@ -143,6 +143,8 @@ export type Config = {
   recent: SecretRef[]
   /** the recent list folded to its heading */
   recentCollapsed: boolean
+  /** the side bar (sources and the secret list) hidden */
+  sidebarCollapsed: boolean
   watch: SecretRef[]
   /** how often the mac app checks watched secrets */
   watchMinutes: number
@@ -170,6 +172,7 @@ export type ConfigPatch = Partial<
     | 'favorites'
     | 'recent'
     | 'recentCollapsed'
+    | 'sidebarCollapsed'
     | 'watch'
     | 'readOnly'
     | 'protect'

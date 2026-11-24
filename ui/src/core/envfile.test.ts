@@ -1,5 +1,5 @@
-import { expect, test } from 'vitest'
-import { insertKeyAfter, looksLikeEnv, parseEnv, removeKey, removeLine, setKey, setLineValue } from './envfile'
+import { describe, expect, it, test } from 'vitest'
+import { insertKeyAfter, looksLikeEnv, parseEnv, removeKey, removeLine, renameLine, setKey, setLineValue } from './envfile'
 
 const text = '# header\nexport A = 1\nB=2\r\n\nC=three\n'
 
@@ -39,4 +39,22 @@ test('insertKeyAfter puts a key inside a section and keeps that line ending', ()
   expect(insertKeyAfter('A=1\r\nB=2\r\n', 0, 'C', '3')).toBe('A=1\r\nC=3\r\nB=2\r\n')
   expect(insertKeyAfter('A=1', 0, 'B', '2')).toBe('A=1\nB=2')
   expect(() => insertKeyAfter(t, 99, 'X', '1')).toThrow()
+})
+
+describe('renameLine', () => {
+  it('renames only the key, keeping indentation, export, spacing, value and the line ending', () => {
+    const text = 'A=1\r\n  export OLD_KEY = "x y"\r\n# c\r\n'
+    expect(renameLine(text, 1, 'NEW_KEY')).toBe('A=1\r\n  export NEW_KEY = "x y"\r\n# c\r\n')
+  })
+  it('leaves every other line alone, including another line with the same key', () => {
+    expect(renameLine('K=1\nK=2\n', 0, 'J')).toBe('J=1\nK=2\n')
+  })
+  it('refuses invalid names and lines that are not pairs', () => {
+    expect(() => renameLine('A=1\n', 0, '1BAD')).toThrow()
+    expect(() => renameLine('A=1\n', 0, 'has space')).toThrow()
+    expect(() => renameLine('# comment\n', 0, 'B')).toThrow()
+  })
+  it('keeps a key named export', () => {
+    expect(renameLine('export=1\n', 0, 'X')).toBe('X=1\n')
+  })
 })

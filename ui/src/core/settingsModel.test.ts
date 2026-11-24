@@ -25,6 +25,7 @@ const saved: FieldValues = {
   timeZone: 'local',
   envOrder: 'sorted',
   recentCollapsed: false,
+  sidebarCollapsed: false,
   readOnly: false,
   protect: ['*-prod-*'],
   lockAfterMinutes: 0,

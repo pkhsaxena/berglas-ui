@@ -47,6 +47,22 @@ export function setLineValue(text: string, i: number, value: string): string {
   })
 }
 
+// a pair line's prefix in three parts: before the key (indentation, `export `), the key, after it (spaces, `=`, a space)
+const PREFIX = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_.-]*)(\s*=\s?)$/
+
+/** Renames the key on line i, keeping its indentation, `export`, spacing, value and line ending. */
+export function renameLine(text: string, i: number, key: string): string {
+  if (!isValidKey(key)) throw new Error(`invalid key ${key}`)
+  return rewrite(text, (lines) => {
+    const l = parseEnv(lines[i] ?? '')[0]
+    if (l.kind !== 'pair') throw new Error(`line ${i + 1} is not KEY=value`)
+    const m = PREFIX.exec(l.prefix)
+    if (!m) throw new Error(`line ${i + 1} is not KEY=value`)
+    lines[i] = m[1] + key + m[3] + l.value + eol(lines[i])
+    return lines
+  })
+}
+
 /** Removes line i. */
 export function removeLine(text: string, i: number): string {
   return rewrite(text, (lines) => {

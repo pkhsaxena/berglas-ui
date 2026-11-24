@@ -3,6 +3,8 @@ import { type Ref, refString } from '../../../core/api'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
 import type { useEditor } from '../../../core/hooks/useEditor'
+import { useKeyInput } from '../../../core/hooks/useKeyInput'
+import { useAutoGrow } from '../../../core/hooks/useAutoGrow'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { type Section, sortEnv } from '../../../core/envsort'
 import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
@@ -12,9 +14,40 @@ import { EnvBanner, EnvTag } from './EnvMarks'
 import { DiffView } from './DiffView'
 import { EnvWarnings } from './EnvWarnings'
 import { EnvRows, OrderToggle } from './EnvRows'
-import { KeyText } from './KeyText'
 import { PaneTitle } from './PaneTitle'
 import { Select } from './Select'
+
+// a value, wrapping onto more lines as it grows instead of being cut off (see useAutoGrow); Enter adds no line break, since values can't span lines
+function ValueField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const ref = useAutoGrow(value)
+  return (
+    <textarea
+      ref={ref}
+      className="value-field"
+      rows={1}
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+      spellCheck={false}
+      autoComplete="off"
+    />
+  )
+}
+
+// a key name, editable in place (see useKeyInput); keys the loaded version doesn't have are marked new
+function KeyInput({ k, rename, isNew }: { k: string; rename: (key: string) => string; isNew: boolean }) {
+  const { inputProps, error } = useKeyInput(k, rename)
+  return (
+    <>
+      <span className="key-edit">
+        <input className="key-input" aria-label={`name of ${k}`} {...inputProps} />
+        {isNew && <span className="new-badge"># new</span>}
+      </span>
+      {error && <div className="t-error small key-error"># {error}</div>}
+    </>
+  )
+}
 
 // a section's id in the picker: its header line, or '-' for the no-section group
 const sectionValue = (x: Section) => (x.header[0]?.raw ?? '-')
@@ -156,21 +189,15 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                     <EnvRows
                       text={ed.draft}
                       order={envOrder}
+                      tail={ed.addedKeys}
                       cols={vs ? 4 : 3}
                       renderPair={(l, i) => (
-                        <tr key={i}>
+                        <tr key={i} className={ed.isNewKey(l.key) ? 'env-new' : undefined}>
                           <td className="t-keyword env-key">
-                            <KeyText k={l.key} />
+                            <KeyInput k={l.key} rename={(key) => ed.edits.renameKey(i, key)} isNew={ed.isNewKey(l.key)} />
                           </td>
                           <td style={{ width: '100%' }}>
-                            <input
-                              aria-label={`value of ${l.key}`}
-                              value={l.value}
-                              onChange={(e) => ed.edits.setLineValue(i, e.target.value)}
-                              spellCheck={false}
-                              autoComplete="off"
-                              style={{ width: '100%' }}
-                            />
+                            <ValueField label={`value of ${l.key}`} value={l.value} onChange={(v) => ed.edits.setLineValue(i, v)} />
                           </td>
                           {vs && <td style={{ whiteSpace: 'nowrap' }}>{pinMark(vs.byKey.get(l.key), i)}</td>}
                           <td>
@@ -185,17 +212,19 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                 </div>
                 {vs && vs.missing.length > 0 && (
                   <div className="section">
-                    <div className="row" style={{ margin: 0 }}>
+                    <div className="row pin-missing-head">
                       <span className="t-keyword">only in pinned</span>
                       <button className="link" onClick={() => ed.edits.setKeys(vs.missing)}>
                         add all {vs.missing.length}
                       </button>
                     </div>
-                    <ul className="clean">
+                    <ul className="clean pin-missing">
                       {vs.missing.map((m) => (
-                        <li key={m.key} className="kv">
+                        <li key={m.key}>
                           <span>
-                            <span className="t-keyword">{m.key}</span> <span className="t-string">{m.value}</span>
+                            <span className="t-keyword">{m.key}</span>
+                            <span className="t-comment">=</span>
+                            <span className="t-string">{m.value}</span>
                           </span>
                           <button className="link" onClick={() => ed.edits.setKeys([m])} aria-label={`add ${m.key} from pinned`}>
                             add

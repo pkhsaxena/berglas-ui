@@ -67,6 +67,9 @@ three steps:
    Each one is checked as you type: you'll see **✓ Reachable** and how many secrets it holds, or
    why it couldn't be read. The guide also suggests how the secret names group (for example
    `{service}-{env}-env`, which groups `orders-dev-env` and `orders-prod-env` under *orders*).
+   Type any pattern in **Group names by** (a `{` closes itself, and **Tab** in the empty box fills
+   in the example shown), or click it to pick a common one: each suggestion says how well it fits
+   your names.
 2. **Safety**: choose which secret names are **protected** (for example `*-prod-*`). The guide
    suggests patterns based on your names and shows how many secrets each would cover. You can
    also choose to lock the app when you're away, and keep an audit log.
@@ -87,6 +90,9 @@ You can skip the guide and add sources one at a time instead. To bring it back l
 - **The main area** (right): the open secret, with tabs for **Versions**, **Overview**,
   **Matrix** and **Drift**.
 - **The header**: time zone, zoom, theme, skin, and **Settings**.
+- **Hide the side bar** with the button at the left of the header, or **⌘B**, to give the secret
+  the whole window. The same button or **⌘B** brings it back, and **/** shows it and puts you in
+  the filter. The app remembers your choice.
 
 The app comes in two looks, **native** (the default) and **terminal**, each with several themes.
 Switch with **Skin** and **Theme** in the header.
@@ -151,8 +157,12 @@ The **Versions** tab lists every saved version, newest first.
 ### Editing
 
 1. Click **Edit…** (on production secrets it says **Edit production…**).
-2. Change what you need. For `.env` secrets you can edit values one by one, **Remove** a key, or
-   **Add key** (into a section of your choice). Switch to **Raw** to edit the text directly.
+2. Change what you need. For `.env` secrets you can edit values one by one, rename a key (click
+   its name, type, press Enter; Esc puts it back), **Remove** a key, or **Add key** (into a
+   section of your choice). Keys that weren't in the secret before are tinted and tagged
+   **new**, and the ones you add are listed last, under **New keys**, in A–Z order, so you can
+   find them (saving still puts each one where you chose). Long values wrap onto up to three
+   lines instead of being cut off, and scroll inside their box beyond that. Switch to **Raw** to edit the text directly.
 3. Click **Review changes**. You'll see exactly what will change, with warnings for keys set
    twice or left empty.
 4. Click **Save**. Nothing is written until you do.
@@ -245,7 +255,7 @@ Open it from the **Drift** tab, or **Compare keys** on a matrix row.
 - **Read-only**: a source, or the whole app, can refuse all changes.
 - **Review before every save**, and saves never overwrite someone else's newer change.
 - **Drift never shows values**: it compares keys without decrypting anything into view.
-- **Lock (Mac app)**: lock the app from **Go → Lock** (⇧⌘L), or have it lock itself after a while
+- **Lock (Mac app)**: lock the app with **⌘L** (or **Go → Lock**), or have it lock itself after a while
   without use. Unlocking asks for Touch ID or your password. A half-finished edit is kept.
 - **Hidden from screen sharing (Mac app)**: the window doesn't appear in screenshots, recordings
   or screen shares, unless you allow it in Settings.
@@ -284,11 +294,12 @@ Press **?** at any time to see them all. The main ones:
 | ⌘K | Jump to a secret, source or action |
 | ⌘, | Settings |
 | / | Filter the secret list |
+| ⌘B | Hide or show the side bar |
 | ? | Show all shortcuts |
 | Esc | Close a dialog, clear a filter, hide a revealed value |
 | ↑ ↓, Enter | Move and pick in lists and menus |
 | ⌘F, ⌘G | Find in the window, next match (Mac app) |
-| ⇧⌘L | Lock (Mac app) |
+| ⌘L | Lock (Mac app) |
 | ⌘= ⌘− ⌘0 | Zoom in, out, actual size (Mac app) |
 
 On Windows and Linux, use Ctrl instead of ⌘.

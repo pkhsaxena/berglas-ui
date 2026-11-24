@@ -59,6 +59,11 @@ main {
 .layout > .left { grid-area: left; }
 .layout > .main-area { grid-area: main; }
 .layout > .side-col { grid-area: side; display: none; }
+/* the side bar hidden (header button, ⌘B): the other columns take its room; the wide and narrow blocks below repeat this for their grids */
+.layout.side-hidden > .left { display: none; }
+.layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+.side-toggle { border: 0; padding: 0 4px 0 0; background: none; color: var(--t-comment); cursor: pointer; }
+.side-toggle:hover { color: var(--t-fg); background: none; }
 .left, .right, .side-col { display: grid; min-height: 0; min-width: 0; gap: 0 14px; }
 /* --refit: useLayoutWidth flips it after every resize, so the web view measures these rows again (WebKit keeps a row's height from before a width change) */
 .left { grid-template-rows: fit-content(calc(40% + var(--refit, 0px))) minmax(0, 1fr); }
@@ -126,10 +131,14 @@ main {
   .layout.comparing > .side-col { display: none; }
   /* pinned | secret | versions */
   .main-area.with-pin { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+  .layout.side-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
+  .layout.side-hidden.has-side { grid-template-columns: minmax(0, 1.4fr) minmax(0, 3fr); grid-template-areas: "side main"; }
+  .layout.side-hidden.has-side.comparing { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; }
 }
 
 #root[data-width='narrow'] {
   .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "left" "main"; overflow-y: auto; overscroll-behavior: contain; }
+  .layout.side-hidden { grid-template-areas: "main"; }
   .left, .right, .right.single, .main-area { grid-template-rows: none; }
   .left > .list-pane { height: min(60vh, 560px); }
   /* the page scrolls here, so other panes take their natural height */
@@ -186,6 +195,21 @@ table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 th, td { text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px dashed var(--t-line); vertical-align: top; }
 th { color: var(--t-comment); font-weight: 400; text-transform: lowercase; white-space: nowrap; }
 tr.active td { background: var(--t-soft); }
+/* the editor's values: wrap and grow instead of being cut off (useAutoGrow sets the height), up to 3 lines; a longer value scrolls inside (border-box: 3 lines + 4px padding + 2px border) */
+textarea.value-field { display: block; width: 100%; resize: none; overflow-y: auto; overflow-x: hidden; max-height: calc(3 * 1.5em + 6px); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the editor: key names edit in place; keys the loaded version doesn't have are marked new */
+.key-edit { display: inline-flex; align-items: center; gap: 6px; }
+td.env-key input.key-input { width: auto; min-width: 0; color: var(--t-keyword); }
+input.key-input[aria-invalid] { border-color: var(--t-error); }
+.key-error { white-space: normal; max-width: 34ch; }
+tr.env-new > td { background: color-mix(in srgb, var(--t-function) 12%, transparent); }
+tr.env-new > td:first-child { box-shadow: inset 2px 0 var(--t-function); }
+.new-badge { color: var(--t-function); white-space: nowrap; }
+/* only in pinned, in the editor: KEY=value on the left (wrapping when long), its Add on the right; Add all over that column */
+.pin-missing-head { margin: 0; justify-content: space-between; }
+.pin-missing li { display: flex; align-items: baseline; gap: 12px; }
+.pin-missing li > :first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.pin-missing li > button { flex: none; margin-left: auto; }
 /* a section header comment in a sorted .env table */
 td.section-head { padding-top: 10px; }
 /* .env key cells: as narrow as the key, but at most ~28 characters or 40% of the table; longer
@@ -452,6 +476,10 @@ input[aria-invalid="true"] { border-color: var(--t-error); }
 .setup-grid > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-grid > div.row { flex-direction: row; align-items: center; margin: 0; }
 .setup-grid input { width: 100%; }
+/* a text field with suggestions under it (SuggestInput; the list is the dropdowns' .combo-pop) */
+.suggest { display: inline-flex; min-width: 0; }
+.setup-grid .suggest { display: flex; }
+.suggest-pop ul { padding-top: 2px; }
 .setup-paste { margin-top: 10px; }
 .setup-paste summary { cursor: pointer; color: var(--t-prompt); }
 .setup-paste textarea { width: 100%; margin-top: 4px; }

@@ -38,6 +38,7 @@ type Settings struct {
 	Favorites             []SecretRef `json:"favorites"`
 	Recent                []SecretRef `json:"recent"`
 	RecentCollapsed       bool        `json:"recentCollapsed"`
+	SidebarCollapsed      bool        `json:"sidebarCollapsed"`
 	Watch                 []SecretRef `json:"watch"`
 	WatchMinutes          int         `json:"watchMinutes"`
 	AllowScreenCapture    bool        `json:"allowScreenCapture"`
@@ -54,7 +55,7 @@ func (c Config) Settings() Settings {
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
 		LockAfterMinutes: c.LockAfterMinutes, AllowScreenCapture: c.AllowScreenCapture, Listen: c.Listen, OpenBrowser: c.OpenBrowser,
-		Favorites: nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
+		Favorites: nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, SidebarCollapsed: c.SidebarCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
 	}
 	if c.WatchMinutes > 0 {
 		s.WatchMinutes = c.WatchMinutes

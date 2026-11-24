@@ -37,12 +37,14 @@ export type SettingsHost = {
   theme: string
   zoom: number
   recentCollapsed: boolean
+  sidebarCollapsed: boolean
   setSkin: (name: string) => void
   setTheme: (name: string) => void
   setZoom: (percent: number) => void
   setTimeZone: (z: TimeZone) => void
   setEnvOrder: (o: EnvOrder) => void
   setRecentCollapsed: (v: boolean) => void
+  setSidebarCollapsed: (v: boolean) => void
   saveSettings: (patch: ConfigPatch) => Promise<void>
   onToast: (msg: string) => void
 }
@@ -82,6 +84,7 @@ export function useSettingsScreen(h: SettingsHost) {
       timeZone: h.settings.timeZone,
       envOrder: h.settings.envOrder,
       recentCollapsed: h.recentCollapsed,
+      sidebarCollapsed: h.sidebarCollapsed,
       readOnly: h.settings.readOnly,
       protect: h.settings.protect,
       lockAfterMinutes: h.settings.lockAfterMinutes,
@@ -95,7 +98,7 @@ export function useSettingsScreen(h: SettingsHost) {
       listen: h.settings.listen,
       openBrowser: h.settings.openBrowser,
     }),
-    [h.skin, h.theme, h.zoom, h.recentCollapsed, h.settings],
+    [h.skin, h.theme, h.zoom, h.recentCollapsed, h.sidebarCollapsed, h.settings],
   )
 
   const changes: Change[] = useMemo(() => draftChanges(saved, h.sources, draft), [saved, h.sources, draft])
@@ -217,6 +220,8 @@ export function useSettingsScreen(h: SettingsHost) {
         return h.setEnvOrder(v as EnvOrder)
       case 'recentCollapsed':
         return h.setRecentCollapsed(v as boolean)
+      case 'sidebarCollapsed':
+        return h.setSidebarCollapsed(v as boolean)
       default:
         return saveNow(key, { [key]: v } as ConfigPatch, f.restart)
     }

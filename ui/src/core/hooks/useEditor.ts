@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../api'
 import { type Diff, diffValues, reapplyEnv } from '../diff'
 import { lintEnv } from '../envlint'
-import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, setKey, setLineValue } from '../envfile'
+import { compareKeys } from '../envsort'
+import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, renameLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
 
@@ -14,6 +15,8 @@ import { readValue } from './useSecret'
 export type EditPhase = 'idle' | 'loading' | 'editing' | 'review' | 'saving' | 'conflict'
 
 type Loaded = { secret: Secret; text: string }
+
+const pairKeys = (text: string) => parseEnv(text).flatMap((l) => (l.kind === 'pair' ? [l.key] : []))
 
 /**
  * Edits a secret. Nothing is written until save() is called from the review
@@ -32,6 +35,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const [restoredFrom, setRestoredFrom] = useState('')
   /** the dropped file's name, when the draft came from one */
   const [fromFile, setFromFile] = useState('')
+  /** keys added during this edit (the editor lists them last, sorted) */
+  const [added, setAdded] = useState<string[]>([])
 
   const fail = (e: unknown) => setError(errText(e))
 
@@ -60,6 +65,9 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       setDraft(text)
       setRestoredFrom(restore ?? '')
       setFromFile(file?.name ?? '')
+      // a dropped file's keys that the latest version doesn't have count as added, in the file's order
+      const had = new Set(pairKeys(latest.value.text))
+      setAdded(file ? [...new Set(pairKeys(text))].filter((k) => !had.has(k)) : [])
       setMode(looksLikeEnv(text) ? 'env' : 'raw')
       if (file && text !== latest.value.text) setPhase('review')
       else {
@@ -78,14 +86,18 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     setDraft('')
     setError('')
     setOverlaps([])
+    setAdded([])
   }
 
-  const tryEdit = (fn: () => string) => {
+  // true when the edit applied
+  const tryEdit = (fn: () => string): boolean => {
     try {
       setDraft(fn())
       setError('')
+      return true
     } catch (e) {
       fail(e)
+      return false
     }
   }
 
@@ -94,7 +106,11 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const edits = {
     setText: (t: string) => setDraft(t),
     setLineValue: (i: number, v: string) => tryEdit(() => setLineValue(draft, i, v)),
-    removeLine: (i: number) => tryEdit(() => removeLine(draft, i)),
+    removeLine: (i: number) => {
+      const gone = parseEnv(draft)[i]
+      if (!tryEdit(() => removeLine(draft, i)) || gone?.kind !== 'pair') return
+      if (!parseEnv(draft).some((l, j) => j !== i && l.kind === 'pair' && l.key === gone.key)) setAdded((a) => a.filter((k) => k !== gone.key))
+    },
     /**
      * Adds a key after line `afterLine` (e.g. a section's last key), or at
      * the end of the file. Returns an error message, or '' when added.
@@ -103,16 +119,38 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       const k = key.trim()
       if (!isValidKey(k)) return 'keys are letters, digits, _ . - and cannot start with a digit'
       if (parseEnv(draft).some((l) => l.kind === 'pair' && l.key === k)) return `${k} already exists — edit its value instead`
-      tryEdit(() => (afterLine === undefined ? setKey(draft, k, value) : insertKeyAfter(draft, afterLine, k, value)))
+      if (tryEdit(() => (afterLine === undefined ? setKey(draft, k, value) : insertKeyAfter(draft, afterLine, k, value)))) setAdded((a) => [...a.filter((x) => x !== k), k])
+      return ''
+    },
+    /**
+     * Renames the key on line `i`. Returns why not (an invalid name, or one
+     * another line already sets), or '' when renamed.
+     */
+    renameKey: (i: number, key: string): string => {
+      const k = key.trim()
+      if (!isValidKey(k)) return 'keys are letters, digits, _ . - and cannot start with a digit'
+      if (parseEnv(draft).some((l, j) => j !== i && l.kind === 'pair' && l.key === k)) return `${k} already exists`
+      const old = parseEnv(draft)[i]
+      // an added key keeps its place at the end under its new name
+      if (tryEdit(() => renameLine(draft, i, k)) && old?.kind === 'pair') setAdded((a) => a.map((x) => (x === old.key ? k : x)))
       return ''
     },
     /** Sets several keys at once (rewrites existing ones, appends new ones). */
-    setKeys: (pairs: { key: string; value: string }[]) => tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft)),
+    setKeys: (pairs: { key: string; value: string }[]) => {
+      const had = new Set(pairKeys(draft))
+      if (tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft))) {
+        const fresh = pairs.map((p) => p.key).filter((k) => !had.has(k))
+        setAdded((a) => [...a.filter((x) => !fresh.includes(x)), ...fresh])
+      }
+    },
   }
 
   const diff: Diff | null = loaded && (phase === 'review' || phase === 'saving' || phase === 'conflict')
     ? diffValues(loaded.text, draft, looksLikeEnv(loaded.text) && looksLikeEnv(draft))
     : null
+
+  /** keys the loaded version has; any other key in the draft is new (added, copied from the pin, or renamed) */
+  const loadedKeys = new Set(loaded ? parseEnv(loaded.text).flatMap((l) => (l.kind === 'pair' ? [l.key] : [])) : [])
 
   /** the draft is exactly the loaded value */
   const unchanged = !!loaded && draft === loaded.text
@@ -202,6 +240,10 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     /** review an unchanged draft, to save the same value as a new version */
     resave: () => review(true),
     unchanged,
+    /** keys added during this edit that the draft still has, sorted by key */
+    addedKeys: added.filter((k) => pairKeys(draft).includes(k)).sort(compareKeys),
+    /** whether a key in the draft is not in the loaded version */
+    isNewKey: (key: string) => !!loaded && !loadedKeys.has(key),
     backToEdit: () => setPhase('editing'),
     save,
     canReapply,

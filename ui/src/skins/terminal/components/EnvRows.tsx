@@ -15,6 +15,8 @@ type Props = {
   renderPair: (line: Pair, index: number) => ReactNode
   /** when set, only matching pairs show, and comments and sections without a match are left out */
   match?: (line: Pair) => boolean
+  /** keys left out of their place and listed last, in this order, under a New keys heading (the editor's keys added during an edit) */
+  tail?: string[]
 }
 
 const note = (raw: string, cols: number, key: string, cls = 'muted') => (
@@ -26,13 +28,24 @@ const note = (raw: string, cols: number, key: string, cls = 'muted') => (
 )
 
 /** The rows of a .env table, sorted by section and key or in file order. */
-export function EnvRows({ text, order, cols, renderPair, match }: Props) {
+export function EnvRows({ text, order, cols, renderPair, match, tail }: Props) {
+  const last = new Set(tail ?? [])
+  const placed = (l: Pair) => !last.has(l.key) && (!match || match(l))
+  // the tail: each key's last line, in the order given
+  const lines = parseEnv(text)
+  const tailRows = (tail ?? []).flatMap((k) => {
+    const i = lines.findLastIndex((l) => l.kind === 'pair' && l.key === k)
+    const l = lines[i]
+    return i >= 0 && l.kind === 'pair' && (!match || match(l)) ? [renderPair(l, i)] : []
+  })
+  const tailBlock = tailRows.length ? [note('# new keys', cols, 'tail-head', 't-function section-head'), ...tailRows] : []
   if (order === 'file') {
     return (
       <tbody>
-        {parseEnv(text).map((l, i) =>
-          l.kind === 'pair' ? (!match || match(l) ? renderPair(l, i) : null) : match || l.raw.trim() === '' ? null : note(l.raw, cols, `n${i}`),
+        {lines.map((l, i) =>
+          l.kind === 'pair' ? (placed(l) ? renderPair(l, i) : null) : match || l.raw.trim() === '' ? null : note(l.raw, cols, `n${i}`),
         )}
+        {tailBlock}
       </tbody>
     )
   }
@@ -43,13 +56,14 @@ export function EnvRows({ text, order, cols, renderPair, match }: Props) {
     return (
       <tbody>
         {s.sections.map((sec, si) => {
-          const hits = sec.items.filter((it) => match(it.line))
+          const hits = sec.items.filter((it) => placed(it.line))
           if (hits.length === 0) return null
           return [
             named && note(sec.title === '' ? '# no section' : sec.header[0].raw, cols, `fh${si}`, sec.title === '' ? 'muted section-head' : 't-function section-head'),
             ...hits.map((it) => renderPair(it.line, it.index)),
           ]
         })}
+        {tailBlock}
       </tbody>
     )
   }
@@ -57,13 +71,18 @@ export function EnvRows({ text, order, cols, renderPair, match }: Props) {
   return (
     <tbody>
       {s.fileComments.map((c) => note(c.raw, cols, `f${c.index}`))}
-      {s.sections.map((sec) => [
+      {s.sections.map((sec) => {
+        const items = sec.items.filter((it) => !last.has(it.line.key))
+        if (sec.items.length > 0 && items.length === 0) return null
+        return [
         sec.title === ''
           ? named && note('# no section', cols, `h-none`, 'muted section-head')
           : sec.header.map((h, i) => note(h.raw, cols, `h${h.index}`, i === 0 ? 't-function section-head' : 't-function')),
-        ...sec.items.flatMap((it) => [...it.notes.map((n) => note(n.raw, cols, `n${n.index}`)), renderPair(it.line, it.index)]),
+        ...items.flatMap((it) => [...it.notes.map((n) => note(n.raw, cols, `n${n.index}`)), renderPair(it.line, it.index)]),
         ...sec.trailing.map((n) => note(n.raw, cols, `t${n.index}`)),
-      ])}
+        ]
+      })}
+      {tailBlock}
     </tbody>
   )
 }

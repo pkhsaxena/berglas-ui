@@ -82,3 +82,8 @@ test('matchAgainst: matches apart from quoting', () => {
   expect([m.matches, m.matchesUnquoted, m.differ, m.quotesOnly]).toEqual([false, true, 1, 1])
   expect(matchAgainst('A=x\n', 'A=x\n').matchesUnquoted).toBe(false)
 })
+
+test('matchAgainst lists the keys only the reference has sorted by key, whatever their order there', () => {
+  const m = matchAgainst('A=1\n', 'A=1\nZETA=z\nkey_10=b\nKEY_2=a\nBETA=y\n')
+  expect(m.missing.map((x) => x.key)).toEqual(['BETA', 'KEY_2', 'key_10', 'ZETA'])
+})
