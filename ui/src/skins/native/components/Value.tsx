@@ -161,7 +161,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               )}
             />
           </table>
-          {filtering && shownCount === 0 && <div className="muted" style={{ padding: '8px 10px' }}>No key or value contains “{query.trim()}”.</div>}
+          {filtering && shownCount === 0 && <div className="muted" style={{ padding: '8px 10px' }}>No key or value matches “{query.trim()}”.</div>}
         </div>
       ) : (
         <pre className="value">{value.text}</pre>
