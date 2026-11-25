@@ -153,7 +153,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
                   <td className="env-val">{l.value}</td>
                   {vs && <td className="marks">{pinMark(vs.byKey.get(l.key))}</td>}
                   <td>
-                    <button className="link" onClick={() => onCopy(l.value)} aria-label={`copy ${l.key}`}>
+                    <button className="link" onClick={() => onCopy(`${l.key}=${l.value}`)} aria-label={`copy ${l.key}`} title={`Copy ${l.key}=… (the key and its value)`}>
                       Copy
                     </button>
                   </td>

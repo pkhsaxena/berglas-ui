@@ -90,7 +90,8 @@
     await idle()
     const copied = await (await fetch('/__selftest/clipboard')).text()
     // never echo the clipboard: it may hold the user's own text
-    check('copy puts the value on the mac clipboard', copied === 'warn', copied === 'warn' ? 'matches' : 'differs (not shown)')
+    // a key's Copy puts KEY=value on the clipboard, the value as stored
+    check('copy puts KEY=value on the mac clipboard', copied === 'LOG_LEVEL=warn', copied === 'LOG_LEVEL=warn' ? 'matches' : 'differs (not shown)')
     await wait(3500) // the test config sets clipboardClearSeconds: 3
     const after = await (await fetch('/__selftest/clipboard')).text()
     check('clipboard auto-clears after clipboardClearSeconds', after === '', after === '' ? 'empty' : 'not empty (not shown)')

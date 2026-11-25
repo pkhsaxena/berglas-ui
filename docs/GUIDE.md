@@ -128,7 +128,7 @@ Its value stays hidden until you ask for it.
     Only the view changes; the file itself is never reordered.
   - **Filter keys and values** narrows the table to what you type.
 - **Copying**:
-  - **Copy** next to a key copies that one value.
+  - **Copy** next to a key copies it as `KEY=value`.
   - **Copy value** copies the whole secret.
   - **Copy as export lines** copies every key as `export KEY='value'` lines, ready to paste into
     a terminal.
