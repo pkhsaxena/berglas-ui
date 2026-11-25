@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { looksLikeEnv, parseEnv } from '../envfile'
+import { claim, useOverlay } from '../overlays'
 
 /** A file dropped onto the window, read as text. Nothing is saved until the user reviews it. */
 export type DroppedFile = { id: number; name: string; text: string; size: number; keys: number | null }
@@ -71,6 +72,8 @@ export function useFileDrop(enabled: boolean) {
       setDragging(false)
       if (!enabled) return
       const files = [...(e.dataTransfer?.files ?? [])]
+      // its dialog takes the place of any open panel; none while one won't close (unsaved settings)
+      if (files.length && !claim('drop')) return
       if (files.length !== 1) return setError(files.length ? 'drop one file at a time' : '')
       setError('')
       readDropped(files[0]).then(setDropped, (err: unknown) => setError(err instanceof Error ? err.message : String(err)))
@@ -91,6 +94,7 @@ export function useFileDrop(enabled: boolean) {
     setDropped(null)
     setError('')
   }
+  useOverlay('drop', 'panel', !!dropped || !!error, { close: clear })
   return { dragging, dropped, error, clear }
 }
 

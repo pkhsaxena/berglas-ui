@@ -1285,6 +1285,75 @@
         `⌘, opens ${byKey}, again closes ${closed}, every setting listed ${complete}, browser section left out ${noBrowser}, find goes to its search ${findHere}, search [${found}] none ${none}, saved at once ${atOnce}, letter refused ${refused}, staged ${staged}, bad field holds save ${held}, asks once ${asked}, saved both ${savedBoth}, write refused ${enforced} (${write.status}), restored ${restored}, close asks ${asks}, discarded ${gone}`,
       ]
     })
+    await step('overlays: one at a time, newest wins; Esc closes the top one wherever the focus is; unsaved settings or a question hold the next one back', async () => {
+      const cfg = async () => (await call('GET', '/api/config')).json
+      const sheet = () => document.querySelector('[aria-label="keyboard shortcuts"]')
+      const settings = () => document.querySelector('[role="dialog"][aria-label="settings"]')
+      const palette = () => document.querySelector('[aria-label="command palette"]')
+      const shown = () => ['sheet', 'settings', 'palette'].filter((n, i) => [sheet, settings, palette][i]())
+      const only = (n) => shown().length === 1 && shown()[0] === n
+      const cmd = (k) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: k, metaKey: true, bubbles: true, cancelable: true }))
+      // Esc with the focus on the page, as after a click on a dialog's plain text
+      const escOnPage = async () => {
+        document.activeElement?.blur()
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+        await idle()
+      }
+
+      document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }))
+      await idle()
+      const a = only('sheet')
+      cmd(',')
+      await idle()
+      const b = only('settings')
+      cmd('k')
+      await idle()
+      const c = only('palette')
+      window.berglasUI.run('shortcuts')
+      await idle()
+      const d = only('sheet')
+      const order = `? → [${a ? 'sheet' : shown()}], ⌘, → [${b ? 'settings' : '?'}], ⌘K → [${c ? 'palette' : '?'}], menu → [${d ? 'sheet' : '?'}]`
+
+      await escOnPage()
+      const sheetEsc = shown().length === 0
+      cmd(',')
+      await waitFor(() => settings())
+      settings().querySelector('h2, .settings-head')?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      await escOnPage()
+      const settingsEsc = !settings()
+
+      // an unsaved safety edit: ⌘K asks about it instead of covering it
+      const readOnly = (await cfg()).readOnly
+      cmd(',')
+      await waitFor(() => settings())
+      field('Read-only').click()
+      await waitFor(() => settings().querySelector('.settings-save'))
+      cmd('k')
+      await idle()
+      const held = !palette() && !!findButton(['discard and close'], settings())
+      if (findButton(['discard and close'], settings())) await press(['discard and close'], settings())
+      const discarded = !settings() && (await cfg()).readOnly === readOnly
+
+      // a leave question: nothing opens over it until it is answered
+      await openSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      setField('value of LOG_LEVEL', 'question-test')
+      await idle()
+      await openSecret('orders-dev-env')
+      const q = () => document.querySelector('[aria-label="discard unsaved changes"]')
+      const asked = !!(await waitFor(() => q()))
+      cmd(',')
+      await idle()
+      const questionFirst = asked && !settings()
+      await escOnPage()
+      const keptByEsc = !q() && norm(document.querySelector('.right').textContent).includes('payments-dev-env') && field('value of LOG_LEVEL')?.value === 'question-test'
+      await openSecret('orders-dev-env')
+      if (await waitFor(() => q())) await press(['discard changes'], q())
+      await idle()
+
+      const checks = { 'newest wins': a && b && c && d, 'esc on page closes sheet': sheetEsc, 'esc on page closes settings': settingsEsc, 'unsaved settings hold ⌘K': held, 'then discarded': discarded, 'question holds ⌘,': questionFirst, 'esc on page keeps editing': keptByEsc }
+      return [Object.values(checks).every(Boolean), `${order}; ` + Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
+    })
     await step('dropdown: substring search, arrow keys, enter picks, esc closes', async () => {
       const zoom = headerSelect('zoom')
       const before = zoom.dataset.value

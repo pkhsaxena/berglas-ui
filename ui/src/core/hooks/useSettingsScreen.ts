@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ConfigPatch } from '../api'
 import { onCommand } from '../commands'
+import { claim, useOverlay } from '../overlays'
 import { inDesktop } from '../desktop'
 import type { Settings } from '../settings'
 import {
@@ -114,16 +115,20 @@ export function useSettingsScreen(h: SettingsHost) {
   }, [])
 
   const show = useCallback(() => {
-    if (!h.enabled) return
+    if (!h.enabled || !claim('settings')) return
     setQuery('')
     setErrors({})
     setOpen(true)
   }, [h.enabled])
 
-  /** Closes, unless safety edits are unsaved: then it asks first (stage 'leaving'). */
+  /** Closes, unless safety edits are unsaved: then it asks first (stage 'leaving') and returns false. */
   const close = useCallback(() => {
-    if (dirty || hasInvalid) setStage('leaving')
-    else setOpen(false)
+    if (dirty || hasInvalid) {
+      setStage('leaving')
+      return false
+    }
+    setOpen(false)
+    return true
   }, [dirty, hasInvalid])
 
   /** Throws the unsaved safety edits away and closes. */
@@ -306,14 +311,19 @@ export function useSettingsScreen(h: SettingsHost) {
   /** Back to editing from the confirmation or the leave question. */
   const back = () => setStage('edit')
 
-  /** Put on the dialog: Esc steps back from a question, else closes. */
+  /** Esc: steps back from a question, else closes. */
+  const escape = () => {
+    if (stage !== 'edit') back()
+    else close()
+  }
+  /** Put on the dialog (Esc from anywhere else reaches `escape` through the overlay stack). */
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') return
     e.preventDefault()
     e.stopPropagation()
-    if (stage !== 'edit') back()
-    else close()
+    escape()
   }
+  useOverlay('settings', 'panel', open, { close, escape })
 
   // a block is found by what it shows too: source names
   const sourceWords = h.sources.map((s) => `${sourceName(s)} ${s.parent}`).join(' ')

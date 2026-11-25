@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useOverlay } from '../overlays'
 
 /**
  * Keeps unsaved work from being dropped silently. The editor and the create
@@ -34,6 +35,7 @@ export function useLeaveGuard() {
 
   /** Stays with the unsaved work; what was asked does not happen. */
   const keep = () => setPending(null)
+  useOverlay('leave', 'question', pending !== null, { close: keep })
 
   useEffect(() => {
     if (!dirty) return

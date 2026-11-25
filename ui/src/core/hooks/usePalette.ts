@@ -1,5 +1,6 @@
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { onCommand } from '../commands'
+import { claim, useOverlay } from '../overlays'
 import { type PaletteItem, rankItems } from '../palette'
 
 /**
@@ -18,11 +19,13 @@ export function usePalette(getItems: () => PaletteItem[]) {
   const results = useMemo(() => (open ? rankItems(getItems(), query) : []), [open, getItems, query])
 
   const show = useCallback(() => {
+    if (!claim('palette')) return
     setQueryState('')
     setIndex(0)
     setOpen(true)
   }, [])
   const close = useCallback(() => setOpen(false), [])
+  useOverlay('palette', 'panel', open, { close })
 
   useEffect(() => onCommand('palette', () => (open ? close() : show())), [open, show, close])
 

@@ -8,7 +8,7 @@ import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
 import { useSetup } from '../../core/hooks/useSetup'
 import { useLeaveGuard } from '../../core/hooks/useLeaveGuard'
 import { useShortcuts } from '../../core/hooks/useShortcuts'
-import { useOneOverlay } from '../../core/hooks/useOneOverlay'
+import { claim, useOverlay } from '../../core/overlays'
 import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
@@ -136,10 +136,11 @@ export default function App() {
     () =>
       onOpenLink((t) => {
         if (app.sources.some((x) => x.backend === t.backend && x.parent === t.parent)) openRefRef.current(t)
-        else setLinkAsk(t)
+        else if (claim('link')) setLinkAsk(t)
       }),
     [app.sources],
   )
+  useOverlay('link', 'panel', !!linkAsk, { close: () => setLinkAsk(null) })
 
   /** Opens a favourite or recent secret, switching source when it lives elsewhere. */
   const openRef = (r: SecretRef) => {
@@ -326,8 +327,6 @@ export default function App() {
       }),
     }),
   )
-  // the palette and the shortcut sheet would stack: opening one closes the other
-  useOneOverlay(palette, shortcuts)
 
   // the view tabs, set into the title of the right column's top pane (normal width only)
   // while a secret is being edited or created, the other views wait: switching would drop the draft

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type Backend, type ConfigPatch } from '../api'
 import { onCommand } from '../commands'
+import { claim, useOverlay } from '../overlays'
 import type { Settings } from '../settings'
 import { groupFit, type GroupFit, parseSourceLines, protectCount, protectError, rowErrors, type SetupRow, suggestGroup, suggestProtect, toSource } from '../setup'
 import { type Source, sourceId } from '../sources'
@@ -64,6 +65,7 @@ export function useSetup(host: Host) {
   hostRef.current = host
 
   const show = useCallback(() => {
+    if (!claim('setup')) return
     const h = hostRef.current
     setStep('sources')
     setRows([blankRow()])
@@ -83,6 +85,8 @@ export function useSetup(host: Host) {
     dismissed.current = true
     setOpen(false)
   }
+  // Esc waits for a save in progress
+  useOverlay('setup', 'panel', open, { close, escape: () => !saving && close() })
 
   // a fresh install: nothing to look at until a source is added
   useEffect(() => {

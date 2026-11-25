@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { onCommand } from '../commands'
 import { desktopAuthenticate, desktopCanAuthenticate } from '../desktop'
+import { useOverlay } from '../overlays'
 
 const ACTIVITY = ['pointerdown', 'pointermove', 'keydown', 'wheel'] as const
 
@@ -25,6 +26,8 @@ export function useLock(minutes: number) {
   }, [])
 
   useEffect(() => onCommand('lock', lock), [lock])
+  // over everything: nothing opens on top, and Esc doesn't unlock
+  useOverlay('lock', 'lock', locked, { close: () => false, escape: () => {} })
 
   // ⌘L (Ctrl+L) locks. The mac app's Go → Lock has the same key and takes it
   // first; this is for the browser version, where the browser may keep ⌘L for
