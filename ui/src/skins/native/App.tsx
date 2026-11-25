@@ -8,6 +8,7 @@ import { useSettingsScreen } from '../../core/hooks/useSettingsScreen'
 import { useSetup } from '../../core/hooks/useSetup'
 import { useLeaveGuard } from '../../core/hooks/useLeaveGuard'
 import { useShortcuts } from '../../core/hooks/useShortcuts'
+import { useOneOverlay } from '../../core/hooks/useOneOverlay'
 import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
@@ -320,6 +321,8 @@ export default function App() {
       }),
     }),
   )
+  // the palette and the shortcut sheet would stack: opening one closes the other
+  useOneOverlay(palette, shortcuts)
 
   // the view tabs, set into the header of the main column's top pane (normal width only)
   // while a secret is being edited or created, the other views wait: switching would drop the draft
