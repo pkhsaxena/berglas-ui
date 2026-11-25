@@ -126,9 +126,10 @@ Its value stays hidden until you ask for it.
   - **Keys / Raw** switches between the table and the file as stored.
   - **Sorted / File order** sorts the table by section and key, or shows the file's own order.
     Only the view changes; the file itself is never reordered.
-  - **Filter keys and values** narrows the table to what you type.
+  - **Filter keys and values** narrows the table to what you type: a key, a value, a whole
+    `KEY=value` line, or a few words from either (`log warn` finds `LOG_LEVEL=warn`).
 - **Copying**:
-  - **Copy** next to a key copies that one value.
+  - **Copy** next to a key copies it as `KEY=value`.
   - **Copy value** copies the whole secret.
   - **Copy as export lines** copies every key as `export KEY='value'` lines, ready to paste into
     a terminal.

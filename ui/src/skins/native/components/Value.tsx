@@ -153,7 +153,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
                   <td className="env-val">{l.value}</td>
                   {vs && <td className="marks">{pinMark(vs.byKey.get(l.key))}</td>}
                   <td>
-                    <button className="link" onClick={() => onCopy(l.value)} aria-label={`copy ${l.key}`}>
+                    <button className="link" onClick={() => onCopy(`${l.key}=${l.value}`)} aria-label={`copy ${l.key}`} title={`Copy ${l.key}=… (the key and its value)`}>
                       Copy
                     </button>
                   </td>
@@ -161,7 +161,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
               )}
             />
           </table>
-          {filtering && shownCount === 0 && <div className="muted" style={{ padding: '8px 10px' }}>No key or value contains “{query.trim()}”.</div>}
+          {filtering && shownCount === 0 && <div className="muted" style={{ padding: '8px 10px' }}>No key or value matches “{query.trim()}”.</div>}
         </div>
       ) : (
         <pre className="value">{value.text}</pre>
