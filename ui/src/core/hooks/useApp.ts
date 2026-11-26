@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError, type Config, type ConfigPatch, type EnvOrder, type Ref, type SecretRef, type Status } from '../api'
 import { configureCache, metaCache } from '../cache'
 import { onCommand } from '../commands'
+import { refreshOnReturn } from '../refresh'
 import { pushRecent, toggleRef, withoutRef } from '../refs'
 import { DEFAULT_SETTINGS, type Settings } from '../settings'
 import { type Source, sourceId } from '../sources'
@@ -84,6 +85,9 @@ export function useApp() {
   }, [load])
 
   useEffect(() => configureCache(base.cacheSeconds, base.cacheEntries), [base.cacheSeconds, base.cacheEntries])
+
+  // coming back to the window re-checks the open secret and list (../refresh)
+  useEffect(() => refreshOnReturn(), [])
 
   useEffect(() => applyZoom(base.zoom), [base.zoom])
 

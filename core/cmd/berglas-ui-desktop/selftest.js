@@ -1540,6 +1540,33 @@
       return [watching && found.length === 1 && notified && !!row && cleared && unwatched, `watching ${watching}, found ${found.length}, notified ${notified}, changed row ${!!row}, cleared on open ${cleared}, unwatched ${unwatched}`]
     })
 
+    await step('someone else\'s new version shows when the open secret is clicked again, and when the window regains focus', async () => {
+      await openSecret('orders-dev-env')
+      if (!pane('.versions-pane')) tab('versions')?.click()
+      await idle()
+      // demo generations are 16 digits; matched exactly, since a skin may print other numbers right after one
+      const newest = () => Number(([...document.querySelectorAll('.versions-pane tbody tr')].filter(vis)[0]?.textContent.match(/\d{16}/) || ['0'])[0])
+      const listGen = () => Number((document.querySelector('.rowbtn[aria-label="orders-dev-env"]')?.textContent.match(/\d{16}/) || ['0'])[0])
+      const before = newest()
+      // a click on the secret already open re-checks it at once
+      await fetch('/__selftest/external-write?name=orders-dev-env')
+      await openSecret('orders-dev-env')
+      await waitFor(() => newest() > before, 3000)
+      await idle()
+      const afterClick = newest()
+      const listAfterClick = listGen()
+      // coming back to the window re-checks too (at most every 5 s, so wait that out first)
+      await fetch('/__selftest/external-write?name=orders-dev-env')
+      await wait(5200)
+      window.dispatchEvent(new Event('focus'))
+      await waitFor(() => newest() > afterClick, 3000)
+      await idle()
+      const afterFocus = newest()
+      const byClick = afterClick > before && listAfterClick === afterClick
+      const byFocus = afterFocus > afterClick && listGen() === afterFocus
+      return [byClick && byFocus, `newest ${before} → ${afterClick} on click (list ${listAfterClick}) → ${afterFocus} on focus (list ${listGen()})`]
+    })
+
     toastWatch.disconnect()
     check('toasts after save, create, delete and pin', ['saved', 'created', 'deleted', 'pinned'].every((t) => toasts.has(t)), [...toasts].join(', '))
 

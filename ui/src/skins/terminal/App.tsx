@@ -13,6 +13,7 @@ import { choiceOptions } from '../../core/settingsModel'
 import { useLock } from '../../core/hooks/useLock'
 import { useWatch } from '../../core/hooks/useWatch'
 import { type LinkTarget, onOpenLink } from '../../core/commands'
+import { requestRefresh } from '../../core/refresh'
 import { linkFor } from '../../core/deeplink'
 import { type DroppedFile, useFileDrop } from '../../core/hooks/useFileDrop'
 import { useDropPicker } from '../../core/hooks/useDropPicker'
@@ -216,8 +217,11 @@ export default function App() {
   // with no secret open there are no versions to show
   const shownView = view === 'versions' && !selected ? 'secret' : view
   const select = (name: string) => {
-    // the secret already open: nothing is left behind
-    if (name === selected && !creating) return setView('secret')
+    // the secret already open: nothing is left behind; check it for new versions
+    if (name === selected && !creating) {
+      requestRefresh(true)
+      return setView('secret')
+    }
     leave.guard(() => {
       setCreating(false)
       setSelected(name)

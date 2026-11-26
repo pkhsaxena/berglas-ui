@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, decodeValue, type Ref, type Secret, versionOf } from '../api'
 import { metaCache, versionsKey } from '../cache'
+import { onRefresh } from '../refresh'
 import { copySecret } from '../clipboard'
 import { type EnvLine, looksLikeEnv, parseEnv } from '../envfile'
 import { useSettings } from '../settings'
@@ -73,6 +74,8 @@ export function useSecret(base: Ref, onNote: (msg: string) => void = () => {}) {
   useEffect(() => {
     void loadVersions()
   }, [loadVersions])
+  // a version saved elsewhere shows up when you come back to the window or click the open secret (../refresh)
+  useEffect(() => onRefresh(() => void loadVersions()), [loadVersions])
 
   useEffect(() => hide, [hide])
 

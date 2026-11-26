@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type Secret } from '../api'
 import { listKey, metaCache } from '../cache'
+import { onRefresh } from '../refresh'
 import { groupByPattern } from '../group'
 import { type Source, sourceId } from '../sources'
 import { errText } from './useApp'
@@ -40,6 +41,8 @@ export function useSecretList(source: Source | null, enabled: boolean, rev = 0) 
   useEffect(() => {
     if (enabled) void refresh()
   }, [enabled, refresh])
+  // and again when you come back to the window or click the open secret (../refresh)
+  useEffect(() => (enabled ? onRefresh(() => void refresh()) : undefined), [enabled, refresh])
 
   const secrets = data?.id === id ? data.list : source ? (metaCache.get(listKey(source)) ?? null) : null
 

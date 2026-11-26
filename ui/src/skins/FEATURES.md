@@ -89,6 +89,7 @@ Status for every row: ✅ terminal · ✅ native, unless the row says otherwise.
 | Feature | What the user sees | Core | Verified by |
 |---|---|---|---|
 | Version list | Newest first; latest marked; the shown one marked; "only the live generation exists" note when versioning is off | `useSecret.versions` | app "version list: three versions, newest first" |
+| Refresh on return | The open secret's versions and the source's list are fetched again when the window regains focus or becomes visible (at most every 5 s) and when the open secret is clicked again, so a version saved elsewhere shows up | `core/refresh.ts`, `useSecret`, `useSecretList`, skin `App.tsx` (`select`) | app "someone else's new version shows when the open secret is clicked again, and when the window regains focus"; unit `refresh.test.ts` |
 | Diff two versions | a / b pickers, Diff a → b; Keys / Lines views; added, removed, changed, quotes-only; show unchanged | `useVersionDiff`, `diff.ts` | unit `diff.test.ts` |
 | Diff replaces the table | While a diff is open the table and pickers hide; **hide diff** in the pane header (beside the view tabs), Esc or the reveal timer brings the table back | `useVersionDiff.clear` | app "a version diff replaces the table; hide diff brings it back" |
 

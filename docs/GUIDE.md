@@ -154,6 +154,8 @@ The **Versions** tab lists every saved version, newest first.
 - **Diff**: pick **a** and **b** on two versions, then **Diff a → b** to see what changed.
 - **Restore this version…** (on an older version) opens the editor with that old value, ready to
   save as a new version. Nothing is lost: the newer versions stay in the history.
+- **Someone else saved a new version?** It shows up when you come back to the window, or when
+  you click the secret again. The secret list catches up at the same time.
 
 ---
 
