@@ -5,7 +5,7 @@ secrets, on both of its backends: Cloud Storage + KMS (`berglas://`) and Secret 
 
 > Not an official Google project, and not affiliated with or endorsed by Google.
 
-This is the technical reference: install, credentials, the config file, the mac app, UI development, the security model and the API. **New here? Start with the [user guide](../README.md)**: everything the app does, in plain language.
+This is the technical reference: install, credentials, the config file, the mac app, UI development, the security model and the API. **New here? Start with the [README](../README.md)** and the [user guide](GUIDE.md): everything the app does, in plain language.
 
 <p>
   <img src="screenshots/native-prod.png" alt="The native skin on demo data: a production secret under a red banner, with the service by environment matrix and the overview beside it" width="49%">
@@ -389,6 +389,8 @@ belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code a
 
 ## security model
 
+### the browser version
+
 The core serves secret values over plain HTTP on a local port, so:
 
 - it binds to loopback only, and refuses other addresses unless `-allow-non-loopback` is passed
@@ -403,8 +405,44 @@ The core serves secret values over plain HTTP on a local port, so:
 can use the app can change them in the settings screen (after a confirmation, and on record in
 the audit log) or in the config file.
 
-The mac app has no port, so it drops the loopback, token and origin checks (nothing outside
-the app can send it requests) and keeps everything else, including read-only and protect.
+### the mac app
+
+The mac app (`core/cmd/berglas-ui-desktop`, Wails) has no port. WKWebView serves the
+`wails://` scheme through a `WKURLSchemeHandler` that hands each request in-process to
+`DesktopHandler` (`core/internal/server/desktop.go`). Nothing outside the app can send it a
+request, so it drops the loopback, token and origin checks. Everything else stays the same,
+including read-only, protect, the audit log and `no-store`. On top of that:
+
+- **web view:** the same content security policy (`default-src 'self'`, `connect-src 'self'`)
+  applies. `scripts/build-mac.sh` builds with `-tags desktop,production` and without
+  `devtools`, so the web inspector and the default context menu are compiled out.
+- **links:** the ui catches clicks on outside links and sends them to `/api/desktop/open`.
+  That route opens only `http`, `https` and `mailto` in the default browser; the window never
+  navigates away.
+- **deep links:** macOS hands `berglas-ui://open?backend=…&parent=…&name=…` links to the app.
+  `parseLink` (`links.go`) checks them: the backend must be `storage` or `sm`, a field may not
+  hold control characters or exceed 1024 bytes, and a parent may not hold spaces or `/`. A
+  link only opens a secret. It never reveals, writes or changes settings, and a source missing
+  from the config needs the user's yes before it's added.
+- **screen capture:** the window is created with content protection (`NSWindowSharingNone`)
+  unless `allowScreenCapture: true`, which is a safety setting.
+- **lock:** `lockAfterMinutes`, or ⌘L / Go → Lock, covers the ui with the lock screen. Unlocking
+  calls `LAContext` with `LAPolicyDeviceOwnerAuthentication` (Touch ID or the login password)
+  through `/api/desktop/authenticate`. The page stays as it was underneath, so a draft survives.
+- **clipboard:** copies and the auto-clear go through the core (`/api/desktop/clipboard`,
+  `/clipboard/clear`), so they don't need a click in the page. The clear empties the clipboard
+  only if it still holds what the app copied, and no route reads the clipboard back. Wails
+  copies by piping the text to `pbcopy` (through stdin, never the command line), as plain text
+  that isn't marked concealed or transient, so clipboard managers and Universal Clipboard can
+  see it until the clear.
+- **save to file:** `/api/desktop/save` takes only the ref. The core reads the value, asks for a
+  path in the native Save dialog, and writes it mode 600 (also narrowing an existing file's
+  mode). It needs the confirm header for protected names and audits the export with its path.
+- **files:** the config and the audit log are written mode 600.
+- **notifications:** watch notifications carry the secret's name, version and parent, never a
+  value.
+- **signing:** the build is signed ad hoc, not notarized, with no entitlements, so it isn't
+  sandboxed. It runs with the user's permissions, like the `gcloud` credentials it uses.
 
 ## api
 
