@@ -32,6 +32,7 @@ const saved: FieldValues = {
   revealSeconds: 60,
   clipboardClearSeconds: 30,
   allowScreenCapture: false,
+  allowUniversalClipboard: false,
   auditLog: '',
   cacheSeconds: 600,
   cacheEntries: 500,
@@ -55,7 +56,7 @@ describe('the settings list', () => {
 
   it('marks the settings that guard secrets as safety settings', () => {
     const safety = ITEMS.filter((i): i is Field => isField(i) && !!i.safety).map((f) => f.key)
-    expect(safety.sort()).toEqual(['allowScreenCapture', 'auditLog', 'clipboardClearSeconds', 'lockAfterMinutes', 'protect', 'readOnly', 'revealSeconds'])
+    expect(safety.sort()).toEqual(['allowScreenCapture', 'allowUniversalClipboard', 'auditLog', 'clipboardClearSeconds', 'lockAfterMinutes', 'protect', 'readOnly', 'revealSeconds'])
   })
 })
 
@@ -75,7 +76,7 @@ describe('search', () => {
     const cache = visibleSections('cache')
     expect(cache.map((s) => s.id)).toEqual(['background'])
     expect(cache[0].items.map((i) => i.key)).toEqual(['cacheSeconds', 'cacheEntries', 'watchMinutes'])
-    expect(visibleSections('clipboard').flatMap((s) => s.items.map((i) => i.key))).toEqual(['clipboardClearSeconds'])
+    expect(visibleSections('clipboard').flatMap((s) => s.items.map((i) => i.key))).toEqual(['clipboardClearSeconds', 'allowUniversalClipboard'])
     expect(visibleSections('zzz')).toEqual([])
     // the mac app leaves the browser version's section out, also from a search
     expect(visibleSections('', {}, ['browser']).map((s) => s.id)).not.toContain('browser')

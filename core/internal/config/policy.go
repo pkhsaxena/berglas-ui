@@ -20,28 +20,29 @@ const (
 // Settings is the resolved config the ui needs: defaults applied, paths
 // expanded. It is what GET /api/config returns besides the raw sources.
 type Settings struct {
-	Skin                  string      `json:"skin"`
-	Theme                 string      `json:"theme"`
-	TimeZone              string      `json:"timeZone"`
-	EnvOrder              string      `json:"envOrder"`
-	ReadOnly              bool        `json:"readOnly"`
-	Protect               []string    `json:"protect"`
-	RevealSeconds         int         `json:"revealSeconds"`
-	LockAfterMinutes      int         `json:"lockAfterMinutes"`
-	ClipboardClearSeconds int         `json:"clipboardClearSeconds"`
-	CacheSeconds          int         `json:"cacheSeconds"`
-	CacheEntries          int         `json:"cacheEntries"`
-	Zoom                  int         `json:"zoom"`
-	AuditLog              string      `json:"auditLog"`
-	Credentials           Credentials `json:"credentials"`
-	Sources               []Source    `json:"sources"`
-	Favorites             []SecretRef `json:"favorites"`
-	Recent                []SecretRef `json:"recent"`
-	RecentCollapsed       bool        `json:"recentCollapsed"`
-	SidebarCollapsed      bool        `json:"sidebarCollapsed"`
-	Watch                 []SecretRef `json:"watch"`
-	WatchMinutes          int         `json:"watchMinutes"`
-	AllowScreenCapture    bool        `json:"allowScreenCapture"`
+	Skin                    string      `json:"skin"`
+	Theme                   string      `json:"theme"`
+	TimeZone                string      `json:"timeZone"`
+	EnvOrder                string      `json:"envOrder"`
+	ReadOnly                bool        `json:"readOnly"`
+	Protect                 []string    `json:"protect"`
+	RevealSeconds           int         `json:"revealSeconds"`
+	LockAfterMinutes        int         `json:"lockAfterMinutes"`
+	ClipboardClearSeconds   int         `json:"clipboardClearSeconds"`
+	CacheSeconds            int         `json:"cacheSeconds"`
+	CacheEntries            int         `json:"cacheEntries"`
+	Zoom                    int         `json:"zoom"`
+	AuditLog                string      `json:"auditLog"`
+	Credentials             Credentials `json:"credentials"`
+	Sources                 []Source    `json:"sources"`
+	Favorites               []SecretRef `json:"favorites"`
+	Recent                  []SecretRef `json:"recent"`
+	RecentCollapsed         bool        `json:"recentCollapsed"`
+	SidebarCollapsed        bool        `json:"sidebarCollapsed"`
+	Watch                   []SecretRef `json:"watch"`
+	WatchMinutes            int         `json:"watchMinutes"`
+	AllowScreenCapture      bool        `json:"allowScreenCapture"`
+	AllowUniversalClipboard bool        `json:"allowUniversalClipboard"`
 	// Listen and OpenBrowser are the browser version's; shown as written
 	Listen      string `json:"listen"`
 	OpenBrowser bool   `json:"openBrowser"`
@@ -54,7 +55,7 @@ func (c Config) Settings() Settings {
 		RevealSeconds: DefaultRevealSeconds, ClipboardClearSeconds: DefaultClipboardClearSeconds,
 		CacheSeconds: DefaultCacheSeconds, CacheEntries: DefaultCacheEntries, Zoom: DefaultZoom,
 		AuditLog: ExpandHome(c.AuditLog), Credentials: c.Credentials, Sources: c.Sources,
-		LockAfterMinutes: c.LockAfterMinutes, AllowScreenCapture: c.AllowScreenCapture, Listen: c.Listen, OpenBrowser: c.OpenBrowser,
+		LockAfterMinutes: c.LockAfterMinutes, AllowScreenCapture: c.AllowScreenCapture, AllowUniversalClipboard: c.AllowUniversalClipboard, Listen: c.Listen, OpenBrowser: c.OpenBrowser,
 		Favorites: nonNil(c.Favorites), Recent: nonNil(c.Recent), RecentCollapsed: c.RecentCollapsed, SidebarCollapsed: c.SidebarCollapsed, Watch: nonNil(c.Watch), WatchMinutes: DefaultWatchMinutes,
 	}
 	if c.WatchMinutes > 0 {

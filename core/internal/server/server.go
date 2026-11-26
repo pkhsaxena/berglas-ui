@@ -381,6 +381,7 @@ func safetyChanges(a, b config.Config) []string {
 	add("revealSeconds", as.RevealSeconds, bs.RevealSeconds)
 	add("clipboardClearSeconds", as.ClipboardClearSeconds, bs.ClipboardClearSeconds)
 	add("allowScreenCapture", as.AllowScreenCapture, bs.AllowScreenCapture)
+	add("allowUniversalClipboard", as.AllowUniversalClipboard, bs.AllowUniversalClipboard)
 	add("auditLog", orOff(a.AuditLog), orOff(b.AuditLog))
 	for _, src := range b.Sources {
 		was := a.Source(src.Backend, src.Parent)

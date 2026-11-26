@@ -33,7 +33,7 @@ func settingsServer(t *testing.T, cfgBody string) (http.Handler, string) {
 func TestSetConfigSavesEverySetting(t *testing.T) {
 	h, path := settingsServer(t, "sources:\n  - {backend: storage, parent: demo-bucket}\n")
 	rec := post(h, "/api/config", `{"readOnly":true,"protect":["*-prod-*"],"lockAfterMinutes":5,"revealSeconds":20,"clipboardClearSeconds":0,
-		"allowScreenCapture":true,"cacheSeconds":30,"cacheEntries":7,"watchMinutes":2,"listen":"127.0.0.1:9000","openBrowser":true}`)
+		"allowScreenCapture":true,"allowUniversalClipboard":true,"cacheSeconds":30,"cacheEntries":7,"watchMinutes":2,"listen":"127.0.0.1:9000","openBrowser":true}`)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status %d %s", rec.Code, rec.Body)
 	}
@@ -42,7 +42,7 @@ func TestSetConfigSavesEverySetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !got.ReadOnly || len(got.Protect) != 1 || got.LockAfterMinutes != 5 || got.RevealSeconds != 20 || got.ClipboardClearSeconds != 0 ||
-		!got.AllowScreenCapture || got.CacheSeconds != 30 || got.CacheEntries != 7 || got.WatchMinutes != 2 || got.Listen != "127.0.0.1:9000" || !got.OpenBrowser {
+		!got.AllowScreenCapture || !got.AllowUniversalClipboard || got.CacheSeconds != 30 || got.CacheEntries != 7 || got.WatchMinutes != 2 || got.Listen != "127.0.0.1:9000" || !got.OpenBrowser {
 		t.Fatalf("answer %+v", got)
 	}
 	// read-only is enforced at once, no restart
@@ -50,7 +50,7 @@ func TestSetConfigSavesEverySetting(t *testing.T) {
 		t.Fatalf("write after readOnly: %d %s", rec.Code, rec.Body)
 	}
 	saved, _ := os.ReadFile(path)
-	for _, want := range []string{"readOnly: true", "lockAfterMinutes: 5", "allowScreenCapture: true", "watchMinutes: 2", "listen: 127.0.0.1:9000"} {
+	for _, want := range []string{"readOnly: true", "lockAfterMinutes: 5", "allowScreenCapture: true", "allowUniversalClipboard: true", "watchMinutes: 2", "listen: 127.0.0.1:9000"} {
 		if !strings.Contains(string(saved), want) {
 			t.Fatalf("file lacks %q:\n%s", want, saved)
 		}

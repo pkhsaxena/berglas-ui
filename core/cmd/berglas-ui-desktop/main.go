@@ -67,6 +67,8 @@ func main() {
 // shell is the app's side of server.Desktop; ctx is set once Wails starts.
 type shell struct {
 	ctx context.Context
+	// universal says whether copies may reach other devices (allowUniversalClipboard), asked on every copy
+	universal func() bool
 	// opened records links instead of opening them, during a self-test
 	opened *[]string
 	// saveDir, during a self-test, takes saved files instead of a Save dialog
@@ -152,11 +154,13 @@ func (s *shell) watchChanged(log *slog.Logger, c server.Change) {
 	}
 }
 
+// SetClipboard copies privately (clipboard_darwin.go): left out of clipboard
+// managers' history, and kept on this Mac unless allowUniversalClipboard is on.
 func (s *shell) SetClipboard(text string) error {
-	return wruntime.ClipboardSetText(s.ctx, text)
+	return setClipboard(text, s.universal != nil && s.universal())
 }
 
-func (s *shell) ClipboardText() (string, error) { return wruntime.ClipboardGetText(s.ctx) }
+func (s *shell) ClipboardText() (string, error) { return clipboardText(), nil }
 
 func (s *shell) OpenURL(u string) error {
 	if s.opened != nil {
@@ -255,7 +259,7 @@ func run() error {
 	api.Demo = demo
 	api.ThrowawayConfig = demo && os.Getenv("BERGLAS_UI_CONFIG") == ""
 	api.Auth = auth
-	sh := &shell{}
+	sh := &shell{universal: func() bool { return cfg.Get().AllowUniversalClipboard }}
 	if testJS != "" {
 		sh.opened = &[]string{}
 		dir, err := os.MkdirTemp("", "berglas-ui-selftest-save-")
@@ -419,6 +423,10 @@ func withSelftest(next http.Handler, sh *shell, store secrets.Store, done func(r
 		case "/__selftest/clipboard":
 			t, _ := sh.ClipboardText()
 			_, _ = io.WriteString(w, t)
+			return
+		case "/__selftest/clipboard-types":
+			// the pasteboard types only, never the text
+			_, _ = io.WriteString(w, strings.Join(clipboardTypes(), "\n"))
 			return
 		case "/__selftest/opened":
 			_, _ = fmt.Fprint(w, strings.Join(*sh.opened, "\n"))

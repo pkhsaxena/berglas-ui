@@ -38,6 +38,7 @@ export type FieldValues = {
   revealSeconds: number
   clipboardClearSeconds: number
   allowScreenCapture: boolean
+  allowUniversalClipboard: boolean
   auditLog: string
   cacheSeconds: number
   cacheEntries: number
@@ -100,6 +101,7 @@ export const ITEMS: Item[] = [
   { key: 'revealSeconds', kind: 'number', section: 'safety', safety: true, label: 'Hide revealed values after', unit: 'seconds', min: 0, zero: 'never', help: 'A revealed value is masked again after this long. A value already on screen keeps the time it was revealed with.', keywords: 'reveal mask timeout hide' },
   { key: 'clipboardClearSeconds', kind: 'number', section: 'safety', safety: true, label: 'Clear the clipboard after', unit: 'seconds', min: 0, zero: 'never', help: 'Everything the app copies (values, keys, whole files, links) is cleared from the clipboard after this long, if it is still there.', keywords: 'copy paste clipboard clear' },
   { key: 'allowScreenCapture', kind: 'toggle', section: 'safety', safety: true, restart: true, label: 'Allow screen capture', help: 'Let screenshots, screen recording and screen sharing see the mac app’s window. Off, the window shows up blank in them.', keywords: 'screenshot recording sharing content protection' },
+  { key: 'allowUniversalClipboard', kind: 'toggle', section: 'safety', safety: true, label: 'Allow Universal Clipboard', help: 'Let values you copy in the mac app reach your other Apple devices through Universal Clipboard. Off, a copy stays on this Mac.', keywords: 'handoff continuity iphone ipad devices copy paste clipboard sync' },
   { key: 'auditLog', kind: 'text', section: 'safety', safety: true, label: 'Audit log file', help: 'One line per write and per safety settings change; never a value.', placeholder: '~/.berglas-ui/audit.log', empty: 'off', keywords: 'audit log history record file path' },
   { key: 'sourceSafety', kind: 'block', section: 'safety', label: 'Per source', help: 'Read-only and extra protected names for one source.', keywords: 'source read-only readonly protect bucket project' },
 
@@ -183,7 +185,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 /** A source's safety settings, as far as the draft changes them. */
 export type SourceSafety = { readOnly?: boolean; protect?: string[] }
 
-export type SafetyKey = 'readOnly' | 'protect' | 'lockAfterMinutes' | 'revealSeconds' | 'clipboardClearSeconds' | 'allowScreenCapture' | 'auditLog'
+export type SafetyKey = 'readOnly' | 'protect' | 'lockAfterMinutes' | 'revealSeconds' | 'clipboardClearSeconds' | 'allowScreenCapture' | 'allowUniversalClipboard' | 'auditLog'
 
 /** Safety settings edited but not saved yet. `sources` is keyed by sourceId. */
 export type SafetyDraft = Partial<Pick<FieldValues, SafetyKey>> & { sources?: Record<string, SourceSafety> }

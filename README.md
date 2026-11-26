@@ -41,7 +41,8 @@ and written by Google's own [berglas](https://github.com/GoogleCloudPlatform/ber
 
 **Values stay out of sight.**
 - Nothing is shown until you click **Reveal**, and it hides again on its own after a minute.
-- Anything you copy is wiped from the clipboard after 30 seconds.
+- Anything you copy is wiped from the clipboard after 30 seconds. In the mac app it's also
+  kept out of clipboard managers' history and off your other devices.
 - Comparing environments never puts a value on screen: the app compares fingerprints of the
   values instead.
 - Values are never written to logs.

@@ -92,6 +92,7 @@ export function useSettingsScreen(h: SettingsHost) {
       revealSeconds: h.settings.revealSeconds,
       clipboardClearSeconds: h.settings.clipboardClearSeconds,
       allowScreenCapture: h.settings.allowScreenCapture,
+      allowUniversalClipboard: h.settings.allowUniversalClipboard,
       auditLog: h.settings.auditLog,
       cacheSeconds: h.settings.cacheSeconds,
       cacheEntries: h.settings.cacheEntries,

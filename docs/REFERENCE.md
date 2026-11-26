@@ -126,7 +126,7 @@ the desktop app is macOS only for now.
 - **settings screen** (`core/settingsModel.ts`): ⌘, (Ctrl+,; in the mac app also Go →
   Settings…) opens every setting of the config file in sections, with a search box. Most settings
   are saved the moment you change them. **Safety settings** (read-only, protected names, the lock,
-  reveal and clipboard timers, screen capture, the audit log, and each source's read-only and
+  reveal and clipboard timers, screen capture, Universal Clipboard, the audit log, and each source's read-only and
   protected names) are collected instead: a bar lists what would change, and **save safety
   settings…** then **confirm** writes all of them in one save. Until then the saved values stay in
   force, and closing with unsaved ones asks first. A safety change is also written to the audit
@@ -221,6 +221,7 @@ auditLog: ~/.berglas-ui/audit.log   # one json line per write, export or safety 
 watchMinutes: 5              # how often watched secrets are checked
 lockAfterMinutes: 15         # mac app: lock after this long without input; 0 = never
 allowScreenCapture: false    # mac app: let screenshots and screen sharing see the window
+allowUniversalClipboard: false  # mac app: let copies reach your other Apple devices
 credentials:                 # who the core acts as; switch between choices in the ui
   impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
   quotaProject: my-project
@@ -431,10 +432,14 @@ including read-only, protect, the audit log and `no-store`. On top of that:
   through `/api/desktop/authenticate`. The page stays as it was underneath, so a draft survives.
 - **clipboard:** copies and the auto-clear go through the core (`/api/desktop/clipboard`,
   `/clipboard/clear`), so they don't need a click in the page. The clear empties the clipboard
-  only if it still holds what the app copied, and no route reads the clipboard back. Wails
-  copies by piping the text to `pbcopy` (through stdin, never the command line), as plain text
-  that isn't marked concealed or transient, so clipboard managers and Universal Clipboard can
-  see it until the clear.
+  only if it still holds what the app copied, and no route reads the clipboard back. The app
+  writes `NSPasteboard` itself (`clipboard_darwin.go`; Wails' own clipboard pipes to `pbcopy`,
+  which can't do this). Next to the text it adds empty `org.nspasteboard.ConcealedType` and
+  `org.nspasteboard.TransientType` entries, which clipboard managers following the
+  [nspasteboard.org](http://nspasteboard.org) convention take as "don't record". It prepares
+  the pasteboard with `NSPasteboardContentsCurrentHostOnly`, which keeps the copy out of
+  Universal Clipboard, unless `allowUniversalClipboard: true` (a safety setting, read on every
+  copy). A manager that ignores the convention can still record a copy until the clear.
 - **save to file:** `/api/desktop/save` takes only the ref. The core reads the value, asks for a
   path in the native Save dialog, and writes it mode 600 (also narrowing an existing file's
   mode). It needs the confirm header for protected names and audits the export with its path.
@@ -449,7 +454,7 @@ including read-only, protect, the audit log and `no-store`. On top of that:
 | method | path | body / query |
 |---|---|---|
 | GET | `/api/status` | — |
-| GET, POST | `/api/config` | POST: any of `{skin, theme, zoom, timeZone, envOrder, sources, favorites, recent, recentCollapsed, watch, watchMinutes, readOnly, protect, lockAfterMinutes, revealSeconds, clipboardClearSeconds, allowScreenCapture, cacheSeconds, cacheEntries, auditLog, listen, openBrowser}`, saved in one write, all or nothing |
+| GET, POST | `/api/config` | POST: any of `{skin, theme, zoom, timeZone, envOrder, sources, favorites, recent, recentCollapsed, watch, watchMinutes, readOnly, protect, lockAfterMinutes, revealSeconds, clipboardClearSeconds, allowScreenCapture, allowUniversalClipboard, cacheSeconds, cacheEntries, auditLog, listen, openBrowser}`, saved in one write, all or nothing |
 | POST | `/api/credentials` | `{impersonateServiceAccount, quotaProject}` |
 | GET | `/api/secrets` | `backend, parent, prefix` |
 | GET | `/api/secrets/versions` | `backend, parent, name` |

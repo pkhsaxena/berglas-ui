@@ -150,6 +150,8 @@ export type Config = {
   watchMinutes: number
   /** screenshots and screen sharing may see the mac app's window; read when the app starts */
   allowScreenCapture: boolean
+  /** mac app: let copies reach other Apple devices through Universal Clipboard */
+  allowUniversalClipboard: boolean
   /** the browser version's address and whether it opens a browser; both read when it starts */
   listen: string
   openBrowser: boolean
@@ -180,6 +182,7 @@ export type ConfigPatch = Partial<
     | 'revealSeconds'
     | 'clipboardClearSeconds'
     | 'allowScreenCapture'
+    | 'allowUniversalClipboard'
     | 'cacheSeconds'
     | 'cacheEntries'
     | 'watchMinutes'

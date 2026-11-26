@@ -110,6 +110,10 @@ type Config struct {
 	// see the mac app's window. Off by default: the window shows secrets.
 	// Read at startup.
 	AllowScreenCapture bool `yaml:"allowScreenCapture,omitempty" json:"allowScreenCapture"`
+	// AllowUniversalClipboard lets the mac app's copies reach your other
+	// Apple devices through Universal Clipboard. Off by default: a copy
+	// stays on this Mac. Read on every copy.
+	AllowUniversalClipboard bool `yaml:"allowUniversalClipboard,omitempty" json:"allowUniversalClipboard"`
 	// Credentials picks the Google identity; the ui can switch between its
 	// choices while running (SetIdentity).
 	Credentials Credentials `yaml:"credentials,omitempty" json:"credentials"`
@@ -203,6 +207,7 @@ const template = `# berglas-ui config. Edit by hand or from the ui; comments are
 # cacheEntries: 500            # at most this many cached lists
 # lockAfterMinutes: 10         # lock the ui after this long without input; 0 = never
 # allowScreenCapture: false    # let screenshots and screen sharing see the mac app's window
+# allowUniversalClipboard: false  # let the mac app's copies reach your other Apple devices
 # watchMinutes: 5              # how often the mac app checks watched secrets
 # auditLog: ~/.berglas-ui/audit.log   # one json line per write, never values
 # credentials:
@@ -435,29 +440,30 @@ func (f *File) SetTheme(name string) error {
 // form is what POST /api/config takes. Credentials are not here: switching
 // identity also swaps the core's auth, so it has its own route (SetIdentity).
 type Patch struct {
-	Listen                *string      `json:"listen"`
-	OpenBrowser           *bool        `json:"openBrowser"`
-	Skin                  *string      `json:"skin"`
-	Zoom                  *int         `json:"zoom"`
-	Theme                 *string      `json:"theme"`
-	TimeZone              *string      `json:"timeZone"`
-	EnvOrder              *string      `json:"envOrder"`
-	ReadOnly              *bool        `json:"readOnly"`
-	Protect               *[]string    `json:"protect"`
-	LockAfterMinutes      *int         `json:"lockAfterMinutes"`
-	RevealSeconds         *int         `json:"revealSeconds"`
-	ClipboardClearSeconds *int         `json:"clipboardClearSeconds"`
-	CacheSeconds          *int         `json:"cacheSeconds"`
-	CacheEntries          *int         `json:"cacheEntries"`
-	AuditLog              *string      `json:"auditLog"`
-	AllowScreenCapture    *bool        `json:"allowScreenCapture"`
-	Sources               *[]Source    `json:"sources"`
-	Favorites             *[]SecretRef `json:"favorites"`
-	Recent                *[]SecretRef `json:"recent"`
-	RecentCollapsed       *bool        `json:"recentCollapsed"`
-	SidebarCollapsed      *bool        `json:"sidebarCollapsed"`
-	Watch                 *[]SecretRef `json:"watch"`
-	WatchMinutes          *int         `json:"watchMinutes"`
+	Listen                  *string      `json:"listen"`
+	OpenBrowser             *bool        `json:"openBrowser"`
+	Skin                    *string      `json:"skin"`
+	Zoom                    *int         `json:"zoom"`
+	Theme                   *string      `json:"theme"`
+	TimeZone                *string      `json:"timeZone"`
+	EnvOrder                *string      `json:"envOrder"`
+	ReadOnly                *bool        `json:"readOnly"`
+	Protect                 *[]string    `json:"protect"`
+	LockAfterMinutes        *int         `json:"lockAfterMinutes"`
+	RevealSeconds           *int         `json:"revealSeconds"`
+	ClipboardClearSeconds   *int         `json:"clipboardClearSeconds"`
+	CacheSeconds            *int         `json:"cacheSeconds"`
+	CacheEntries            *int         `json:"cacheEntries"`
+	AuditLog                *string      `json:"auditLog"`
+	AllowScreenCapture      *bool        `json:"allowScreenCapture"`
+	AllowUniversalClipboard *bool        `json:"allowUniversalClipboard"`
+	Sources                 *[]Source    `json:"sources"`
+	Favorites               *[]SecretRef `json:"favorites"`
+	Recent                  *[]SecretRef `json:"recent"`
+	RecentCollapsed         *bool        `json:"recentCollapsed"`
+	SidebarCollapsed        *bool        `json:"sidebarCollapsed"`
+	Watch                   *[]SecretRef `json:"watch"`
+	WatchMinutes            *int         `json:"watchMinutes"`
 }
 
 // InvalidError is a patch the config cannot take (a bad value), as opposed
@@ -525,6 +531,9 @@ func (p Patch) changes() []change {
 	}
 	if v := p.AllowScreenCapture; v != nil {
 		add("allowScreenCapture", *v, func(c *Config) { c.AllowScreenCapture = *v })
+	}
+	if v := p.AllowUniversalClipboard; v != nil {
+		add("allowUniversalClipboard", *v, func(c *Config) { c.AllowUniversalClipboard = *v })
 	}
 	if v := p.Sources; v != nil {
 		list := append([]Source{}, *v...)

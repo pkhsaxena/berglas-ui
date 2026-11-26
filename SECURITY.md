@@ -64,8 +64,11 @@ credentials or an unlocked session at their keyboard.
   screen sharing, unless you turn on `allowScreenCapture` (a safety setting, confirmed first).
 - **Lock**: lock the app with ⌘L, or have it lock itself after a while without input. Unlocking
   asks for Touch ID or your login password. A half-finished edit is kept.
-- **Clipboard**: copies go through the core, so the auto-clear works even when the window
-  isn't focused. The page can't read the clipboard back.
+- **Private copies**: each copy is marked concealed and transient, so clipboard managers that
+  follow the shared convention leave it out of their history. It also stays on this Mac, out
+  of Universal Clipboard, unless you turn on `allowUniversalClipboard` (a safety setting, off
+  by default). Copies go through the core, so the auto-clear works even when the window isn't
+  focused, and the page can't read the clipboard back.
 - **Save to file**: you pick the place in the system Save dialog. The core reads the value
   itself, writes it readable by you only (mode 600), and records the export, with its path, in
   the audit log. Protected secrets need `confirm` typed.
@@ -74,8 +77,8 @@ credentials or an unlocked session at their keyboard.
 
 Known limits:
 
-- Copies are plain text on the macOS clipboard, so clipboard managers and Universal Clipboard
-  can see them until they're wiped.
+- Leaving a copy out of a clipboard history is up to each clipboard manager. One that ignores
+  the convention can still record it until it's wiped.
 - The build is signed ad hoc and not notarized.
 - The app isn't sandboxed. It runs with your user's permissions, like the `gcloud` it borrows
   credentials from.

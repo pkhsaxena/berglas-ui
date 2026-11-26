@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   watch: [],
   watchMinutes: 5,
   allowScreenCapture: false,
+  allowUniversalClipboard: false,
   listen: '',
   openBrowser: false,
 }

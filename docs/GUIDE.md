@@ -264,7 +264,9 @@ Open it from the **Drift** tab, or **Compare keys** on a matrix row.
 ## 9. How the app keeps you safe
 
 - **Hidden by default**: values appear only when you click **Reveal**, and hide again on a timer.
-- **Clipboard clean-up**: anything you copy is wiped after a while.
+- **Clipboard clean-up**: anything you copy is wiped after a while. In the Mac app, copies are
+  also marked private, so clipboard managers leave them out of their history, and they stay
+  off your iPhone and other devices unless you allow **Universal Clipboard** in Settings.
 - **Protected names**: saving, saving to a file and deleting need the word **confirm** typed.
 - **Production banner**: production secrets are always marked in red.
 - **Read-only**: a source, or the whole app, can refuse all changes.
@@ -284,8 +286,8 @@ Open **Settings** from the header, with **⌘,**, or from ⌘K. Every setting is
 (Appearance, Safety, Sources, Identity, Cache and watch, About), with a search box at the top.
 
 - Most settings apply the moment you change them.
-- **Safety settings** (read-only, protected names, timers, the lock, screen sharing, the audit
-  log) are collected first. A bar lists what will change, and you confirm them all at once.
+- **Safety settings** (read-only, protected names, timers, the lock, screen sharing, Universal
+  Clipboard, the audit log) are collected first. A bar lists what will change, and you confirm them all at once.
 - A few settings need the app restarted; they say so.
 - **About** shows where the settings file is, the version, a link to the source code on
   GitHub (also the folded corner at the header's top-right), and where to report an issue.

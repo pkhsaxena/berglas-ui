@@ -92,6 +92,10 @@
     // never echo the clipboard: it may hold the user's own text
     // a key's Copy puts KEY=value on the clipboard, the value as stored
     check('copy puts KEY=value on the mac clipboard', copied === 'LOG_LEVEL=warn', copied === 'LOG_LEVEL=warn' ? 'matches' : 'differs (not shown)')
+    // marked private, so clipboard managers leave it out of their history (nspasteboard.org)
+    const types = (await (await fetch('/__selftest/clipboard-types')).text()).split('\n')
+    const marked = types.includes('org.nspasteboard.ConcealedType') && types.includes('org.nspasteboard.TransientType')
+    check('copy is marked concealed and transient for clipboard managers', marked, types.join(', '))
     await wait(3500) // the test config sets clipboardClearSeconds: 3
     const after = await (await fetch('/__selftest/clipboard')).text()
     check('clipboard auto-clears after clipboardClearSeconds', after === '', after === '' ? 'empty' : 'not empty (not shown)')
@@ -1274,7 +1278,7 @@
       window.berglasUI.run('find')
       await idle()
       const findHere = document.activeElement === field('search settings') && !vis(document.querySelector('.find-bar'))
-      const complete = ['skin', 'theme', 'zoom', 'timeZone', 'envOrder', 'readOnly', 'protect', 'lockAfterMinutes', 'revealSeconds', 'clipboardClearSeconds', 'allowScreenCapture', 'auditLog', 'cacheSeconds', 'cacheEntries', 'watchMinutes', 'configFile'].every((k) => all.includes(k))
+      const complete = ['skin', 'theme', 'zoom', 'timeZone', 'envOrder', 'readOnly', 'protect', 'lockAfterMinutes', 'revealSeconds', 'clipboardClearSeconds', 'allowScreenCapture', 'allowUniversalClipboard', 'auditLog', 'cacheSeconds', 'cacheEntries', 'watchMinutes', 'configFile'].every((k) => all.includes(k))
       // the browser version's settings are left out of the mac app
       const noBrowser = !all.includes('listen') && !all.includes('openBrowser')
 
@@ -1342,7 +1346,7 @@
       if (asks) await press(['discard and close'], dialog())
       const gone = !dialog() && (await cfg()).readOnly === start.readOnly
       return [
-        byKey && closed && complete && noBrowser && findHere && found.length === 1 && found[0] === 'clipboardClearSeconds' && none && atOnce && refused && staged && held && asked && savedBoth && enforced && restored && asks && gone,
+        byKey && closed && complete && noBrowser && findHere && found.join() === 'clipboardClearSeconds,allowUniversalClipboard' && none && atOnce && refused && staged && held && asked && savedBoth && enforced && restored && asks && gone,
         `⌘, opens ${byKey}, again closes ${closed}, every setting listed ${complete}, browser section left out ${noBrowser}, find goes to its search ${findHere}, search [${found}] none ${none}, saved at once ${atOnce}, letter refused ${refused}, staged ${staged}, bad field holds save ${held}, asks once ${asked}, saved both ${savedBoth}, write refused ${enforced} (${write.status}), restored ${restored}, close asks ${asks}, discarded ${gone}`,
       ]
     })
