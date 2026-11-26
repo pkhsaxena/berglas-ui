@@ -103,3 +103,16 @@ func TestEnvKeysLastWinsAndThreshold(t *testing.T) {
 		t.Fatal("one pair in three lines is not an env file")
 	}
 }
+
+func TestEnvKeysMultiLineValues(t *testing.T) {
+	pem := "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\nAB==\n-----END PRIVATE KEY-----"
+	keys, ok := envKeys("A=1\r\nKEY=\"" + strings.ReplaceAll(pem, "\n", "\r\n") + "\"\r\nB=2\r\n")
+	if !ok || len(keys) != 3 || keys[1].Key != "KEY" || keys[1].FP != fingerprint(pem) || keys[2].Key != "B" {
+		t.Fatalf("got %+v ok=%v", keys, ok)
+	}
+	// an unclosed quote doesn't swallow the keys after it
+	keys, ok = envKeys("A=\"open\nB=\"x\"\nC=3\n")
+	if !ok || len(keys) != 3 || keys[1].Key != "B" || keys[2].Key != "C" {
+		t.Fatalf("unclosed: got %+v ok=%v", keys, ok)
+	}
+}
