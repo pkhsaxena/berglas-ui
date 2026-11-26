@@ -39,6 +39,7 @@ import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Settings } from './components/Settings'
+import { GitHubCorner } from './components/GitHubCorner'
 import { Sources } from './components/Sources'
 import { stepZoom, ZOOM_STEPS } from '../../core/zoom'
 import { useFind } from '../../core/hooks/useFind'
@@ -465,6 +466,7 @@ export default function App() {
             settings
           </button>
         )}
+        <GitHubCorner />
       </header>
 
       <SettingsContext.Provider value={app.settings}>

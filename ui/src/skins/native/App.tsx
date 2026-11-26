@@ -53,6 +53,7 @@ import { PinnedPane } from './components/PinnedPane'
 import { SecretDetail } from './components/SecretDetail'
 import { SecretList } from './components/SecretList'
 import { Settings } from './components/Settings'
+import { GitHubCorner } from './components/GitHubCorner'
 import { Sources } from './components/Sources'
 import { applyTheme, knownTheme, THEMES } from './theme'
 import { Select } from './components/Select'
@@ -460,6 +461,7 @@ export default function App() {
             Settings
           </button>
         )}
+        <GitHubCorner />
       </header>
 
       <SettingsContext.Provider value={app.settings}>

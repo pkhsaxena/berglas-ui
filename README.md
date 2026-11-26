@@ -297,6 +297,8 @@ Open **Settings** from the header, with **⌘,**, or from ⌘K. Every setting is
 - **Safety settings** (read-only, protected names, timers, the lock, screen sharing, the audit
   log) are collected first. A bar lists what will change, and you confirm them all at once.
 - A few settings need the app restarted; they say so.
+- **About** shows where the settings file is, the version, and a link to the source code on
+  GitHub (also the folded corner at the header's top-right).
 
 Your settings are kept in one file, `~/.berglas-ui/config.yaml`, which the app writes for you.
 

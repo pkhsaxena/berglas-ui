@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react'
+import { REPO_URL } from '../../../core/about'
 import { type SettingsIdentity, type SettingsScreen, useFieldText } from '../../../core/hooks/useSettingsScreen'
 import { type Block, type ChoiceKey, type ChoiceOption, type Field, type Item, isField, listText, parseList } from '../../../core/settingsModel'
 import { type Source, sourceId, sourceName } from '../../../core/sources'
@@ -207,6 +208,11 @@ function BlockRow({ b, p }: { b: Block; p: Props }) {
       <>
         <Row id="configFile" label="Config file" help="Every setting here is saved in this file. Edits made to it by hand are read when the app starts.">
           <span className="t-string set-path">{p.configPath}</span>
+        </Row>
+        <Row id="sourceCode" label="Source code" help="Issues, releases and the code.">
+          <a className="t-string" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            {REPO_URL.replace('https://', '')}
+          </a>
         </Row>
         <Row id="version" label="Version">
           <span className="t-number">{p.version}</span>

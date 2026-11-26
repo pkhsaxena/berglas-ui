@@ -113,9 +113,24 @@ html, body, #root { height: 100%; }
 html, body { overflow: hidden; overscroll-behavior: none; }
 #root { display: flex; flex-direction: column; }
 .toolbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 16px;
+  --corner: 46px;
+  position: relative; /* holds the GitHub corner */
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px calc(var(--corner) + 8px) 8px 16px;
   background: var(--n-surface-2); border-bottom: 1px solid var(--n-line);
 }
+/* the GitHub corner (GitHubCorner): folded into the header's top-right, the cat cut out of it */
+.github-corner { position: absolute; top: 0; right: 0; width: var(--corner); height: var(--corner); line-height: 0; }
+.github-corner svg { width: 100%; height: 100%; display: block; }
+.github-corner .corner-fold { fill: var(--n-fg-2); transition: fill .15s; }
+.github-corner .octo-arm, .github-corner .octo-body { fill: var(--n-surface-2); }
+.github-corner .octo-arm { transform-origin: 130px 106px; }
+.github-corner:hover .corner-fold, .github-corner:focus-visible .corner-fold { fill: var(--n-accent); }
+.github-corner:focus-visible { outline: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .github-corner:hover .octo-arm { animation: octocat-wave 560ms ease-in-out; }
+}
+@keyframes octocat-wave { 0%, 100% { transform: rotate(0); } 20%, 60% { transform: rotate(-25deg); } 40%, 80% { transform: rotate(10deg); } }
+
 .toolbar .app { font-weight: 600; font-size: 14px; }
 .toolbar label { display: inline-flex; align-items: center; gap: 6px; color: var(--n-muted); font-size: 12px; }
 .toolbar select { padding: 2px 6px; }

@@ -1587,6 +1587,23 @@
     await idle()
     const opened = await (await fetch('/__selftest/opened')).text()
     check('mailto link handed to the system, app stays', !!mail && opened.startsWith('mailto:') && location.href === before, `link ${!!mail}, opened ${JSON.stringify(opened)}, page ${location.href}`)
+
+    // the GitHub corner: folded into the header's top-right just past Settings; a click opens the repo outside the app
+    const corner = document.querySelector('header .github-corner')
+    const head = document.querySelector('header')?.getBoundingClientRect()
+    const setBtn = [...document.querySelectorAll('header button')].find((b) => /^settings$/i.test(b.textContent.trim()))
+    const cb = corner?.getBoundingClientRect()
+    const placed = !!cb && !!head && !!setBtn && Math.abs(cb.right - head.right) < 1 && Math.abs(cb.top - head.top) < 1 && cb.bottom <= head.bottom + 1 && cb.left >= setBtn.getBoundingClientRect().right
+    corner?.click()
+    await idle()
+    const openedRepo = (await (await fetch('/__selftest/opened')).text()).split('\n').includes('https://github.com/pkhsaxena/berglas-ui')
+    // Settings → About links the repo too
+    setBtn?.click()
+    await idle()
+    const aboutLink = [...document.querySelectorAll('a')].some((a) => a.href === 'https://github.com/pkhsaxena/berglas-ui' && !a.classList.contains('github-corner'))
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    await idle()
+    check('GitHub corner past Settings opens the repo; Settings → About links it', placed && openedRepo && aboutLink && location.href === before, `placed ${placed}, opened ${openedRepo}, about ${aboutLink}, page ${location.href}`)
     await wait(3000) // time for a port check from outside
   } catch (e) {
     check('exception', false, String(e) + ' @ ' + String(e?.stack ?? '').split('\n').slice(0, 8).join(' | '))
