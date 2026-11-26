@@ -161,9 +161,17 @@ The **Versions** tab lists every saved version, newest first.
 2. Change what you need. For `.env` secrets you can edit values one by one, rename a key (click
    its name, type, press Enter; Esc puts it back), **Remove** a key, or **Add key** (into a
    section of your choice). Keys that weren't in the secret before are tinted and tagged
-   **new**, and the ones you add are listed last, under **New keys**, in A–Z order, so you can
+   **new**; keys whose value you changed are tagged **changed**. The ones you add are listed last, under **New keys**, in A–Z order, so you can
    find them (saving still puts each one where you chose). Long values wrap onto up to three
-   lines instead of being cut off, and scroll inside their box beyond that. Switch to **Raw** to edit the text directly.
+   lines instead of being cut off, and scroll inside their box beyond that; long key names wrap
+   too, so they never squeeze the value column. Switch to **Raw** to edit the text directly.
+   - **Paste `.env` lines** (say from a `.env.example`) anywhere in the table to add those keys
+     at once; keys already there take the pasted value and are marked **changed**, and a note
+     over the table says which keys were new or changed. Pasted into a value, it takes two or
+     more lines; a single `a=b` stays the value.
+   - **Values can span lines**, such as a PEM signing key: paste it into a value, or press
+     Shift+Enter for a line break. The value is saved in double quotes, the way `.env` loaders
+     read multi-line values.
 3. Click **Review changes**. You'll see exactly what will change, with warnings for keys set
    twice or left empty.
 4. Click **Save**. Nothing is written until you do.

@@ -12,11 +12,11 @@ export type EnvWarning =
 function scan(text: string) {
   const at = new Map<string, number[]>()
   const empty: { key: string; line: number }[] = []
-  parseEnv(text).forEach((l, i) => {
-    if (l.kind !== 'pair') return
-    at.set(l.key, [...(at.get(l.key) ?? []), i + 1])
-    if (unquote(l.value.trim()) === '') empty.push({ key: l.key, line: i + 1 })
-  })
+  for (const l of parseEnv(text)) {
+    if (l.kind !== 'pair') continue
+    at.set(l.key, [...(at.get(l.key) ?? []), l.line])
+    if (unquote(l.value.trim()) === '') empty.push({ key: l.key, line: l.line })
+  }
   return { dup: [...at].filter(([, lines]) => lines.length > 1), empty }
 }
 

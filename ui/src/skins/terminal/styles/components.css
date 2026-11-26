@@ -199,12 +199,17 @@ tr.active td { background: var(--t-soft); }
 textarea.value-field { display: block; width: 100%; resize: none; overflow-y: auto; overflow-x: hidden; max-height: calc(3 * 1.5em + 6px); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* the editor: key names edit in place; keys the loaded version doesn't have are marked new */
 .key-edit { display: inline-flex; align-items: center; gap: 6px; }
-td.env-key input.key-input { width: auto; min-width: 0; color: var(--t-keyword); }
-input.key-input[aria-invalid] { border-color: var(--t-error); }
+td.env-key textarea.key-input { display: block; width: auto; min-width: 0; max-width: min(28ch, 40cqi); resize: none; overflow: hidden; line-height: 1.5; color: var(--t-keyword); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* a long name wraps onto more lines inside its field (useKeyInput) instead of pushing the value column out, as td.env-key > .k caps it when shown */
+textarea.key-input[aria-invalid] { border-color: var(--t-error); }
 .key-error { white-space: normal; max-width: 34ch; }
 tr.env-new > td { background: color-mix(in srgb, var(--t-function) 12%, transparent); }
 tr.env-new > td:first-child { box-shadow: inset 2px 0 var(--t-function); }
 .new-badge { color: var(--t-function); white-space: nowrap; }
+tr.env-changed > td { background: color-mix(in srgb, var(--t-number) 12%, transparent); }
+tr.env-changed > td:first-child { box-shadow: inset 2px 0 var(--t-number); }
+.changed-badge { color: var(--t-number); white-space: nowrap; }
+.paste-note { margin-bottom: 6px; }
 /* only in pinned, in the editor: KEY=value on the left (wrapping when long), its Add on the right; Add all over that column */
 .pin-missing-head { margin: 0; justify-content: space-between; }
 .pin-missing li { display: flex; align-items: baseline; gap: 12px; }
@@ -215,6 +220,10 @@ td.section-head { padding-top: 10px; }
 /* .env key cells: as narrow as the key, but at most ~28 characters or 40% of the table; longer
    keys wrap after _ . - (see KeyText) instead of squeezing the value */
 td.env-key { width: 1%; }
+/* a value that spans lines (a PEM key) shows its lines */
+td.env-val, .env-pair-val { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the add-key form's value: a growing textarea */
+.new-value { flex: 1 1 20ch; min-width: 0; }
 td.env-key > .k { display: inline-block; width: max-content; max-width: min(28ch, 40cqi); overflow-wrap: anywhere; }
 /* a sortable column header: looks like the header, acts like a button */
 button.th-sort { border: 0; padding: 0; color: inherit; font: inherit; text-transform: inherit; }

@@ -559,7 +559,7 @@
       const addedMarked = newBefore === 0 && newRows.length === missing.length && newRows.every((r) => norm(r.textContent).includes('new'))
       // and listed last, in the order they were added
       const missingKeys = missing.map((li) => li.querySelector('span > span')?.textContent)
-      const lastKeys = [...document.querySelectorAll('.right tbody tr')].slice(-missingKeys.length).map((r) => r.querySelector('input.key-input')?.value)
+      const lastKeys = [...document.querySelectorAll('.right tbody tr')].slice(-missingKeys.length).map((r) => r.querySelector('textarea.key-input')?.value)
       const addedLast = missingKeys.length > 0 && JSON.stringify(lastKeys) === JSON.stringify(missingKeys)
       const matches = norm(document.querySelector('.right').textContent).includes('matches pinned')
       await press(['review changes'])
@@ -632,7 +632,7 @@
       await press(['add key'])
       // the added key leaves its section in the table and is listed last, under New keys
       const rows = [...document.querySelectorAll('.right tbody tr')]
-      const addedLast = rows.at(-1)?.querySelector('input.key-input')?.value === 'SELFTEST_FLAG' && norm(rows.at(-2)?.textContent) === (norm(rows.at(-2)?.textContent).startsWith('#') ? '# new keys' : 'new keys')
+      const addedLast = rows.at(-1)?.querySelector('textarea.key-input')?.value === 'SELFTEST_FLAG' && norm(rows.at(-2)?.textContent) === (norm(rows.at(-2)?.textContent).startsWith('#') ? '# new keys' : 'new keys')
       await press(['review changes'])
       await press(['save*'])
       await idle()
@@ -703,7 +703,7 @@
         setField('new value', '1')
         await press(['add key'])
       }
-      const tail = [...document.querySelectorAll('.right tbody tr')].slice(-2).map((r) => r.querySelector('input.key-input')?.value)
+      const tail = [...document.querySelectorAll('.right tbody tr')].slice(-2).map((r) => r.querySelector('textarea.key-input')?.value)
       const newSorted = JSON.stringify(tail) === JSON.stringify(['AA_SELFTEST', 'ZZ_SELFTEST'])
 
       // the review shows the rename; cancel, so nothing is written
@@ -713,6 +713,67 @@
       await press(['cancel'])
       const unchanged = (await readSecret('payments-dev-env')) === before
       const checks = { 'keys editable': editable, 'enter renames': renamed, 'renamed key marked new': marked, 'esc puts it back': escBack, 'bad name refused with reason': badRefused, 'leaving restores the name': blurBack, 'taken name refused': takenRefused, 'long value wraps, capped at 3 lines': wraps, 'enter adds no line break': noBreak, 'new keys sorted': newSorted, 'review shows the rename': reviewed, 'nothing written': unchanged }
+      return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
+    })
+    await step('edit: pasted KEY=value lines become keys, marked new or changed; a long key name wraps and keeps the value column; a PEM value spans lines, quoted; nothing saved', async () => {
+      await openSecret('payments-dev-env')
+      const before = await readSecret('payments-dev-env')
+      await press(['edit', 'edit…'])
+      await idle()
+      const keys = () => [...document.querySelectorAll('.right textarea.key-input')].map((i) => i.value)
+      const paste = async (el, text) => {
+        const dt = new DataTransfer()
+        dt.setData('text/plain', text)
+        const ev = new ClipboardEvent('paste', { bubbles: true, cancelable: true })
+        Object.defineProperty(ev, 'clipboardData', { value: dt }) // WebKit leaves it out of the constructor
+        el.dispatchEvent(ev)
+        await idle()
+        return ev.defaultPrevented
+      }
+      const count = keys().length
+
+      // lines pasted into a value: new keys at the end, an existing one takes the pasted value, the field keeps its text
+      const logBefore = field('value of LOG_LEVEL').value
+      const took = await paste(field('value of LOG_LEVEL'), '# from .env.example\nPASTE_A=1\nFEATURE_REFUNDS=false\nPASTE_B="two words"\n')
+      const ks = keys()
+      const added = took && ks.length === count + 2 && ks.slice(-2).join() === 'PASTE_A,PASTE_B' && field('value of FEATURE_REFUNDS')?.value === 'false' && field('value of PASTE_B')?.value === '"two words"' && field('value of LOG_LEVEL').value === logBefore
+      // the rows say which keys are new and which now hold another value, and a note says what the paste did
+      const row = (k) => field(`value of ${k}`)?.closest('tr')
+      const note = norm(document.querySelector('.right .paste-note')?.textContent ?? '')
+      const marked = row('FEATURE_REFUNDS')?.classList.contains('env-changed') && row('PASTE_A')?.classList.contains('env-new') && !row('LOG_LEVEL')?.classList.contains('env-changed') && note.includes('2 new (paste_a, paste_b)') && note.includes('1 changed (feature_refunds)')
+      // a very long key name wraps onto more lines in its field, like a value; the table doesn't grow wider than its box
+      const keyField = document.querySelector('.right textarea.key-input')
+      const wrap = keyField.closest('.tablewrap')
+      const oneLine = keyField.offsetHeight
+      setField(keyField, 'A_VERY_LONG_KEY_NAME_' + 'THAT_KEEPS_GOING_'.repeat(8))
+      await idle()
+      const narrow = wrap.scrollWidth <= wrap.clientWidth + 1 && keyField.offsetHeight > oneLine * 1.5 && keyField.scrollHeight <= keyField.clientHeight + 1
+      keyField.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+      await idle()
+      // one KEY=value line into a value stays text (a=b may be the value); into the new-key field it is a key
+      const single = !(await paste(field('value of LOG_LEVEL'), 'sslmode=require'))
+      const intoKey = (await paste(field('new key'), 'PASTE_C=3')) && keys().includes('PASTE_C')
+
+      // a PEM key: one value over several lines, written in quotes, no stray lines
+      const pem = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\nAB==\n-----END PRIVATE KEY-----'
+      const n = keys().length
+      setField(field('value of STRIPE_KEY'), pem)
+      await idle()
+      const quoted = field('value of STRIPE_KEY')?.value === `"${pem}"` && keys().length === n
+      // the add-key form takes one too (its value is a textarea now); Enter adds it
+      setField('new key', 'SIGNING_KEY')
+      setField('new value', pem)
+      field('new value').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
+      await idle()
+      const viaForm = field('value of SIGNING_KEY')?.value === `"${pem}"` && field('new value').value === ''
+
+      // the review lists the PEM values; cancel, so nothing is written
+      await press(['review changes'])
+      const review = norm(document.querySelector('.right').textContent)
+      const reviewed = review.includes('signing_key') && review.includes('stripe_key') && review.includes('end private key')
+      await press(['cancel'])
+      const unchanged = (await readSecret('payments-dev-env')) === before
+      const checks = { 'lines pasted into a value become keys': added, 'new and changed rows marked, paste noted': marked, 'a long key name wraps and keeps the table in its box': narrow, 'one line into a value stays text': single, 'a line into the new-key field is a key': intoKey, 'PEM value quoted, one key': quoted, 'PEM via the add form': viaForm, 'review lists them': reviewed, 'nothing written': unchanged }
       return [Object.values(checks).every(Boolean), Object.entries(checks).map(([k, v]) => `${k} ${v}`).join(', ')]
     })
     await step('save unchanged: refused as a plain review, then saved on purpose as a new version with the same value', async () => {

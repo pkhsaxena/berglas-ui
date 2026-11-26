@@ -3,7 +3,7 @@ import { api, ApiError, encodeText, type Ref, type Secret, versionOf } from '../
 import { type Diff, diffValues, reapplyEnv } from '../diff'
 import { lintEnv } from '../envlint'
 import { compareKeys } from '../envsort'
-import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, removeLine, renameLine, setKey, setLineValue } from '../envfile'
+import { insertKeyAfter, isValidKey, looksLikeEnv, parseEnv, pastedPairs, removeLine, renameLine, setKey, setLineValue } from '../envfile'
 import { errText } from './useApp'
 import { readValue } from './useSecret'
 
@@ -15,6 +15,12 @@ import { readValue } from './useSecret'
 export type EditPhase = 'idle' | 'loading' | 'editing' | 'review' | 'saving' | 'conflict'
 
 type Loaded = { secret: Secret; text: string }
+
+/** keys a paste added, gave a new value, or left as they were (the same value) */
+export type Pasted = { added: string[]; changed: string[]; same: string[] }
+
+// each key's value; a later line wins, as dotenv reads it
+const pairValues = (text: string) => new Map(parseEnv(text).flatMap((l) => (l.kind === 'pair' ? [[l.key, l.value] as const] : [])))
 
 const pairKeys = (text: string) => parseEnv(text).flatMap((l) => (l.kind === 'pair' ? [l.key] : []))
 
@@ -37,6 +43,8 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
   const [fromFile, setFromFile] = useState('')
   /** keys added during this edit (the editor lists them last, sorted) */
   const [added, setAdded] = useState<string[]>([])
+  /** what the last paste of KEY=value lines did, until the next one or a new edit */
+  const [pasted, setPasted] = useState<Pasted | null>(null)
 
   const fail = (e: unknown) => setError(errText(e))
 
@@ -68,6 +76,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       // a dropped file's keys that the latest version doesn't have count as added, in the file's order
       const had = new Set(pairKeys(latest.value.text))
       setAdded(file ? [...new Set(pairKeys(text))].filter((k) => !had.has(k)) : [])
+      setPasted(null)
       setMode(looksLikeEnv(text) ? 'env' : 'raw')
       if (file && text !== latest.value.text) setPhase('review')
       else {
@@ -87,6 +96,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     setError('')
     setOverlaps([])
     setAdded([])
+    setPasted(null)
   }
 
   // true when the edit applied
@@ -135,13 +145,31 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
       if (tryEdit(() => renameLine(draft, i, k)) && old?.kind === 'pair') setAdded((a) => a.map((x) => (x === old.key ? k : x)))
       return ''
     },
-    /** Sets several keys at once (rewrites existing ones, appends new ones). */
-    setKeys: (pairs: { key: string; value: string }[]) => {
+    /** Sets several keys at once (rewrites existing ones, appends new ones); false when refused. */
+    setKeys: (pairs: { key: string; value: string }[]): boolean => {
       const had = new Set(pairKeys(draft))
-      if (tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft))) {
-        const fresh = pairs.map((p) => p.key).filter((k) => !had.has(k))
-        setAdded((a) => [...a.filter((x) => !fresh.includes(x)), ...fresh])
-      }
+      if (!tryEdit(() => pairs.reduce((t, p) => setKey(t, p.key, p.value), draft))) return false
+      const fresh = pairs.map((p) => p.key).filter((k) => !had.has(k))
+      setAdded((a) => [...a.filter((x) => !fresh.includes(x)), ...fresh])
+      return true
+    },
+    /**
+     * Pasted text that is KEY=value lines (see envfile pastedPairs) sets
+     * those keys: new ones are added at the end, existing ones take the
+     * pasted value. True when it did (the paste shouldn't go into the field).
+     */
+    pasteKeys: (text: string, intoValue: boolean): boolean => {
+      const pairs = pastedPairs(text, intoValue)
+      if (!pairs) return false
+      const had = pairValues(draft)
+      const last = [...new Map(pairs.map((p) => [p.key, p.value])).entries()]
+      if (!edits.setKeys(pairs)) return true
+      setPasted({
+        added: last.filter(([k]) => !had.has(k)).map(([k]) => k),
+        changed: last.filter(([k, v]) => had.has(k) && had.get(k) !== v).map(([k]) => k),
+        same: last.filter(([k, v]) => had.get(k) === v).map(([k]) => k),
+      })
+      return true
     },
   }
 
@@ -150,7 +178,7 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     : null
 
   /** keys the loaded version has; any other key in the draft is new (added, copied from the pin, or renamed) */
-  const loadedKeys = new Set(loaded ? parseEnv(loaded.text).flatMap((l) => (l.kind === 'pair' ? [l.key] : [])) : [])
+  const loadedValues = loaded ? pairValues(loaded.text) : new Map<string, string>()
 
   /** the draft is exactly the loaded value */
   const unchanged = !!loaded && draft === loaded.text
@@ -243,11 +271,23 @@ export function useEditor(base: Ref, onSaved: (s: Secret) => void, latestId?: st
     /** keys added during this edit that the draft still has, sorted by key */
     addedKeys: added.filter((k) => pairKeys(draft).includes(k)).sort(compareKeys),
     /** whether a key in the draft is not in the loaded version */
-    isNewKey: (key: string) => !!loaded && !loadedKeys.has(key),
+    isNewKey: (key: string) => !!loaded && !loadedValues.has(key),
+    /** whether a key the loaded version has now holds a different value (typed, pasted or copied from the pin) */
+    isChangedKey: (key: string, value: string) => loadedValues.has(key) && loadedValues.get(key) !== value,
+    /** what the last paste of KEY=value lines did */
+    pasted,
+    dismissPasted: () => setPasted(null),
     backToEdit: () => setPhase('editing'),
     save,
     canReapply,
     reapply,
     restart,
   }
+}
+
+/** One line saying what a paste did, e.g. "Pasted 3 keys: 1 new (A) · 1 changed (B) · 1 already had that value (C)". */
+export function pastedSummary(p: Pasted): string {
+  const n = p.added.length + p.changed.length + p.same.length
+  const part = (xs: string[], what: string) => (xs.length ? [`${xs.length} ${what} (${xs.join(', ')})`] : [])
+  return `Pasted ${n} key${n === 1 ? '' : 's'}: ${[...part(p.added, 'new'), ...part(p.changed, 'changed'), ...part(p.same, p.same.length === 1 ? 'already had that value' : 'already had those values')].join(' · ')}`
 }
