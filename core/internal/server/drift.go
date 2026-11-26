@@ -40,8 +40,58 @@ func fingerprint(v string) string {
 	return hex.EncodeToString(m.Sum(nil))[:16]
 }
 
-// envPair matches ui/src/core/envfile.ts PAIR: optional export, KEY, =, value.
-var envPair = regexp.MustCompile(`^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s?(.*)$`)
+// envPair matches ui/src/core/envfile.ts PAIR: optional export, KEY, =, value (which may span lines).
+var envPair = regexp.MustCompile(`^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=[ \t]?((?s:.*))$`)
+
+// nextKey is envfile.ts NEXT_KEY without its lookahead: a line starting another
+// KEY=, unless all after the = is more = and spaces (a base64 line's padding).
+var nextKey = regexp.MustCompile(`^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*=(.*)$`)
+
+func startsKey(line string) bool {
+	m := nextKey.FindStringSubmatch(line)
+	return m != nil && strings.TrimSpace(strings.TrimLeft(m[1], "=")) != ""
+}
+
+// closeAt is where the first unescaped q in s is, from `from`; -1 if none (\ escapes inside "…" only).
+func closeAt(s string, from int, q byte) int {
+	for i := from; i < len(s); i++ {
+		if q == '"' && s[i] == '\\' {
+			i++
+		} else if s[i] == q {
+			return i
+		}
+	}
+	return -1
+}
+
+// envLines splits a .env text into logical lines as envfile.ts logicalLines
+// does: a quoted value left open on its line runs on to the line with the
+// closing quote, unless a line starting another key or the end comes first.
+// Line endings are dropped, except \n inside a value.
+func envLines(text string) []string {
+	phys := strings.Split(text, "\n")
+	for i := range phys {
+		phys[i] = strings.TrimSuffix(phys[i], "\r")
+	}
+	var out []string
+	for i := 0; i < len(phys); i++ {
+		end := i
+		if m := envPair.FindStringSubmatch(phys[i]); m != nil && len(m[2]) > 0 && (m[2][0] == '"' || m[2][0] == '\'') && closeAt(m[2], 1, m[2][0]) < 0 {
+			for j := i + 1; j < len(phys); j++ {
+				if startsKey(phys[j]) {
+					break
+				}
+				if closeAt(phys[j], 0, m[2][0]) >= 0 {
+					end = j
+					break
+				}
+			}
+		}
+		out = append(out, strings.Join(phys[i:end+1], "\n"))
+		i = end
+	}
+	return out
+}
 
 // unquote drops one matching pair of surrounding quotes, like ui/src/core/diff.ts.
 func unquote(v string) string {
@@ -76,8 +126,7 @@ type driftSecret struct {
 func envKeys(text string) (keys []driftKeyInfo, ok bool) {
 	idx := map[string]int{}
 	lines, pairs := 0, 0
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimSuffix(line, "\r")
+	for _, line := range envLines(text) {
 		t := strings.TrimSpace(line)
 		if t == "" || strings.HasPrefix(t, "#") {
 			continue

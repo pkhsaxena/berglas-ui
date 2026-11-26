@@ -154,7 +154,7 @@ export function Value({ value, onCopy, persistent = false, against = null }: Pro
                   <td className="t-keyword env-key">
                     <KeyText k={l.key} />
                   </td>
-                  <td className="t-string" style={{ overflowWrap: 'anywhere' }}>
+                  <td className="t-string env-val">
                     {l.value}
                   </td>
                   {vs && <td style={{ whiteSpace: 'nowrap' }}>{pinMark(vs.byKey.get(l.key))}</td>}

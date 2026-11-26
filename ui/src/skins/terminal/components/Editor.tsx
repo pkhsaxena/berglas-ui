@@ -1,10 +1,10 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useRef, useState } from 'react'
 import { type Ref, refString } from '../../../core/api'
 import { type KeyChange, matchAgainst } from '../../../core/diff'
 import { looksLikeEnv } from '../../../core/envfile'
-import type { useEditor } from '../../../core/hooks/useEditor'
+import { pastedSummary, type useEditor } from '../../../core/hooks/useEditor'
 import { useKeyInput } from '../../../core/hooks/useKeyInput'
-import { useAutoGrow } from '../../../core/hooks/useAutoGrow'
+import { useValueField } from '../../../core/hooks/useValueField'
 import type { Pinned } from '../../../core/hooks/usePinned'
 import { type Section, sortEnv } from '../../../core/envsort'
 import { CONFIRM_WORD, typedConfirm, protectedFor, readOnlyFor, useSettings } from '../../../core/settings'
@@ -17,32 +17,20 @@ import { EnvRows, OrderToggle } from './EnvRows'
 import { PaneTitle } from './PaneTitle'
 import { Select } from './Select'
 
-// a value, wrapping onto more lines as it grows instead of being cut off (see useAutoGrow); Enter adds no line break, since values can't span lines
-function ValueField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const ref = useAutoGrow(value)
-  return (
-    <textarea
-      ref={ref}
-      className="value-field"
-      rows={1}
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
-      spellCheck={false}
-      autoComplete="off"
-    />
-  )
+// a value, wrapping onto more lines as it grows instead of being cut off; Shift+Enter adds a line break (see useValueField)
+function ValueField({ label, value, onChange, onEnter, placeholder }: { label: string; value: string; onChange: (v: string) => void; onEnter?: () => void; placeholder?: string }) {
+  return <textarea className="value-field" rows={1} aria-label={label} placeholder={placeholder} {...useValueField(value, onChange, onEnter)} />
 }
 
-// a key name, editable in place (see useKeyInput); keys the loaded version doesn't have are marked new
-function KeyInput({ k, rename, isNew }: { k: string; rename: (key: string) => string; isNew: boolean }) {
+// a key name, editable in place (see useKeyInput); keys the loaded version doesn't have are marked new, ones whose value differs from it changed
+function KeyInput({ k, rename, mark }: { k: string; rename: (key: string) => string; mark: 'new' | 'changed' | null }) {
   const { inputProps, error } = useKeyInput(k, rename)
   return (
     <>
       <span className="key-edit">
-        <input className="key-input" aria-label={`name of ${k}`} {...inputProps} />
-        {isNew && <span className="new-badge"># new</span>}
+        <textarea className="key-input" aria-label={`name of ${k}`} {...inputProps} />
+        {mark === 'new' && <span className="new-badge"># new</span>}
+        {mark === 'changed' && <span className="changed-badge" title="differs from the saved version"># changed</span>}
       </span>
       {error && <div className="t-error small key-error"># {error}</div>}
     </>
@@ -66,6 +54,8 @@ type Props = {
 export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
   const [newKey, setNewKey] = useState('')
   const [newValue, setNewValue] = useState('')
+  const addForm = useRef<HTMLFormElement>(null)
+  const markOf = (key: string, value: string) => (ed.isNewKey(key) ? 'new' : ed.isChangedKey(key, value) ? 'changed' : null)
   const [addErr, setAddErr] = useState('')
   const [typed, setTyped] = useState('')
   const [section, setSection] = useState('') // '' = end of file
@@ -159,8 +149,8 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
               <span className="muted small">
                 {ed.mode === 'env'
                   ? envOrder === 'sorted'
-                    ? '# shown sorted; saving keeps the file order, editing a value rewrites only its own line.'
-                    : '# editing a value rewrites only its own line.'
+                    ? '# shown sorted; saving keeps the file order, editing a value rewrites only its own line. paste KEY=value lines to add them; shift+enter breaks a line in a value.'
+                    : '# editing a value rewrites only its own line. paste KEY=value lines to add them; shift+enter breaks a line in a value.'
                   : '# the whole value, exactly as stored.'}
               </span>
             </div>
@@ -175,7 +165,22 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
             )}
 
             {ed.mode === 'env' && ed.env ? (
-              <>
+              <div
+                className="env-edit"
+                onPaste={(e) => {
+                  // KEY=value lines become keys (see envfile pastedPairs); anything else pastes as usual
+                  const intoValue = !!(e.target as HTMLElement).closest('textarea.value-field')
+                  if (ed.edits.pasteKeys(e.clipboardData.getData('text/plain'), intoValue)) e.preventDefault()
+                }}
+              >
+                {ed.pasted && (
+                  <div className="row paste-note" role="status">
+                    <span className="t-comment small">{pastedSummary(ed.pasted)}</span>
+                    <button className="link" onClick={ed.dismissPasted} aria-label="dismiss">
+                      [x]
+                    </button>
+                  </div>
+                )}
                 <div className="tablewrap">
                   <table>
                     <thead>
@@ -192,9 +197,9 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                       tail={ed.addedKeys}
                       cols={vs ? 4 : 3}
                       renderPair={(l, i) => (
-                        <tr key={i} className={ed.isNewKey(l.key) ? 'env-new' : undefined}>
+                        <tr key={i} className={markOf(l.key, l.value) ? `env-${markOf(l.key, l.value)}` : undefined}>
                           <td className="t-keyword env-key">
-                            <KeyInput k={l.key} rename={(key) => ed.edits.renameKey(i, key)} isNew={ed.isNewKey(l.key)} />
+                            <KeyInput k={l.key} rename={(key) => ed.edits.renameKey(i, key)} mark={markOf(l.key, l.value)} />
                           </td>
                           <td style={{ width: '100%' }}>
                             <ValueField label={`value of ${l.key}`} value={l.value} onChange={(v) => ed.edits.setLineValue(i, v)} />
@@ -234,9 +239,11 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                     </ul>
                   </div>
                 )}
-                <form className="row" onSubmit={add}>
+                <form className="row" onSubmit={add} ref={addForm}>
                   <input aria-label="new key" placeholder="NEW_KEY" value={newKey} onChange={(e) => setNewKey(e.target.value)} spellCheck={false} autoComplete="off" style={{ flex: '0 1 22ch' }} />
-                  <input aria-label="new value" placeholder="value" value={newValue} onChange={(e) => setNewValue(e.target.value)} spellCheck={false} autoComplete="off" />
+                  <span className="new-value">
+                    <ValueField label="new value" placeholder="value" value={newValue} onChange={setNewValue} onEnter={() => addForm.current?.requestSubmit()} />
+                  </span>
                   {sections.length > 0 && (
                     <label className="muted" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                       in
@@ -248,7 +255,7 @@ export function Editor({ base, ed, pinned, titleTabs, tone = null }: Props) {
                     {addErr}
                   </span>
                 </form>
-              </>
+              </div>
             ) : (
               <textarea
                 aria-label="secret value"

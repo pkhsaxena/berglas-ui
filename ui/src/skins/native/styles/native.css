@@ -242,7 +242,7 @@ th { text-align: left; font-weight: 500; color: var(--n-muted); background: var(
 td { padding: 6px 10px; border-top: 1px solid var(--n-line); vertical-align: top; }
 td.env-key { width: 1%; font-family: var(--mono); font-size: 12.5px; color: var(--n-key); font-weight: 600; }
 td.env-key > .k { display: inline-block; width: max-content; max-width: min(30ch, 42cqi); overflow-wrap: anywhere; }
-td.env-val { font-family: var(--mono); font-size: 12.5px; color: var(--n-fg); overflow-wrap: anywhere; }
+td.env-val { font-family: var(--mono); font-size: 12.5px; color: var(--n-fg); overflow-wrap: anywhere; white-space: pre-wrap; }
 tr.note td { font-family: var(--mono); font-size: 12px; color: var(--n-muted); background: color-mix(in srgb, var(--n-surface-2) 60%, transparent); }
 tr.note.section-head td { color: var(--n-section); font-weight: 700; font-family: var(--sans); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
 tr.active td { background: var(--n-accent-soft); }
@@ -272,16 +272,23 @@ button.th-sort { border: 0; background: none; padding: 0; color: inherit; font: 
 textarea.value-field { display: block; width: 100%; resize: none; overflow-y: auto; overflow-x: hidden; max-height: calc(3 * 1.5em + 10px); padding: 4px 8px; border-radius: 6px; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* the editor: key names edit in place; keys the loaded version doesn't have are marked new */
 .key-edit { display: inline-flex; align-items: center; gap: 6px; }
-td.env-key input.key-input { width: auto; min-width: 0; font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--n-key); }
+td.env-key textarea.key-input { display: block; width: auto; min-width: 0; max-width: min(30ch, 42cqi); resize: none; overflow: hidden; padding: 4px 8px; border-radius: 6px; font-family: var(--mono); font-size: 12.5px; font-weight: 600; line-height: 1.5; color: var(--n-key); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* a long name wraps onto more lines inside its field (useKeyInput) instead of pushing the value column out, as td.env-key > .k caps it when shown */
 .key-error { font-family: var(--sans, inherit); font-weight: 400; white-space: normal; max-width: 34ch; margin-top: 2px; }
 tr.env-new > td { background: color-mix(in srgb, var(--n-good) 9%, transparent); }
 tr.env-new > td:first-child { box-shadow: inset 3px 0 var(--n-good); }
 .new-badge { font-family: var(--sans, inherit); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--n-good); }
+tr.env-changed > td { background: color-mix(in srgb, var(--n-warn) 9%, transparent); }
+tr.env-changed > td:first-child { box-shadow: inset 3px 0 var(--n-warn); }
+.changed-badge { font-family: var(--sans, inherit); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--n-warn); }
+.paste-note { margin-bottom: 8px; }
 /* KEY=value outside the table (only in pinned), coloured like the table */
 .env-pair { font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }
 .env-pair-key { color: var(--n-key); font-weight: 600; }
 .env-pair-eq { color: var(--n-muted); }
-.env-pair-val { color: var(--n-fg); }
+.env-pair-val { color: var(--n-fg); white-space: pre-wrap; }
+/* the add-key form's value: a growing textarea (a pasted PEM keeps its lines) */
+.new-value { flex: 1 1 20ch; min-width: 0; }
 /* only in pinned, in the editor: KEY=value on the left (wrapping when long), its Add on the right; Add all over that column */
 .pin-missing-head { margin: 0; justify-content: space-between; }
 .pin-missing li { display: flex; align-items: baseline; gap: 12px; padding: 6px 0; }
@@ -422,7 +429,7 @@ html[data-locked] #root > :not(.lock-screen) { visibility: hidden; }
 .set-stack .row > .switch { margin-left: auto; }
 .row input.set-number { flex: none; width: 9ch; text-align: right; }
 .row input.set-wide, input.set-wide { flex: 1 1 26ch; width: 26ch; min-width: 0; }
-input[aria-invalid="true"] { border-color: var(--n-bad); }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--n-bad); }
 .set-path { overflow-wrap: anywhere; text-align: right; }
 .switch { flex: none; width: 34px; height: 20px; border-radius: 10px; border: 0; padding: 2px; cursor: pointer; background: color-mix(in srgb, var(--n-fg) 22%, transparent); display: inline-flex; transition: background .12s; }
 .switch[aria-checked="true"] { background: var(--n-accent); }
