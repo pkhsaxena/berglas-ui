@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
-import { REPO_URL } from '../../../core/about'
+import { ISSUES_URL, REPO_URL } from '../../../core/about'
+import { GitHubMark } from './GitHubCorner'
 import { type SettingsIdentity, type SettingsScreen, useFieldText } from '../../../core/hooks/useSettingsScreen'
 import { type Block, type ChoiceKey, type ChoiceOption, type Field, type Item, isField, listText, parseList } from '../../../core/settingsModel'
 import { type Source, sourceId, sourceName } from '../../../core/sources'
@@ -209,9 +210,15 @@ function BlockRow({ b, p }: { b: Block; p: Props }) {
         <Row id="configFile" label="Config file" help="Every setting here is saved in this file. Edits made to it by hand are read when the app starts.">
           <span className="t-string set-path">{p.configPath}</span>
         </Row>
-        <Row id="sourceCode" label="Source code" help="Issues, releases and the code.">
-          <a className="t-string" href={REPO_URL} target="_blank" rel="noopener noreferrer">
-            {REPO_URL.replace('https://', '')}
+        <Row id="sourceCode" label="Source code" help="Open source on GitHub: read the code and follow releases.">
+          <a className="about-link" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            <GitHubMark />
+            {REPO_URL.replace('https://github.com/', '')}
+          </a>
+        </Row>
+        <Row id="reportIssue" label="Report an issue" help="Found a bug or missing something? Tell us on GitHub.">
+          <a className="about-link" href={ISSUES_URL} target="_blank" rel="noopener noreferrer">
+            Open an issue
           </a>
         </Row>
         <Row id="version" label="Version">

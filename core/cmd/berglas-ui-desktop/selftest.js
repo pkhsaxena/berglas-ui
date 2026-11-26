@@ -1600,10 +1600,15 @@
     // Settings → About links the repo too
     setBtn?.click()
     await idle()
-    const aboutLink = [...document.querySelectorAll('a')].some((a) => a.href === 'https://github.com/pkhsaxena/berglas-ui' && !a.classList.contains('github-corner'))
+    // the repo as owner/name after the GitHub mark, and its own Report an issue row; never the raw URL as text
+    const aboutLinks = [...document.querySelectorAll('a.about-link')]
+    const repoLink = aboutLinks.find((a) => a.href === 'https://github.com/pkhsaxena/berglas-ui')
+    const issuesLink = aboutLinks.find((a) => a.href === 'https://github.com/pkhsaxena/berglas-ui/issues')
+    const rowOf = (el) => el?.closest('.set-row')
+    const aboutLink = !!repoLink && !!issuesLink && !!repoLink.querySelector('svg.github-mark') && repoLink.textContent.trim() === 'pkhsaxena/berglas-ui' && /open an issue/i.test(issuesLink.textContent) && rowOf(repoLink) !== rowOf(issuesLink) && !aboutLinks.some((a) => a.textContent.includes('github.com'))
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
     await idle()
-    check('GitHub corner past Settings opens the repo; Settings → About links it', placed && openedRepo && aboutLink && location.href === before, `placed ${placed}, opened ${openedRepo}, about ${aboutLink}, page ${location.href}`)
+    check('GitHub corner past Settings opens the repo; Settings → About links owner/name with the GitHub mark, Report an issue on its own row, no raw URL', placed && openedRepo && aboutLink && location.href === before, `placed ${placed}, opened ${openedRepo}, about ${aboutLink}, page ${location.href}`)
     await wait(3000) // time for a port check from outside
   } catch (e) {
     check('exception', false, String(e) + ' @ ' + String(e?.stack ?? '').split('\n').slice(0, 8).join(' | '))

@@ -504,3 +504,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .shortcut-row dt { display: flex; gap: 4px; flex-wrap: wrap; }
 .shortcut-row dd { margin: 0; }
 .shortcut-sheet kbd { font: 12px var(--mono); border: 1px solid var(--n-line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; background: var(--n-surface-2); }
+
+/* Settings → About: the repo (owner/name after the GitHub mark) and the issues link */
+a.about-link { display: inline-flex; align-items: center; gap: 6px; color: var(--n-accent); text-decoration: none; font-family: var(--mono); font-size: 12.5px; }
+a.about-link:hover, a.about-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+a.about-link .github-mark { flex: none; color: var(--n-fg); }

@@ -114,7 +114,7 @@ export const ITEMS: Item[] = [
   { key: 'listen', kind: 'text', section: 'browser', restart: true, label: 'Listen address', help: 'host:port for the core. Port 0 picks a free one. -listen and BERGLAS_UI_LISTEN win over this.', placeholder: '127.0.0.1:0', empty: '127.0.0.1:0', keywords: 'port host address server' },
   { key: 'openBrowser', kind: 'toggle', section: 'browser', restart: true, label: 'Open the browser at start', help: 'Open the ui in your default browser when the core starts.', keywords: 'launch open browser' },
 
-  { key: 'about', kind: 'block', section: 'about', label: 'Config file', help: 'Where these settings are saved, the version, and the source code.', keywords: 'config file path yaml version saved location github source code repository repo issues' },
+  { key: 'about', kind: 'block', section: 'about', label: 'Config file', help: 'Where these settings are saved, the version, the source code, and where to report an issue.', keywords: 'config file path yaml version saved location github source code repository repo issues bug report problem' },
 ]
 
 export const isField = (i: Item): i is Field => i.kind !== 'block'
