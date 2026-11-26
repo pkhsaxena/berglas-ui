@@ -5,425 +5,340 @@ secrets, on both of its backends: Cloud Storage + KMS (`berglas://`) and Secret 
 
 > Not an official Google project, and not affiliated with or endorsed by Google.
 
-**New here? Start with the [user guide](docs/GUIDE.md)**: everything the app does, in plain language.
-
 <p>
   <img src="docs/screenshots/native-prod.png" alt="The native skin on demo data: a production secret under a red banner, with the service by environment matrix and the overview beside it" width="49%">
   <img src="docs/screenshots/terminal-drift.png" alt="The terminal skin on demo data: one service's keys compared across dev, staging and prod, with missing keys and a prod equals staging check" width="49%">
 </p>
 
-Both skins on demo data (`BERGLAS_UI_DEMO=1`): **native** on a production secret, **terminal**
-comparing one service's keys across its environments. Also: a
-[revealed `.env` secret](docs/screenshots/terminal-secret.png) and
-[the ⌘K palette in Catppuccin Mocha](docs/screenshots/native-palette-mocha.png).
+This page is the user guide: everything the app does, in plain language. For install,
+credentials, the config file, building the mac app, the security model and the API, see the
+**[reference](docs/REFERENCE.md)**.
 
-## why it's safe
+## A guide for new users
 
-- **values don't travel:** key drift compares fingerprints. The core decrypts and returns one
-  HMAC per key, under a key made fresh each run, so no value reaches the ui. Reveal is a click,
-  hides itself after a minute, and copies clear from the clipboard.
-- **typed confirmation:** writes and deletes to protected names (`protect:` globs, e.g.
-  `*-prod-*`) need a typed confirmation (the word `confirm` to save, also to a file, and to delete; every delete asks for it); the core refuses them otherwise (`428`). Prod secrets sit
-  under a red banner.
-- **review before save:** every edit, create and restore shows the diff, with warnings for
-  duplicate keys and empty values, and writes nothing until you save. If someone saved in
-  between, your save is refused instead of overwriting theirs.
-- **exports:** **save to file** asks first; the mac app writes the file mode 600.
-- **audit log** (turn on with `auditLog:`): one JSON line per write or export (who, what, which
-  version), never a value.
-- **local only:** the core listens on 127.0.0.1 behind a per-launch token, Host and Origin
-  checks. The mac app has no port at all.
-- **mac app:** the window is left out of screenshots, recordings and screen sharing; it locks
-  on demand or after idle (`lockAfterMinutes`), with Touch ID to unlock.
+berglas-ui is a window onto your team's secrets: the API keys, passwords and `.env` files your
+services use, stored with [berglas](https://github.com/GoogleCloudPlatform/berglas) in Google
+Cloud. You can browse them, read them, compare them across environments and change them, with
+guard rails that make mistakes hard.
 
-## features
+It works with both places berglas keeps secrets:
 
-- one window for buckets (Storage + KMS) and projects (Secret Manager), grouped by service and
-  environment, with dev / staging / prod colors
-- reveal, filter and copy `.env` keys (or the whole file as shell `export` lines); versions, diffs and restore
-- edit key by key with a review step; create, delete, conflicts handled
-- key drift across environments, a service × environment matrix and an overview
-- pin a secret and compare others against it
-- ⌘K command palette, `?` for every shortcut, favourites and recents, watch a secret for new versions
-- `berglas-ui://` links, drop a file to use as a value, save to file
-- a setup guide on first run: several sources at once, their name groups and protected names
-- two skins (native, the default, and terminal) and themes including the four Catppuccin flavours
-- mac app: native menus, find in page, Touch ID lock, hidden from screen capture
+- **Storage + KMS**: secrets in a Cloud Storage bucket, encrypted with a KMS key
+- **Secret Manager**: secrets in a Google Cloud project
 
-Every feature, and how it is tested, is listed in
-[`ui/src/skins/FEATURES.md`](ui/src/skins/FEATURES.md).
+You only ever see what your own Google account is allowed to see.
 
-## quick start
+**Contents**
 
-Try it on made-up secrets first. Demo mode keeps everything in memory, needs no Google
-credentials and never touches your config:
-
-```bash
-npm --prefix ui install && npm --prefix ui run build   # builds into core/webui/dist
-cd core && go run ./cmd/berglas-ui -demo -open
-```
-
-Then on your own secrets:
-
-```bash
-gcloud auth application-default login
-cd core && go run ./cmd/berglas-ui -open
-```
-
-and the setup guide opens: add your buckets and projects (several at once, or paste a list),
-check each one is reachable, pick how their names group and which names are protected, then save.
-Skip it to add sources one at a time under **sources**. Needs Go (see `core/go.mod`) and Node. For the
-mac app, see [releases](#releases).
-
-```
-core/   Go: a localhost JSON api over the berglas library; embeds the built ui; the mac app (Wails)
-ui/     React + Vite + TypeScript; talks only to the core's api (see ui/src/core/api.ts)
-```
-
-## releases
-
-There are no published builds yet. Build the mac app yourself:
-
-```bash
-scripts/build-mac.sh            # → dist/berglas-ui.app; UNIVERSAL=1 for Apple silicon + Intel
-open dist/berglas-ui.app
-scripts/build-mac.sh --dmg      # also → dist/berglas-ui-<version>-<arch>.dmg, a drag-to-Applications disk image
-```
-
-It needs Xcode's command line tools, Go and Node. The build is **signed ad hoc and not
-notarized**: it runs on the Mac that built it, and on any other Mac Gatekeeper warns or blocks
-it. Handing it to others needs a Developer ID signature and notarization; until then, someone
-opening it from the `.dmg` allows it once in System Settings → Privacy & Security → Open Anyway.
-The browser version
-is one Go binary with the ui embedded (`cd core && go build ./cmd/berglas-ui`, after building
-the ui) and runs wherever Go does;
-the desktop app is macOS only for now.
+1. [Getting started](#1-getting-started)
+2. [The window at a glance](#2-the-window-at-a-glance)
+3. [Finding a secret](#3-finding-a-secret)
+4. [Reading a secret](#4-reading-a-secret)
+5. [Versions and history](#5-versions-and-history)
+6. [Changing secrets](#6-changing-secrets)
+7. [Comparing secrets](#7-comparing-secrets)
+8. [Keeping an eye on changes](#8-keeping-an-eye-on-changes)
+9. [How the app keeps you safe](#9-how-the-app-keeps-you-safe)
+10. [Settings](#10-settings)
+11. [Working as another identity](#11-working-as-another-identity)
+12. [Keyboard shortcuts](#12-keyboard-shortcuts)
+13. [When something goes wrong](#13-when-something-goes-wrong)
 
 ---
 
-## features in detail
+## 1. Getting started
 
-- **skins:** `native` (the default) and `terminal`, both with every feature. `skin:` in the
-  config picks one; the header's **skin** picker saves the choice and reloads.
-- **themes:** each skin has its own names, saved as `theme:`. terminal: Dracula, GitHub light,
-  Gruvbox, Monokai, Nord, Solarized dark and light; native: System (follows the OS), Light, Dark.
-  Both also have `Catppuccin Latte`, `Frappé`, `Macchiato` and `Mocha`, with Latte's accents
-  darkened so every text colour reaches 4.5:1.
-- **environment colors** (`core/envtone.ts`): a secret's environment comes from the `{env}`
-  placeholder of the source's `group` pattern, or else a word in its name (`prod`, `production`
-  → prod; `nonprod`, `staging`, `uat`, `qa` → staging; `dev`, `local`, `sandbox` → dev). List
-  rows, badges and matrix columns are colored by it; a prod secret gets a red **production**
-  banner (saying whether it is protected or read-only), the others a thin colored strip.
-- **key drift** (`core/drift.ts`, core `drift.go`): the **drift** tab, or **compare keys** on a
-  matrix row, compares one service's keys across its environments: which keys are missing where,
-  which values match (a letter per distinct value), empty values, quote-only differences, and a
-  check when prod has the same value as a non-prod environment while the others differ. It
-  decrypts every environment of the service, so it runs only when you ask.
-- **command palette** (`core/palette.ts`): ⌘K (Ctrl+K; in the mac app also Go → Go To…) jumps
-  to any secret of the open source, or of another source seen this session, switches source, or
-  runs an action (new, refresh, views, compare keys, find, zoom, theme, skin, time zone, act as,
-  lock, settings).
-- **settings screen** (`core/settingsModel.ts`): ⌘, (Ctrl+,; in the mac app also Go →
-  Settings…) opens every setting of the config file in sections, with a search box. Most settings
-  are saved the moment you change them. **Safety settings** (read-only, protected names, the lock,
-  reveal and clipboard timers, screen capture, the audit log, and each source's read-only and
-  protected names) are collected instead: a bar lists what would change, and **save safety
-  settings…** then **confirm** writes all of them in one save. Until then the saved values stay in
-  force, and closing with unsaved ones asks first. A safety change is also written to the audit
-  log (to the old file too when the change moves or turns off the log).
-- **favourites and recents:** ☆ on a secret stars it; favourites and the last five secrets you
-  opened, from any source, sit above the list and lead ⌘K; the **recent** heading folds the list
-  and × takes one off it. Saved in the config (names only).
-- **watch:** **watch** on a secret, and the core checks it for new versions every
-  `watchMinutes` (default 5). Changes you didn't make show under **changed** above the list
-  until you open them, and the mac app posts a notification (macOS asks permission once).
-- **links:** **copy link** on a secret gives `berglas-ui://open?backend=…&parent=…&name=…`, which
-  opens the mac app at that secret. It holds no value and only navigates; a source you haven't
-  added is asked about first.
-- **drop a file** onto the window to use it as a value: a dialog searches the open source for
-  the secret to replace (the open one first), or names a new secret (after the file, or what you
-  type). Either opens straight on the review screen; nothing is written until you save.
-- **save to file:** after a reveal, **save to file…** writes that version as plain text after a
-  confirmation (and the word `confirm` typed for protected secrets). In the mac app the core asks where
-  with a Save dialog, writes mode 600 and logs an `export` line (path, no value); in a browser it
-  is a download.
-- **dropdowns** are the app's own: each opens with a search box that keeps the options
-  containing what you type; ↑↓ and Enter pick, Esc closes.
+### Sign in to Google once
 
-## credentials
-
-The core uses Google Application Default Credentials, so you act as yourself and Cloud IAM
-decides what you can see. Once per machine:
+berglas-ui uses your own Google login. In a terminal, run this once per computer:
 
 ```bash
 gcloud auth application-default login
 ```
 
-To work as a service account instead (impersonation; you need
-`roles/iam.serviceAccountTokenCreator` on it), list the identities you switch between in the
-config. An **act as** picker then appears on the account line (and in ⌘K), and the choice is saved:
+### Open the app
 
-```yaml
-credentials:
-  choices:
-    - label: deployer
-      impersonateServiceAccount: deployer@my-project.iam.gserviceaccount.com
-    - label: reader, billed to ops
-      impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
-      quotaProject: ops-project
-```
+- **Mac app:** open **berglas-ui.app**.
+- **In a browser:** run berglas-ui from a terminal. It prints a link; open it, and your browser
+  is connected for that session.
 
-"you (your gcloud login)" is always offered. Switching drops cached lists and closes the open
-secret. It can't switch to another Google user: ADC holds one login, so that takes
-`gcloud auth application-default login` again.
+### Try it safely first (demo mode)
 
-## run
+Demo mode fills the app with made-up secrets. Nothing reaches Google Cloud and nothing you do is
+kept, so it's a good place to click around:
 
-The core picks a free port on 127.0.0.1 and prints a link with a per-launch token. Opening it
-pairs the browser via an HttpOnly cookie. Flags: `-listen` (default `127.0.0.1:0`, a random
-port), `-open`, `-api-only`, `-allow-non-loopback` (containers only), `-demo`, `-config`.
+- Mac app: in a terminal, `BERGLAS_UI_DEMO=1 berglas-ui.app/Contents/MacOS/berglas-ui`
+  (opening the app from Finder always uses your real secrets)
+- Browser: start it with `-demo`
 
-**demo mode** (`-demo`, or `BERGLAS_UI_DEMO=1` for the mac app) serves made-up secrets from
-memory (`demo-bucket`, grouped by `{service}-{env}-env`, and `demo-project`) with version
-history. Nothing reaches Google Cloud, edits vanish on exit, and a throwaway config is used
-unless `-config` (or `BERGLAS_UI_CONFIG`) is given. It's for trying the ui and developing skins.
+A banner at the top says when you're in demo mode.
 
-### config file
+### The setup guide
 
-Settings and sources live in a YAML file, so they survive restarts. Because the port is random,
-the page's origin changes on every launch, so browser storage can't hold them. The file is
-created on first save. Hand edits and top-level comments are kept when the ui writes to it, but
-comments inside a `sources` entry are lost when you add or remove a source from the ui. Unknown
-keys are an error, so a typo like `readonly` fails at startup instead of being silently ignored.
+The first time you open the app with no sources, a short setup guide walks you through
+three steps:
 
-- default location: `~/.berglas-ui/config.yaml` (on Windows `%USERPROFILE%\.berglas-ui\config.yaml`)
-- override: `-config <path>` or `BERGLAS_UI_CONFIG`
-- the settings screen (⌘,) edits this same file; there is no second store. A save is one atomic
-  write (owner-only, `0600`) and is all or nothing: one bad value and none of it is written.
-- changes made in the settings screen apply at once, except `allowScreenCapture`, `listen` and
-  `openBrowser`, which are read at startup. Hand edits to the file are also read at startup only.
+1. **Sources**: add the buckets and projects that hold your secrets. Add as many as you like,
+   one per row, or paste a list (`berglas://my-bucket`, `sm://my-project`, or just the names).
+   Each one is checked as you type: you'll see **✓ Reachable** and how many secrets it holds, or
+   why it couldn't be read. The guide also suggests how the secret names group (for example
+   `{service}-{env}-env`, which groups `orders-dev-env` and `orders-prod-env` under *orders*).
+   Type any pattern in **Group names by** (a `{` closes itself, and **Tab** in the empty box fills
+   in the example shown), or click it to pick a common one: each suggestion says how well it fits
+   your names.
+2. **Safety**: choose which secret names are **protected** (for example `*-prod-*`). The guide
+   suggests patterns based on your names and shows how many secrets each would cover. You can
+   also choose to lock the app when you're away, and keep an audit log.
+3. **Review**: check everything, then **Save**.
 
-```yaml
-listen: 127.0.0.1:0          # -listen / BERGLAS_UI_LISTEN win; port 0 = a free port
-openBrowser: true            # open the ui on startup (same as -open)
-skin: terminal
-theme: Dracula
-zoom: 100                    # scale the whole ui, 50-200 percent (also the header's zoom menu)
-timeZone: local              # times in the system zone, or utc (also a switch in the header)
-envOrder: sorted             # .env views sorted by section and key, or file
-readOnly: false              # refuse every write, everywhere
-protect: ["*-prod-*"]        # writes/deletes to matching names need a typed confirmation
-revealSeconds: 60            # hide revealed values and diffs after this; 0 = never
-clipboardClearSeconds: 30    # clear every copy (values, keys, links) after this; 0 = never
-cacheSeconds: 600            # keep secret/version lists (never values) for revisits; 0 = off
-cacheEntries: 500            # at most this many cached lists, least recently used out first
-auditLog: ~/.berglas-ui/audit.log   # one json line per write, export or safety settings change; empty = off
-watchMinutes: 5              # how often watched secrets are checked
-lockAfterMinutes: 15         # mac app: lock after this long without input; 0 = never
-allowScreenCapture: false    # mac app: let screenshots and screen sharing see the window
-credentials:                 # who the core acts as; switch between choices in the ui
-  impersonateServiceAccount: reader@my-project.iam.gserviceaccount.com
-  quotaProject: my-project
-sources:
-  - backend: storage         # cloud storage + kms (berglas://bucket/...)
-    parent: my-bucket
-    label: team secrets      # shown instead of the bucket name
-    kmsKey: projects/my-project/locations/global/keyRings/berglas/cryptoKeys/berglas-key
-    group: "{service}-{env}-env"   # group the list by {service}, label rows by {env}
-    protect: ["root-*"]      # added to the global patterns, for this source only
-    default: true            # open this source on startup
-  - backend: sm              # secret manager (sm://project/...)
-    parent: my-project
-    readOnly: true
-```
+You can skip the guide and add sources one at a time instead. To bring it back later, use
+**Set up sources…** in the command palette (⌘K), **Add several at once…** in the sources pane, or
+**Go → Set Up Sources…** in the Mac app's menu.
 
-The ui also keeps `favorites`, `recent` and `watch` here (source and name only).
+---
 
-| key | what it does | enforced by |
-|---|---|---|
-| `readOnly` (global or per source) | create, update, delete, grant, revoke and bootstrap answer `403 read_only`; the ui hides them | core |
-| `protect` (global + per source) | `path.Match` globs; a matching name can only be written, deleted or saved to a file with its name in the `X-Berglas-Confirm` header (`428 confirm_required` otherwise). The ui asks you to type it | core |
-| `kmsKey` (per storage source) | default key for new secrets; the ui prefills it and the core fills it in when a create omits it | core |
-| `revealSeconds`, `clipboardClearSeconds` | auto-hide for values and diffs; every copy the app makes (values, keys, whole files, links) is cleared after `clipboardClearSeconds`; clearing only happens if the clipboard still holds the copied value, and the browser has to allow the page to read it, otherwise you are told it was not cleared | ui |
-| `zoom` | scales the whole ui. Zooming out gives the layout more room, the way browser zoom does: at 67% a 1440px window gets the wide layout (panes side by side) | ui |
-| `cacheSeconds`, `cacheEntries` | lists of secrets and versions (names and times, never values) seen before show at once on a revisit while a fresh copy loads. Each expires `cacheSeconds` after it was fetched; at most `cacheEntries` are kept. Either at 0 turns the cache off | ui |
-| `auditLog` | appends `{time, actor, action, backend, parent, name, version, path, result, error}` per write or export attempt (never values), file mode 0600. A change to a safety setting from the settings screen adds `{action: "settings change", changes: ["readOnly: false → true", …]}`, in the file in use before the change and, if the change moved the log, in the new one. If a line cannot be written, the write has still happened and the ui shows an error | core |
-| `credentials` | every call is made as `impersonateServiceAccount` (your ADC identity needs `roles/iam.serviceAccountTokenCreator` on it), with quota billed to `quotaProject`; `choices` feeds the **act as** picker | core |
-| `label`, `group`, `default` | display only; `group` also adds the service × env matrix and drift (click an env header to sort rows: newest first, oldest first, default) | ui |
-| `timeZone`, `envOrder` | `local` / `utc`; `sorted` / `file` (the stored file is never reordered) | ui |
-| `openBrowser`, `listen`, `allowScreenCapture` | startup only | core |
+## 2. The window at a glance
 
-### mac app
+- **Sources** (top left): your buckets and projects. Click one to open it. **+** adds another;
+  **✕** removes it from the list (nothing in the cloud is deleted, and **Undo** puts it back).
+- **Secrets** (left): everything in the open source, grouped by service, with each environment
+  in its colour: **green** for dev, **amber** for staging, **red** for production.
+- **The main area** (right): the open secret, with tabs for **Versions**, **Overview**,
+  **Matrix** and **Drift**.
+- **The header**: time zone, zoom, theme, skin, and **Settings**.
+- **Hide the side bar** with the button at the left of the header, or **⌘B**, to give the secret
+  the whole window. The same button or **⌘B** brings it back, and **/** shows it and puts you in
+  the filter. The app remembers your choice.
 
-The same ui and core in a native window (Wails v2, the system's WKWebView), so no browser and
-no port: the web view hands requests to Go in-process. It reads the same
-`~/.berglas-ui/config.yaml` and the same gcloud credentials, and finds them when started from
-Finder. Building it: [releases](#releases).
+The app comes in two looks, **native** (the default) and **terminal**, each with several themes.
+Switch with **Skin** and **Theme** in the header.
 
-- **clipboard and links:** a web view only lets a page touch the clipboard inside a click, so
-  copies and the auto-clear go through the core (`/api/desktop/clipboard`); no route reads the
-  clipboard back. `mailto:` and `http(s)` links open in your mail app or browser; other schemes
-  are refused.
-- **menus:** the standard app and Edit (⌘C ⌘V ⌘X ⌘A, undo) menus; Find (find ⌘F, next ⌘G,
-  previous ⇧⌘G); Go (Go To… ⌘K; Settings… ⌘,; Set Up Sources…; Keyboard Shortcuts; Lock ⌘L); View (hide or show the side bar ⌘B; zoom in ⌘=, zoom out ⌘-, actual size ⌘0,
-  reload ⌘R, full screen); Window.
-- **lock:** Go → Lock, **Lock now** in ⌘K, or `lockAfterMinutes`. Unlocking asks for Touch ID
-  (or the login password). An open editor keeps its draft under the lock.
-- **hidden from screen capture** unless `allowScreenCapture: true` (read at startup).
-- **links:** `Info.plist` registers the `berglas-ui://` scheme.
-- **self-test (development):** `BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full` drives every
-  testable feature inside the real window (both skins: `BERGLAS_UI_SKIN=native`), prints each
-  step and then `SELFTEST [...]`, and quits. It writes secrets, so it only runs with the demo
-  store, and it overwrites the clipboard. `BERGLAS_UI_SELFTEST=status` only checks that
-  credentials are found; `layout` reports whether the page itself can scroll in the window.
+**Zoom out** (header **Zoom** menu, or ⌘− in the Mac app) to give the layout more room. On a wide
+window, the matrix and overview then get their own column beside the secret.
 
-### ui development
+---
 
-```bash
-cd core && go run ./cmd/berglas-ui -api-only -listen 127.0.0.1:8740   # terminal 1
-npm --prefix ui run dev        # terminal 2; proxies /api to $BERGLAS_UI_CORE or 127.0.0.1:8740
-```
+## 3. Finding a secret
 
-Open the printed link with the port changed to vite's (5173) so the cookie is set for that origin.
+- **Filter**: type in the box above the list, or press **/** from anywhere.
+- **Favourites**: click **☆** on a secret to star it. Favourites stay at the top of the list.
+- **Recent**: the last few secrets you opened sit above the list. Click the heading to fold it;
+  **×** removes one.
+- **Command palette (⌘K)**: one box to jump to any secret or source, or run an action (new secret,
+  refresh, switch view, theme, settings and more). Type a few letters, pick with ↑↓, press Enter.
+- **Find in the window (⌘F, Mac app)**: highlights matching text anywhere in the window. Hidden
+  values are never matched.
 
-## changing the ui
+---
 
-The ui is split so the look can be replaced without touching behaviour:
+## 4. Reading a secret
 
-```
-ui/src/core/            no markup, no css: api client, .env parsing, diffing, time formatting
-ui/src/core/hooks/      everything a screen needs: useApp (session, config, sources),
-                        useSecretList, useSecret (versions, reveal, copy), and the edit/diff hooks
-ui/src/skins/terminal/  the terminal-pane look: components, css and theme presets
-ui/src/skins/native/    a Mac-style window: sidebar, segmented controls, light and dark themes
-ui/src/skins/registry.ts  the skins this build has; main.tsx loads the one the config names
-ui/src/skins/FEATURES.md  every ui feature a skin must offer, where it lives in core, how it is verified
-```
+Click a secret to see its details: when it last changed, its version, its key, and where it lives.
+Its value stays hidden until you ask for it.
 
-To build a new look, add `ui/src/skins/<name>/` whose `index` exports an `App` built on the
-hooks, and add it to `SKINS` in `registry.ts`. Work through
-[`ui/src/skins/FEATURES.md`](ui/src/skins/FEATURES.md): a skin is done when it has every row.
-Skins must not call `fetch` or parse values themselves; anything a second skin would also need
-belongs in `core/`. Each skin is its own chunk, so only the chosen skin's code and css load.
+- **Reveal** shows the value. It hides again by itself after a minute (you can change this), or
+  when you press **Esc** or **Hide**.
+- **`.env` secrets** open as a table of keys:
+  - **Keys / Raw** switches between the table and the file as stored.
+  - **Sorted / File order** sorts the table by section and key, or shows the file's own order.
+    Only the view changes; the file itself is never reordered.
+  - **Filter keys and values** narrows the table to what you type: a key, a value, a whole
+    `KEY=value` line, or a few words from either (`log warn` finds `LOG_LEVEL=warn`).
+- **Copying**:
+  - **Copy** next to a key copies it as `KEY=value`.
+  - **Copy value** copies the whole secret.
+  - **Copy as export lines** copies every key as `export KEY='value'` lines, ready to paste into
+    a terminal.
+  - While a filter is on, **Copy N shown** copies just those keys.
+  - Everything you copy is wiped from the clipboard after 30 seconds (you can change this), as
+    long as you haven't copied something else since.
+- **Save to file…** writes the revealed version to a file, after asking you first.
 
-## editing
+**Production secrets** sit under a red banner, so you always know when you're looking at one.
 
-### sorted .env views
+---
 
-`.env` secrets are shown sorted (switch with **sorted · file order** next to env/raw):
+## 5. Versions and history
 
-- the file is read as blocks separated by blank lines; comment lines at the top of a block are
-  that block's section header (`# Server` over `PORT`, `READ_TIMEOUT`, …)
-- sections are listed A→Z by header, keys A→Z inside each (case-insensitive, `K2` before `K10`)
-- keys in blocks without a header are listed first as "no section"; comment-only blocks (a file
-  banner) are shown at the top; a comment between two keys stays with the key below it
-- only the view is sorted: editing a value rewrites that key's own line, so the saved file keeps
-  its order, comments and formatting. The raw tab always shows the file as stored
-- **add key** can go into a section (inserted after that section's last key) or at the end of the
-  file; keys added from a pin are appended at the end
+The **Versions** tab lists every saved version, newest first.
 
-### edit, review, conflicts
+- **View** shows an older version (it's marked as old).
+- **Diff**: pick **a** and **b** on two versions, then **Diff a → b** to see what changed.
+- **Restore this version…** (on an older version) opens the editor with that old value, ready to
+  save as a new version. Nothing is lost: the newer versions stay in the history.
 
-- **unsaved edits:** while the editor or the new-secret form holds changes, opening another
-  secret, source or view (also from ⌘K, a link or a dropped file) asks **discard unsaved
-  changes?** first; **keep editing** is the default.
-- **edit** opens the latest value. `.env` secrets get a key/value editor, where changing a value
-  rewrites only that line and keeps comments, `export` prefixes and line endings. Any secret can be
-  edited as raw text.
-- **review changes** shows the diff from the loaded value to your draft, with warnings for keys
-  set more than once and empty values. Nothing is written until you press **save** there.
-- **save unchanged…** (in the editor, when nothing changed) writes the same value again as a new
-  version: whatever watches the secret for new versions, such as a cluster's secret sync, then
-  picks it up again. It has the same review and confirmation as any save.
-- **conflicts:** the save carries the generation (storage) or version (secret manager) you
-  loaded. If someone saved in between, the save is refused instead of overwriting their change.
-  For `.env` secrets, **reapply my changes to latest** replays only the keys you changed onto the
-  new version and shows the review again. Keys you both changed are flagged.
-  - storage: the check is atomic (a Cloud Storage precondition).
-  - secret manager: berglas has no precondition, so the core re-reads the latest version just
-    before writing. The race window is small but not zero.
-- **restore this version…** (on an old version) opens the editor with that version's value as a
-  draft against the latest, and saves it as a new version.
-- **new** (list pane) creates a secret after a review step. **delete…** needs the word `confirm` typed
-  and removes every version, history included.
-  - storage: berglas finds generations by listing the name as a prefix, then deletes this name at
-    each one. If another secret's name starts with this one (`api` and `api-key`), that fails
-    partway, after some history is already gone. The core refuses such deletes up front. It only
-    sees berglas secrets, so a non-secret object with the same prefix can still trip it.
+---
 
-### viewing and comparing
+## 6. Changing secrets
 
-- **view tabs** (normal width): `<secret> · versions · overview · matrix · drift` sit in the
-  title border of the right column's top pane. On **reveal** the value fills the right column and
-  versions step aside until you pick that tab. Zoomed out, secret and versions stay side by side.
-- **zoom:** the header's **zoom** menu (or ⌘= ⌘- ⌘0 in the mac app) scales the whole ui. The
-  layout bands follow the ui's own width (`#root[data-width]`, set by `useLayoutWidth`), because
-  css zoom never moves media queries and WebKit reads container queries at the unzoomed width.
-- **filter a revealed value:** the box above a revealed or pinned `.env` value shows only keys or
-  values containing what you type, under their section headings, with a count. Esc clears it.
-- **find in page** (mac app, ⌘F): highlights every visible match, ⌘G / enter and ⇧⌘G / ⇧enter step
-  through them, and it follows the page as it changes. Masked values are not text, so they are
-  never found. In a browser, ⌘F stays the browser's.
-- **diff:** in the versions table, pick `a` and `b`, then **diff a → b**.
-- **pin:** **pin** keeps the shown version in its own pane while you open other secrets. Revealed
-  first, its value comes along; pinned while hidden, it stays masked until you reveal it there. The pane
-  appears once you open another secret and has the same details and buttons as a secret's pane
-  (reveal / hide, copy value, save to file); a value shown there stays until you **hide** or
-  **unpin** it (it does not hide on the reveal timer). With a pin:
-  - **compare with pinned …** diffs the pinned value against the open secret's latest version.
-    It works on a hidden pin too and shows only the diff; neither value is revealed.
-    It reports "identical", or "same keys and values" when only comments, order or formatting
-    differ.
-  - revealing the open secret marks each key against the pin (`=`, `≈ quotes`, `≠ differs`,
-    `+ only here`), with a one-line summary and the keys only the pinned secret has.
-  - the editor marks every key `=`, `≠` (with **use pinned** to copy the pinned value) or
-    `+ only here`, lists keys only the pinned secret has (with **add** or **add all**), and says
-    when the draft matches the pinned secret exactly.
-  - zoomed out, while a pin and a different secret are both open, the matrix/overview column
-    steps aside so pinned, secret and versions share the width; overview and matrix move to tabs
-    in the versions pane's title. Unpin to get the column back.
-- **quotes:** values that differ only by one surrounding pair of quotes (`KEY="x"` vs `KEY=x`,
-  which dotenv loaders read the same) are marked `≈ quotes only` in diffs and comparisons and
-  `≈ quotes` in the editor beside a pin, instead of as changed. One-sided quotes or spaces outside
-  the quotes still count as real changes.
+### Editing
 
-## security model
+1. Click **Edit…** (on production secrets it says **Edit production…**).
+2. Change what you need. For `.env` secrets you can edit values one by one, rename a key (click
+   its name, type, press Enter; Esc puts it back), **Remove** a key, or **Add key** (into a
+   section of your choice). Keys that weren't in the secret before are tinted and tagged
+   **new**; keys whose value you changed are tagged **changed**. The ones you add are listed last, under **New keys**, in A–Z order, so you can
+   find them (saving still puts each one where you chose). Long values wrap onto up to three
+   lines instead of being cut off, and scroll inside their box beyond that; long key names wrap
+   too, so they never squeeze the value column. Switch to **Raw** to edit the text directly.
+   - **Paste `.env` lines** (say from a `.env.example`) anywhere in the table to add those keys
+     at once; keys already there take the pasted value and are marked **changed**, and a note
+     over the table says which keys were new or changed. Pasted into a value, it takes two or
+     more lines; a single `a=b` stays the value.
+   - **Values can span lines**, such as a PEM signing key: paste it into a value, or press
+     Shift+Enter for a line break. The value is saved in double quotes, the way `.env` loaders
+     read multi-line values.
+3. Click **Review changes**. You'll see exactly what will change, with warnings for keys set
+   twice or left empty.
+4. Click **Save**. Nothing is written until you do.
 
-The core serves secret values over plain HTTP on a local port, so:
+For a **protected** secret, you type the word **confirm** before saving.
 
-- it binds to loopback only, and refuses other addresses unless `-allow-non-loopback` is passed
-- requests with a non-localhost `Host` are rejected (DNS rebinding)
-- every api call needs the per-launch token (cookie or `Authorization: Bearer`)
-- cross-site requests are rejected via `Origin` and `Sec-Fetch-Site`
-- responses are `Cache-Control: no-store`; values are never logged
-- `?destination=` references are refused by `/api/resolve`, because berglas would write the
-  secret to that file path
+**Save unchanged…** writes the same value again as a new version. It's useful when something
+watches a secret for new versions (for example a cluster that syncs secrets) and you need it to
+pick the secret up again.
 
-`readOnly` and `protect` guard against mistakes, not against the person at the keyboard: whoever
-can use the app can change them in the settings screen (after a confirmation, and on record in
-the audit log) or in the config file.
+**If someone else saved first**, your save is refused instead of overwriting their work. You can
+**Reapply my changes to the latest** (for `.env` secrets) or **Start over from the latest**.
 
-The mac app has no port, so it drops the loopback, token and origin checks (nothing outside
-the app can send it requests) and keeps everything else, including read-only and protect.
+**If you try to leave with unsaved changes**, by opening another secret or switching source,
+the app asks first. **Keep editing** is the default.
 
-## api
+### Creating
 
-| method | path | body / query |
-|---|---|---|
-| GET | `/api/status` | — |
-| GET, POST | `/api/config` | POST: any of `{skin, theme, zoom, timeZone, envOrder, sources, favorites, recent, recentCollapsed, watch, watchMinutes, readOnly, protect, lockAfterMinutes, revealSeconds, clipboardClearSeconds, allowScreenCapture, cacheSeconds, cacheEntries, auditLog, listen, openBrowser}`, saved in one write, all or nothing |
-| POST | `/api/credentials` | `{impersonateServiceAccount, quotaProject}` |
-| GET | `/api/secrets` | `backend, parent, prefix` |
-| GET | `/api/secrets/versions` | `backend, parent, name` |
-| POST | `/api/secrets/read` | `{backend, parent, name, version?}` |
-| POST | `/api/secrets/drift` | `{backend, parent, names}` → per-key fingerprints, never values |
-| POST | `/api/secrets/create` | `{backend, parent, name, plaintext, kmsKey?, locations?}` |
-| POST | `/api/secrets/update` | `{backend, parent, name, plaintext, expectedGeneration?, expectedMetageneration?, expectedVersion?, createIfMissing?}` |
-| POST | `/api/secrets/delete` | `{backend, parent, name}` |
-| POST | `/api/secrets/grant`, `/revoke` | `{backend, parent, name, members}` |
-| GET, POST | `/api/watch`, `/api/watch/ack`, `/api/watch/check` | changes to watched secrets; ack takes `{backend, parent, name}` |
-| POST | `/api/bootstrap` | `{projectId, bucket, bucketLocation?, kmsLocation?, kmsKeyRing?, kmsCryptoKey?}` |
-| POST | `/api/resolve` | `{ref}` |
-| | `/api/desktop/…` | mac app only: `clipboard`, `clipboard/clear`, `open`, `save`, `authenticate` |
+Click **+** above the list (or **New secret** in ⌘K), fill in a name and a value, review, and
+create. For a bucket, the KMS key can be filled in for you if you set one for that source.
 
-`backend` is `storage` or `sm`. `plaintext` is base64. Generations are JSON strings.
+**Drop a file** onto the window to use its contents. A box asks where it goes: the open secret is
+offered first, and you can search for any other secret in the source. **New secret** sits just
+under the search box (named after the file, or whatever you type; ⌘Enter picks it). You then land on the review screen showing exactly
+what will change. Nothing is saved until you click **Save** (or **Create**), and **Back to edit**
+lets you adjust it first.
+
+### Deleting
+
+**Delete…** removes a secret and all of its history. You type the word **confirm** to go ahead.
+
+---
+
+## 7. Comparing secrets
+
+### Pin and compare
+
+**Pin** keeps a secret in its own pane while you open others. With something pinned:
+
+- **Compare with pinned…** shows the differences between the pinned secret and the open one,
+  without revealing either value.
+- Revealing the open secret marks each key against the pin: **= same**, **≠ differs**,
+  **≈ quotes** (same value, only the quotes differ), **+ only here**.
+- In the editor, **Use pinned** copies a value across, and **Add all** brings over keys the
+  pinned secret has and this one doesn't.
+
+**Unpin** when you're done.
+
+### Overview
+
+A summary of the open source: how many secrets, how many changed recently, the latest change,
+secrets untouched for a long time, the KMS keys used, and a list of recent changes.
+
+### Matrix
+
+Your services down the side, environments across the top (dev, staging, prod). Each cell shows how
+long ago that secret last changed, or **–** if it doesn't exist. Click an environment to sort by
+it, and click a cell to open that secret.
+
+### Drift
+
+Compares one service's keys across its environments: which keys are missing where, and which
+values match. **No values are shown.** Instead, each distinct value gets a letter, so the same
+letter means the same value. It also flags a production value that's the same as a non-production
+one, which is often a copy-paste mistake.
+
+Open it from the **Drift** tab, or **Compare keys** on a matrix row.
+
+(Matrix and Drift appear for sources whose names follow a pattern like
+`{service}-{env}-env`. The setup guide or Settings can set that pattern.)
+
+---
+
+## 8. Keeping an eye on changes
+
+- **Watch**: click **Watch** on a secret, and the app checks it for new versions every few
+  minutes. Changes made by someone else show under **Changed** above the list until you open
+  them, and the Mac app sends a notification.
+- **Copy link**: copies a `berglas-ui://` link that opens the Mac app straight at that secret.
+  The link holds no value, so it's safe to share with teammates.
+
+---
+
+## 9. How the app keeps you safe
+
+- **Hidden by default**: values appear only when you click **Reveal**, and hide again on a timer.
+- **Clipboard clean-up**: anything you copy is wiped after a while.
+- **Protected names**: saving, saving to a file and deleting need the word **confirm** typed.
+- **Production banner**: production secrets are always marked in red.
+- **Read-only**: a source, or the whole app, can refuse all changes.
+- **Review before every save**, and saves never overwrite someone else's newer change.
+- **Drift never shows values**: it compares keys without decrypting anything into view.
+- **Lock (Mac app)**: lock the app with **⌘L** (or **Go → Lock**), or have it lock itself after a while
+  without use. Unlocking asks for Touch ID or your password. A half-finished edit is kept.
+- **Hidden from screen sharing (Mac app)**: the window doesn't appear in screenshots, recordings
+  or screen shares, unless you allow it in Settings.
+- **Audit log** (optional): a record of every change and export (what and when, never the values).
+
+---
+
+## 10. Settings
+
+Open **Settings** from the header, with **⌘,**, or from ⌘K. Every setting is there, in sections
+(Appearance, Safety, Sources, Identity, Cache and watch, About), with a search box at the top.
+
+- Most settings apply the moment you change them.
+- **Safety settings** (read-only, protected names, timers, the lock, screen sharing, the audit
+  log) are collected first. A bar lists what will change, and you confirm them all at once.
+- A few settings need the app restarted; they say so.
+
+Your settings are kept in one file, `~/.berglas-ui/config.yaml`, which the app writes for you.
+
+---
+
+## 11. Working as another identity
+
+If your team uses service accounts, the app can act as one instead of you. Once they're listed
+in your settings file, an **Act as** picker appears at the top of the window (and in ⌘K). Switching
+reloads the list, since a different identity may see different secrets.
+
+---
+
+## 12. Keyboard shortcuts
+
+Press **?** at any time to see them all. The main ones:
+
+| Keys | What it does |
+|---|---|
+| ⌘K | Jump to a secret, source or action |
+| ⌘, | Settings |
+| / | Filter the secret list |
+| ⌘B | Hide or show the side bar |
+| ? | Show all shortcuts |
+| Esc | Close a dialog, clear a filter, hide a revealed value |
+| ↑ ↓, Enter | Move and pick in lists and menus |
+| ⌘F, ⌘G | Find in the window, next match (Mac app) |
+| ⌘L | Lock (Mac app) |
+| ⌘= ⌘− ⌘0 | Zoom in, out, actual size (Mac app) |
+
+On Windows and Linux, use Ctrl instead of ⌘.
+
+---
+
+## 13. When something goes wrong
+
+- **"No usable Google credentials"**: run `gcloud auth application-default login`, then **Retry**.
+- **A source shows an error, or no secrets**: your Google account probably lacks access to that
+  bucket or project. Ask whoever manages it to grant you access.
+- **Your save says "Not saved"** because someone saved a newer version while you were editing:
+  reapply your changes to the latest, or start over from it.
+- **"Couldn't check the clipboard"** (browser only): the browser didn't let the app read the
+  clipboard, so the copied value wasn't wiped. Clear it yourself if it was sensitive.
+- **The browser says it isn't paired**: open the link printed in the terminal again. Each run of
+  berglas-ui has its own link.

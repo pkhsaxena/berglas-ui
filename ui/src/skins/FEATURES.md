@@ -8,8 +8,8 @@ it doesn't reimplement it.
 feature, and apply UI fixes to every skin listed in `registry.ts` (today: `native`, the default, and `terminal`).
 
 **Verified by**
-- **app** = the in-window self-test (`BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full`, see the README's
-  mac app section). It runs on any skin: `BERGLAS_UI_SKIN=native`. The check's name is quoted.
+- **app** = the in-window self-test (`BERGLAS_UI_DEMO=1 BERGLAS_UI_SELFTEST=full`, see the mac app section of
+  [docs/REFERENCE.md](../../../docs/REFERENCE.md)). It runs on any skin: `BERGLAS_UI_SKIN=native`. The check's name is quoted.
 - **unit** = vitest in `ui/src` or go test in `core/`; the file or test is named.
 - **manual** = not automated. What is left: session states (the mac app never shows "not
   paired"; the others need the core down or credentials missing), config save errors, the credit
